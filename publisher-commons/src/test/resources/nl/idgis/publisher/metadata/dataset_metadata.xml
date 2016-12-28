@@ -488,22 +488,4 @@ Deze wijziging is vastgesteld bij besluit van Gedeputeerde staten van Overijssel
       </transferOptions>
     </MD_Distribution>
   </distributionInfo>
-  <dataQualityInfo>
-    <DQ_DataQuality>
-      <scope>
-        <DQ_Scope>
-          <level>
-            <MD_ScopeCode codeList="./resources/codeList.xml#MD_ScopeCode" codeListValue="dataset">dataset</MD_ScopeCode>
-          </level>
-        </DQ_Scope>
-      </scope>
-      <lineage>
-        <LI_Lineage>
-          <statement>
-            <gco:CharacterString>Het Kadaster</gco:CharacterString>
-          </statement>
-        </LI_Lineage>
-      </lineage>
-    </DQ_DataQuality>
-  </dataQualityInfo>
 </MD_Metadata>

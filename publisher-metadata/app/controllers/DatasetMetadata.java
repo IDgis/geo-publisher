@@ -173,6 +173,9 @@ public class DatasetMetadata extends AbstractMetadata {
 	private Resource tupleToDatasetResource(Transaction tx, Tuple datasetTuple, int sourceDatasetId, Integer datasetId, String fileIdentifier, String datasetIdentifier) {
 		try {
 			MetadataDocument metadataDocument = mdf.parseDocument(datasetTuple.get(sourceDatasetMetadata.document));
+			
+			String oldDatasetIdentifier = metadataDocument.getDatasetIdentifier();
+			
 			metadataDocument.setStylesheet(routes.WebJarAssets.at(webJarAssets.locate(stylesheet())).url());
 			metadataDocument.setDatasetIdentifier(datasetIdentifier);
 			metadataDocument.setFileIdentifier(fileIdentifier);
@@ -298,6 +301,8 @@ public class DatasetMetadata extends AbstractMetadata {
 					}
 				}
 			}
+			
+			metadataDocument.addProcessStep("Originele bestandsnaam: " + oldDatasetIdentifier + ".xml");
 			
 			return new DefaultResource("application/xml", metadataDocument.getContent());
 		} catch(Exception e) {
