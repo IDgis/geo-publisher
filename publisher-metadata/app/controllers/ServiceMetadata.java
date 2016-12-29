@@ -23,7 +23,7 @@ import nl.idgis.dav.model.DefaultResourceProperties;
 
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
-
+import nl.idgis.publisher.xml.exceptions.NotFound;
 import play.Configuration;
 import play.api.mvc.Handler;
 import play.api.mvc.RequestHeader;
@@ -218,13 +218,13 @@ public class ServiceMetadata extends AbstractMetadata {
 			}
 			
 			metadataDocument.removeServiceType();
-			metadataDocument.removeServiceEndpoint();			
+			metadataDocument.removeServiceEndpoint();
 			metadataDocument.removeBrowseGraphic();
 			metadataDocument.removeServiceLinkage();
 			metadataDocument.removeSVCoupledResource();
 			
 			ServiceType serviceType;
-			if(id.equals(serviceTuple.get(service.wmsMetadataFileIdentification))) {				
+			if(id.equals(serviceTuple.get(service.wmsMetadataFileIdentification))) {
 				serviceType = ServiceType.WMS;
 			} else {
 				serviceType = ServiceType.WFS;
@@ -242,9 +242,19 @@ public class ServiceMetadata extends AbstractMetadata {
 			metadataDocument.addServiceType(serviceType.getName());
 			metadataDocument.addServiceEndpoint(ENDPOINT_OPERATION_NAME, ENDPOINT_CODE_LIST, ENDPOINT_CODE_LIST_VALUE, linkage);
 			
+			if(!serviceDatasetTuples.isEmpty()) {
+				config.getViewerUrlPrefix().ifPresent(viewerUrlPrefix -> {
+					try {
+						metadataDocument.addServiceLinkage(viewerUrlPrefix + "?service=" + serviceName, "website", null);
+					} catch(NotFound nf) {
+						throw new RuntimeException(nf);
+					}
+				});
+			}
+			
 			for(Tuple serviceDatasetTuple : serviceDatasetTuples) {
 				String identifier = serviceDatasetTuple.get(dataset.metadataIdentification);
-				String scopedName = serviceDatasetTuple.get(publishedServiceDataset.layerName);						
+				String scopedName = serviceDatasetTuple.get(publishedServiceDataset.layerName);
 				
 				if(serviceType == ServiceType.WMS) {
 					metadataDocument.addServiceBrowseGraphic(linkage + config.getBrowseGraphicWmsRequest() + scopedName);
