@@ -606,4 +606,47 @@ public class MetadataDocumentTest {
 				+ "/gco:CharacterString"
 				+ "/text()"));
 	}
+	
+	@Test
+	public void testAddProcessStep() throws Exception {
+		String dataQualityInfoPath = 
+				"/gmd:MD_Metadata"
+				+ "/gmd:dataQualityInfo";
+		String scopeCodePath = 
+				dataQualityInfoPath
+				+ "/gmd:DQ_DataQuality"
+				+ "/gmd:scope"
+				+ "/gmd:DQ_Scope"
+				+ "/gmd:level"
+				+ "/gmd:MD_ScopeCode["
+					+ "@codeList = './resources/codeList.xml#MD_ScopeCode' "
+					+ "and text() = 'dataset']";
+		String processStepDescriptionPath = 
+				dataQualityInfoPath
+				+ "/gmd:DQ_DataQuality"
+				+ "/gmd:lineage"
+				+ "/gmd:LI_Lineage"
+				+ "/gmd:processStep"
+				+ "/gmd:LI_ProcessStep"
+				+ "/gmd:description"
+				+ "/gco:CharacterString";
+		
+		String firstDescription = "first test description";
+		String secondDescription = "second test description";
+		
+		MetadataDocument document = getDocument("dataset_metadata.xml");
+		assertFalse(document.xpath().node(dataQualityInfoPath).isPresent());
+		assertFalse(document.xpath().node(scopeCodePath).isPresent());
+		assertFalse(document.xpath().node(processStepDescriptionPath + "[text() = '" + firstDescription + "']").isPresent());
+		assertFalse(document.xpath().node(processStepDescriptionPath + "[text() = '" + secondDescription + "']").isPresent());
+		
+		document.addProcessStep(firstDescription);
+		assertTrue(document.xpath().node(dataQualityInfoPath).isPresent());
+		assertTrue(document.xpath().node(scopeCodePath).isPresent());
+		assertTrue(document.xpath().node(processStepDescriptionPath + "[text() = '" + firstDescription + "']").isPresent());
+		assertFalse(document.xpath().node(processStepDescriptionPath + "[text() = '" + secondDescription + "']").isPresent());
+		
+		document.addProcessStep(secondDescription);
+		assertTrue(document.xpath().node(processStepDescriptionPath + "[text() = '" + secondDescription + "']").isPresent());
+	}
 }

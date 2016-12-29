@@ -623,7 +623,7 @@ public class MetadataDocument {
 		}
 	}
 	
-	private XPathHelper xpath() {
+	protected XPathHelper xpath() {
 		return xmlDocument.xpath(Optional.of(namespaces));
 	}
 	
@@ -1030,6 +1030,16 @@ public class MetadataDocument {
 		xmlDocument.setStylesheet(stylesheet);
 	}
 	
+	public List<String> getSpatialSchema() {
+		return xpath().strings(
+			"/gmd:MD_Metadata"
+			+ "/gmd:identificationInfo"
+			+ "/gmd:MD_DataIdentification"
+			+ "/gmd:spatialRepresentationType"
+			+ "/gmd:MD_SpatialRepresentationTypeCode"
+			+ "/@codeListValue");
+	}
+	
 	public List<String> getSupplementalInformation() {
 		return xpath().strings(
 			"/gmd:MD_Metadata"
@@ -1037,6 +1047,19 @@ public class MetadataDocument {
 			+ "/gmd:MD_DataIdentification"
 			+ "/gmd:supplementalInformation"
 			+ "/gco:CharacterString");
+	}
+	
+	public void removeSupplementalInformation(String supplementalInformation) {
+		xpath()
+			.nodes(
+				"/gmd:MD_Metadata"
+				+ "/gmd:identificationInfo"
+				+ "/gmd:MD_DataIdentification"
+				+ "/gmd:supplementalInformation"
+				+ "/gco:CharacterString")
+			.stream()
+			.filter(node -> node.string().map(str -> str.equals(supplementalInformation)).orElse(false))
+			.forEach(XPathHelper::remove);
 	}
 	
 	public void updateSupplementalInformation(String existingSupplementalInformation, String newSupplementalInformation) {
@@ -1065,4 +1088,99 @@ public class MetadataDocument {
 			.forEach(XPathHelper::remove);
 	}
 	
+	private void addLineage(String path, String description) throws NotFound {
+		String lineagePath = path + 
+				"/gmd:lineage"
+				+ "/gmd:LI_Lineage";
+		
+		if(!xpath()
+			.node(lineagePath)
+			.isPresent()) {
+			xmlDocument.addNode(
+					namespaces, 
+					path,
+					"gmd:lineage"
+						+ "/gmd:LI_Lineage");
+		}
+		
+		String processStepDescriptionPath = xmlDocument.addNode(
+			namespaces, 
+			lineagePath,
+			new String[]{
+				"gmd:source"
+			},
+			"gmd:processStep"
+				+ "/gmd:LI_ProcessStep"
+				+ "/gmd:description"
+				+ "/gco:CharacterString",
+			description);
+		
+		Map<String, String> roleCodeAttr = new HashMap<>();
+		roleCodeAttr.put("codeList", "./resources/codeList.xml#CI_RoleCode");
+		roleCodeAttr.put("codeListValue", "processor");
+		
+		String processStepPath = processStepDescriptionPath 
+			+ "/ancestor::gmd:LI_ProcessStep";
+		
+		xmlDocument.addNode(
+			namespaces, 
+			processStepPath,
+			"gmd:processor"
+				+ "/gmd:CI_ResponsibleParty"
+				+ "/gmd:role"
+				+ "/gmd:CI_RoleCode",
+			roleCodeAttr);
+	}
+	
+	public void addProcessStep(String description) throws NotFound {
+		String dataQualityPath = "/gmd:MD_Metadata"
+		+ "/gmd:dataQualityInfo"
+		+ "/gmd:DQ_DataQuality"
+			+ "[gmd:scope"
+				+ "/gmd:DQ_Scope"
+				+ "/gmd:level"
+				+ "/gmd:MD_ScopeCode"
+					+ "[text() = 'dataset'"
+					+ "	and @codeList='./resources/codeList.xml#MD_ScopeCode'"
+					+ " and @codeListValue='dataset']]";
+		
+		if(xpath().nodes(dataQualityPath).isEmpty()) {
+			String dataQualityInfoPath = xmlDocument.addNode(
+					namespaces,
+					"/gmd:MD_Metadata",
+					new String[]{
+							"gmd:portrayalCatalogueInfo",
+							"gmd:metadataConstraints",
+							"gmd:applicationSchemaInfo",
+							"gmd:metadataMaintenance",
+							"gmd:series",
+							"gmd:describes",
+							"gmd:propertyType",
+							"gmd:featureType",
+							"gmd:featureAttribute"},
+					"gmd:dataQualityInfo");
+			
+			Map<String, String> scopeCodeAttr = new HashMap<>();
+			scopeCodeAttr.put("codeList", "./resources/codeList.xml#MD_ScopeCode");
+			scopeCodeAttr.put("codeListValue", "dataset");
+			
+			xmlDocument.addNode(
+				namespaces, 
+				dataQualityInfoPath, 
+				"gmd:DQ_DataQuality"
+					+ "/gmd:scope"
+					+ "/gmd:DQ_Scope"
+					+ "/gmd:level"
+					+ "/gmd:MD_ScopeCode", 
+					"dataset",
+					scopeCodeAttr);
+			
+			addLineage(
+				dataQualityInfoPath 
+					+ "/gmd:DQ_DataQuality",
+				description);
+		} else {
+			addLineage(dataQualityPath, description);
+		}
+	}
 }

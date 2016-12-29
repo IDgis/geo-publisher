@@ -173,6 +173,9 @@ public class DatasetMetadata extends AbstractMetadata {
 	private Resource tupleToDatasetResource(Transaction tx, Tuple datasetTuple, int sourceDatasetId, Integer datasetId, String fileIdentifier, String datasetIdentifier) {
 		try {
 			MetadataDocument metadataDocument = mdf.parseDocument(datasetTuple.get(sourceDatasetMetadata.document));
+			
+			String oldDatasetIdentifier = metadataDocument.getDatasetIdentifier();
+			
 			metadataDocument.setStylesheet(routes.WebJarAssets.at(webJarAssets.locate(stylesheet())).url());
 			metadataDocument.setDatasetIdentifier(datasetIdentifier);
 			metadataDocument.setFileIdentifier(fileIdentifier);
@@ -193,7 +196,7 @@ public class DatasetMetadata extends AbstractMetadata {
 			
 			for(String supplementalInformation : metadataDocument.getSupplementalInformation()) {
 				int separator = supplementalInformation.indexOf("|");
-				if(separator != -1 && attachments.containsKey(supplementalInformation)) {
+				if(separator != -1) {
 					String type = supplementalInformation.substring(0, separator);
 					String url = supplementalInformation.substring(separator + 1).trim().replace('\\', '/');
 					
@@ -205,14 +208,19 @@ public class DatasetMetadata extends AbstractMetadata {
 						fileName = "download";
 					}
 					
-					String updatedSupplementalInformation = 
-						type + "|" + 
-							routes.Attachment.get(attachments.get(supplementalInformation).toString(), fileName)
-							.absoluteURL(false, config.getHost());
+					if(attachments.containsKey(supplementalInformation)) {
+						String updatedSupplementalInformation = 
+							type + "|" + 
+								routes.Attachment.get(attachments.get(supplementalInformation).toString(), fileName)
+								.absoluteURL(false, config.getHost());
 					
-					metadataDocument.updateSupplementalInformation(
-						supplementalInformation,
-						updatedSupplementalInformation);
+						metadataDocument.updateSupplementalInformation(
+							supplementalInformation,
+							updatedSupplementalInformation);
+					} else {
+						metadataDocument.removeSupplementalInformation(supplementalInformation);
+					}
+					
 				}
 			}
 			
@@ -266,13 +274,23 @@ public class DatasetMetadata extends AbstractMetadata {
 					});
 				}
 				
-				for(Tuple serviceTuple : serviceTuples) {
-					JsonNode serviceInfo = Json.parse(serviceTuple.get(publishedService.content));
+				for(int i = 0; i < serviceTuples.size(); i++) {
+					JsonNode serviceInfo = Json.parse(serviceTuples.get(i).get(publishedService.content));
 					
 					String serviceName = serviceInfo.get("name").asText();
-					String environmentId = serviceTuple.get(environment.identification);
-					String scopedName = serviceTuple.get(publishedServiceDataset.layerName);
-					String environmentUrl = serviceTuple.get(environment.url);
+					String environmentId = serviceTuples.get(i).get(environment.identification);
+					String scopedName = serviceTuples.get(i).get(publishedServiceDataset.layerName);
+					String environmentUrl = serviceTuples.get(i).get(environment.url);
+					
+					if(i == 0) {
+						config.getViewerUrlPrefix().ifPresent(viewerUrlPrefix -> {
+							try {
+								metadataDocument.addServiceLinkage(viewerUrlPrefix + "/" + serviceName + "/" + scopedName, "website", null);
+							} catch(NotFound nf) {
+								throw new RuntimeException(nf);
+							}
+						});
+					}
 					
 					// we only automatically generate browseGraphics 
 					// when none where provided by the source. 
@@ -285,10 +303,16 @@ public class DatasetMetadata extends AbstractMetadata {
 						String linkage = getServiceLinkage(environmentUrl, serviceName, serviceType);
 						String protocol = serviceType.getProtocol();
 						
-						metadataDocument.addServiceLinkage(linkage, protocol, scopedName);
+						for(String spatialSchema : metadataDocument.getSpatialSchema()) {
+							if(spatialSchema.equals("vector") || protocol.equals("OGC:WMS")) {
+								metadataDocument.addServiceLinkage(linkage, protocol, scopedName);
+							}
+						}
 					}
 				}
 			}
+			
+			metadataDocument.addProcessStep("Originele bestandsnaam: " + oldDatasetIdentifier + ".xml");
 			
 			return new DefaultResource("application/xml", metadataDocument.getContent());
 		} catch(Exception e) {

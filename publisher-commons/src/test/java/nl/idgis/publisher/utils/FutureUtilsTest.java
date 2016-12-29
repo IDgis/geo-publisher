@@ -148,7 +148,7 @@ public class FutureUtilsTest {
 	
 	@Test
 	public void testSupplierSequence() {
-		f.supplierSequence(
+		f.<String>supplierSequence(
 			Arrays.asList(
 				() -> f.successful("Hello"),
 				() -> f.successful("world")))
