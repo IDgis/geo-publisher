@@ -141,14 +141,16 @@ public class DatabaseTransaction extends JdbcTransaction {
 				.append(columnFilter.getOperator())
 				.append(" ");
 			
-			if(column.getType() == Type.TEXT) {
-				sb
-					.append("'")
-					.append(columnFilter.getValue().toString().replace("'", "''"))
-					.append("'");
-			} else {
-				sb.append(columnFilter.getValue());
-			}
+			columnFilter.getOperand().ifPresent(operand -> {
+				if(column.getType() == Type.TEXT) {
+					sb
+						.append("'")
+						.append(operand.toString().replace("'", "''"))
+						.append("'");
+				} else {
+					sb.append(operand);
+				}
+			});
 		} else {
 			throw new IllegalArgumentException("unknown filter type: " + filter.getClass().getCanonicalName());
 		}

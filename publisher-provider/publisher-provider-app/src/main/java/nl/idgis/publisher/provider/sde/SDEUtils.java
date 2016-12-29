@@ -20,19 +20,26 @@ final class SDEUtils {
 	
 	static Filter getItemsFilter() {
 		return new CompoundFilter(
-			"OR",
+			"AND",
 			new ColumnFilter(
 				new DatabaseColumnInfo(
-					"TYPE", 
+					"PHYSICALNAME",
 					"CHAR"),
-				"=",
-				"{74737149-DCB5-4257-8904-B9724E32A530}" /* NAME = Feature Dataset */),
-			new ColumnFilter(
-				new DatabaseColumnInfo(
-					"TYPE", 
-					"CHAR"),
-				"=", 
-				"{CD06BC3B-789D-4C51-AAFA-A467912B8965}" /* NAME = Table */));
+				"IS NOT NULL"),
+			new CompoundFilter(
+				"OR",
+				new ColumnFilter(
+					new DatabaseColumnInfo(
+						"TYPE", 
+						"CHAR"),
+					"=",
+					"{74737149-DCB5-4257-8904-B9724E32A530}" /* NAME = Feature Dataset */),
+				new ColumnFilter(
+					new DatabaseColumnInfo(
+						"TYPE", 
+						"CHAR"),
+					"=", 
+					"{CD06BC3B-789D-4C51-AAFA-A467912B8965}" /* NAME = Table */)));
 	}
 	
 	static Filter getItemsFilter(String uuid) {

@@ -2,6 +2,7 @@ package nl.idgis.publisher.provider.database.messages;
 
 import java.io.Serializable;
 import java.util.Objects;
+import java.util.Optional;
 
 public class ColumnFilter implements Filter, Serializable {
 
@@ -11,12 +12,16 @@ public class ColumnFilter implements Filter, Serializable {
 	
 	private final String operator;
 	
-	private final Object value;
+	private final Object operand;
 	
-	public ColumnFilter(DatabaseColumnInfo column, String operator, Object value) {
+	public ColumnFilter(DatabaseColumnInfo column, String operator) {
+		this(column, operator, null);
+	}
+	
+	public ColumnFilter(DatabaseColumnInfo column, String operator, Object operand) {
 		this.column = Objects.requireNonNull(column, "column should not be null");
 		this.operator = Objects.requireNonNull(operator, "operator should not be null");
-		this.value = Objects.requireNonNull(value, "value should not be null");
+		this.operand = operand;
 	}
 
 	public DatabaseColumnInfo getColumn() {
@@ -27,12 +32,13 @@ public class ColumnFilter implements Filter, Serializable {
 		return operator;
 	}
 
-	public Object getValue() {
-		return value;
+	public Optional<Object> getOperand() {
+		return Optional.ofNullable(operand);
 	}
 
 	@Override
 	public String toString() {
-		return "SimpleColumnFilter [column=" + column + ", value=" + value + "]";
+		return "ColumnFilter [column=" + column + ", operator=" + operator + ", operand=" + operand + "]";
 	}
+	
 }
