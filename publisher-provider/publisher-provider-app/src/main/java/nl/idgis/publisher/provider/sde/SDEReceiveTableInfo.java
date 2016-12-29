@@ -33,20 +33,29 @@ public class SDEReceiveTableInfo extends UntypedActor {
 
 	private final ActorRef target;
 	
-	private final String id;
+	private final String identification;
+	
+	private final String title;
+	
+	private final String alternateTitle;
 	
 	private final String tableName;
 	
+	private final String categoryId;
+	
 	private DatabaseTableInfo databaseTableInfo;
 	
-	public SDEReceiveTableInfo(ActorRef target, String id, String tableName) {
+	public SDEReceiveTableInfo(ActorRef target, SDEItemInfo itemInfo) {
 		this.target = target;
-		this.id = id;
-		this.tableName = tableName;
+		this.identification = itemInfo.getUuid();
+		this.title = "title: " + identification;
+		this.alternateTitle = "alternate title: " + identification;
+		this.tableName = itemInfo.getPhysicalname();
+		this.categoryId = ProviderUtils.getCategoryId(tableName);
 	}
 	
-	public static Props props(ActorRef target, String id, String tableName) {
-		return Props.create(SDEReceiveTableInfo.class, target, id ,tableName);
+	public static Props props(ActorRef target, SDEItemInfo itemInfo) {
+		return Props.create(SDEReceiveTableInfo.class, target, itemInfo);
 	}
 
 	@Override
@@ -72,10 +81,10 @@ public class SDEReceiveTableInfo extends UntypedActor {
 			
 			target.tell( 
 				new VectorDatasetInfo(
-					id, 
-					"title: " + id, 
-					"alternate title: " + id, 
-					ProviderUtils.getCategoryId(tableName),
+					identification, 
+					title, 
+					alternateTitle,
+					categoryId,
 					new Date(),
 					Collections.emptySet(),
 					Collections.emptySet(),
@@ -98,14 +107,15 @@ public class SDEReceiveTableInfo extends UntypedActor {
 			logs.add(Log.create(LogLevel.ERROR, DatasetLogType.TABLE_NOT_FOUND, new DatabaseLog(tableName)));
 			
 			target.tell(
-				new UnavailableDatasetInfo(id, 
-						"title: " + id, 
-						"alternate title: " + id, 
-						ProviderUtils.getCategoryId(tableName),
-						new Date(),
-						Collections.emptySet(),
-						logs,
-						false /* confidential */),
+				new UnavailableDatasetInfo(
+					identification,
+					title, 
+					alternateTitle,
+					categoryId,
+					new Date(),
+					Collections.emptySet(),
+					logs,
+					false /* confidential */),
 				getSelf());
 			
 			getContext().stop(getSelf());

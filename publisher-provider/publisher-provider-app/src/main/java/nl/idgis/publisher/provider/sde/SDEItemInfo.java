@@ -2,6 +2,7 @@ package nl.idgis.publisher.provider.sde;
 
 import java.io.Serializable;
 import java.util.Objects;
+import java.util.Optional;
 
 public class SDEItemInfo implements Serializable {
 
@@ -11,9 +12,12 @@ public class SDEItemInfo implements Serializable {
 
 	private final String physicalname;
 	
-	public SDEItemInfo(String uuid, String physicalname) {
+	private final String documentation;
+	
+	public SDEItemInfo(String uuid, String physicalname, String documentation) {
 		this.uuid = Objects.requireNonNull(uuid, "uuid should not be null");
 		this.physicalname = Objects.requireNonNull(physicalname, "physicalname should not be null");
+		this.documentation = documentation;
 	}
 
 	public String getUuid() {
@@ -22,6 +26,10 @@ public class SDEItemInfo implements Serializable {
 
 	public String getPhysicalname() {
 		return physicalname;
+	}
+	
+	public Optional<String> getDocumentation() {
+		return Optional.ofNullable(documentation);
 	}
 
 	@Override

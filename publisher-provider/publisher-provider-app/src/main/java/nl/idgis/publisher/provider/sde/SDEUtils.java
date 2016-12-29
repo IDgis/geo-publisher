@@ -58,6 +58,7 @@ final class SDEUtils {
 		List<DatabaseColumnInfo> columns = new ArrayList<>();
 		columns.add(new DatabaseColumnInfo("UUID", "CHAR"));
 		columns.add(new DatabaseColumnInfo("PHYSICALNAME", "CHAR"));
+		columns.add(new DatabaseColumnInfo("DOCUMENTATION", "CLOB"));
 		
 		return new FetchTable(
 			"SDE.GDB_ITEMS_VW", 
@@ -76,6 +77,6 @@ final class SDEUtils {
 			.map(value -> value.orElse(null))
 			.iterator();
 		
-		return new SDEItemInfo(valueItr.next(), valueItr.next());
+		return new SDEItemInfo(valueItr.next(), valueItr.next(), valueItr.next());
 	}
 }

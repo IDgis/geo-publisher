@@ -107,9 +107,8 @@ public class SDEGetDatasetInfoHandler extends UntypedActor {
 					
 					ActorRef tableInfoReceiver = getContext().actorOf(
 						SDEReceiveTableInfo.props(
-							getSelf(), 
-							originalMsg.getIdentification(), 
-							tableName),
+							getSelf(),
+							itemInfo),
 						"table-info-receiver");
 					
 					transaction.tell(new DescribeTable(tableName), tableInfoReceiver);

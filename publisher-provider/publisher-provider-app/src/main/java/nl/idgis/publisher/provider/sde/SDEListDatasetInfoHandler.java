@@ -112,13 +112,12 @@ public class SDEListDatasetInfoHandler extends UntypedActor {
 						producer = getSender();
 						
 						SDEItemInfo itemInfo = SDEUtils.toItemInfo((Records)content);
-						String id = itemInfo.getUuid();
-						String tableName = itemInfo.getPhysicalname();
 						
 						ActorRef receiver = getContext().actorOf(
-							SDEReceiveTableInfo.props(getSelf(), id, tableName),
+							SDEReceiveTableInfo.props(getSelf(), itemInfo),
 							nameGenerator.getName(SDEReceiveTableInfo.class));
 						
+						String tableName = itemInfo.getPhysicalname();
 						transaction.tell(new DescribeTable(tableName), receiver);
 					} else {
 						unhandled(msg);

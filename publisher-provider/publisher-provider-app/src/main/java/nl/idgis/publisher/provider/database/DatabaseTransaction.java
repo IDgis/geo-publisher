@@ -78,15 +78,22 @@ public class DatabaseTransaction extends JdbcTransaction {
 					+ "' " + "order by column_id";
 		}
 		
-		Statement stmt = connection.createStatement();
+		log.debug("executing data dictionary query: {}", sql);
 		
 		ArrayList<DatabaseColumnInfo> columns = new ArrayList<>();
-		
+		Statement stmt = connection.createStatement();
 		ResultSet rs = stmt.executeQuery(sql);
 		while(rs.next()) {
 			String name = rs.getString(1);
 			String typeName = rs.getString(2);
-			columns.add(new DatabaseColumnInfo(name, typeName));
+			
+			DatabaseColumnInfo columnInfo = new DatabaseColumnInfo(name, typeName);
+			// not reporting columns with unsupported data types
+			if("CLOB".equals(typeName) || columnInfo.getType() == null) {
+				log.debug("unsupported data type: " + columnInfo.getTypeName());
+			} else {
+				columns.add(columnInfo);
+			}
 		}
 		
 		rs.close();		
