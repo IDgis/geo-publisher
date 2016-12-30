@@ -285,7 +285,7 @@ public class DatasetMetadata extends AbstractMetadata {
 					if(i == 0) {
 						config.getViewerUrlPrefix().ifPresent(viewerUrlPrefix -> {
 							try {
-								metadataDocument.addServiceLinkage(viewerUrlPrefix + "/" + serviceName + "/" + scopedName, "website", null);
+								metadataDocument.addServiceLinkage(viewerUrlPrefix + "/layer/" + serviceName + "/" + scopedName, "website", null);
 							} catch(NotFound nf) {
 								throw new RuntimeException(nf);
 							}
