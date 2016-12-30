@@ -22,6 +22,7 @@ import nl.idgis.publisher.provider.protocol.ColumnInfo;
 import nl.idgis.publisher.provider.protocol.TableInfo;
 import nl.idgis.publisher.provider.protocol.UnavailableDatasetInfo;
 import nl.idgis.publisher.provider.protocol.VectorDatasetInfo;
+import nl.idgis.publisher.xml.exceptions.NotFound;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -64,13 +65,19 @@ public class SDEReceiveTableInfo extends UntypedActor {
 		tableName = itemInfo.getPhysicalname();
 		categoryId = ProviderUtils.getCategoryId(tableName);
 		
+		title = tableName;
+		
 		itemInfo.getDocumentation().ifPresent(documentation -> {
 			try {
 				MetadataDocumentFactory mdf = new MetadataDocumentFactory();
 				MetadataDocument md = mdf.parseDocument(documentation.getBytes("utf-8"));
 			
-				title = md.getDatasetTitle();
-				alternateTitle = md.getDatasetAlternateTitle();
+				try {
+					title = md.getDatasetTitle();
+				} catch(NotFound nf) {}
+				try {
+					alternateTitle = md.getDatasetAlternateTitle();
+				} catch(NotFound nf) {}
 			} catch(Exception e) {
 				log.error(e, "couldn't process documentation content");
 			}
