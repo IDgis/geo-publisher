@@ -33,7 +33,7 @@ final class SDEUtils {
 						"TYPE", 
 						"CHAR"),
 					"=",
-					"{74737149-DCB5-4257-8904-B9724E32A530}" /* NAME = Feature Dataset */),
+					"{70737809-852C-4A03-9E22-2CECEA5B9BFA}" /* NAME = Feature Class */),
 				new ColumnFilter(
 					new DatabaseColumnInfo(
 						"TYPE", 
