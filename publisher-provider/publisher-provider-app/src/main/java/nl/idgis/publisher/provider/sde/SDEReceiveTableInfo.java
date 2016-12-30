@@ -11,6 +11,8 @@ import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.service.DatabaseLog;
 import nl.idgis.publisher.domain.service.DatasetLogType;
 import nl.idgis.publisher.domain.service.Type;
+import nl.idgis.publisher.metadata.MetadataDocument;
+import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.provider.ProviderUtils;
 import nl.idgis.publisher.provider.database.messages.DatabaseColumnInfo;
 import nl.idgis.publisher.provider.database.messages.DatabaseTableInfo;
@@ -33,29 +35,46 @@ public class SDEReceiveTableInfo extends UntypedActor {
 
 	private final ActorRef target;
 	
-	private final String identification;
+	private final SDEItemInfo itemInfo;
 	
-	private final String title;
+	private String identification;
 	
-	private final String alternateTitle;
+	private String title;
 	
-	private final String tableName;
+	private String alternateTitle;
 	
-	private final String categoryId;
+	private String tableName;
+	
+	private String categoryId;
 	
 	private DatabaseTableInfo databaseTableInfo;
 	
 	public SDEReceiveTableInfo(ActorRef target, SDEItemInfo itemInfo) {
 		this.target = target;
-		this.identification = itemInfo.getUuid();
-		this.title = "title: " + identification;
-		this.alternateTitle = "alternate title: " + identification;
-		this.tableName = itemInfo.getPhysicalname();
-		this.categoryId = ProviderUtils.getCategoryId(tableName);
+		this.itemInfo = itemInfo;
 	}
 	
 	public static Props props(ActorRef target, SDEItemInfo itemInfo) {
 		return Props.create(SDEReceiveTableInfo.class, target, itemInfo);
+	}
+	
+	@Override
+	public void preStart() {
+		identification = itemInfo.getUuid();
+		tableName = itemInfo.getPhysicalname();
+		categoryId = ProviderUtils.getCategoryId(tableName);
+		
+		itemInfo.getDocumentation().ifPresent(documentation -> {
+			try {
+				MetadataDocumentFactory mdf = new MetadataDocumentFactory();
+				MetadataDocument md = mdf.parseDocument(documentation.getBytes("utf-8"));
+			
+				title = md.getDatasetTitle();
+				alternateTitle = md.getDatasetAlternateTitle();
+			} catch(Exception e) {
+				log.error(e, "couldn't process documentation content");
+			}
+		});
 	}
 
 	@Override
