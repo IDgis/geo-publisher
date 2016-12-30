@@ -108,7 +108,7 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 				
 				future.complete(new Records(records));
 			} catch(Throwable t) {
-				log.error("failed to fetch records: {}", t);
+				log.error(t, "failed to fetch records");
 				
 				future.completeExceptionally(t);
 			}
