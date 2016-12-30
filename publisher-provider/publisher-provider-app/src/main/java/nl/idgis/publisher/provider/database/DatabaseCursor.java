@@ -45,6 +45,10 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 	}
 	
 	private Object convert(DatabaseColumnInfo columnInfo, Object value) throws Exception {
+		if(value == null) {
+			return null;
+		}
+		
 		if(columnInfo.getType() == Type.GEOMETRY) {
 			if(value instanceof Blob) {
 				Blob blob = (Blob)value;
