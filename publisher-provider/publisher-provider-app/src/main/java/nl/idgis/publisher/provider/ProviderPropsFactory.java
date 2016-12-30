@@ -24,22 +24,23 @@ public class ProviderPropsFactory {
 		return Metadata.props(new File(providerConfig.getString("metadata.folder")));		
 	}
 	
-	private ProviderProps sdeVector(String name, Config providerConfig) {
+	private ProviderProps sde(String name, Config providerConfig) {
 		Props database = Database.props(providerConfig.getConfig("database"), name);
+		Props rasterFolder = Folder.props(providerConfig.getString("raster.folder"));
 		
-		log.info("creating vector provider: {}", name);
+		log.info("creating sde provider: {}", name);
 		
-		return new ProviderProps(name, SDEProvider.props(database));
+		return new ProviderProps(name, SDEProvider.props(database, rasterFolder));
 	}
 
 	private ProviderProps vector(String name, Config providerConfig) {
 		Props database = Database.props(providerConfig.getConfig("database"), name);
 		Props metadata = metadata(providerConfig);
 		
-		log.info("creating sde vector provider: {}", name);
+		log.info("creating vector provider: {}", name);
 		
 		return new ProviderProps(name, VectorProvider.props(database, metadata));
-	}	
+	}
 	
 	private ProviderProps raster(String name, Config providerConfig) {
 		Props folder = Folder.props(providerConfig.getString("data.folder"));
@@ -56,7 +57,7 @@ public class ProviderPropsFactory {
 		
 		switch(type) {
 			case "SDE":
-				return Optional.of(sdeVector(name, providerConfig));
+				return Optional.of(sde(name, providerConfig));
 			case "VECTOR":
 				return Optional.of(vector(name, providerConfig));
 			case "RASTER":

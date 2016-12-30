@@ -5,7 +5,6 @@ import java.util.concurrent.TimeUnit;
 import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.protocol.messages.Ack;
-import nl.idgis.publisher.provider.database.messages.DescribeTable;
 import nl.idgis.publisher.provider.protocol.DatasetInfo;
 import nl.idgis.publisher.provider.protocol.DatasetNotFound;
 import nl.idgis.publisher.provider.protocol.GetDatasetInfo;
@@ -26,13 +25,16 @@ public class SDEGetDatasetInfoHandler extends UntypedActor {
 	
 	private final ActorRef originalSender;
 	
+	private final ActorRef rasterFolder;
+	
 	private final GetDatasetInfo originalMsg;
 	
 	private ActorRef transaction;
 		
-	public SDEGetDatasetInfoHandler(ActorRef originalSender, GetDatasetInfo originalMsg) {
+	public SDEGetDatasetInfoHandler(ActorRef originalSender, GetDatasetInfo originalMsg, ActorRef rasterFolder) {
 		this.originalSender = originalSender;
 		this.originalMsg = originalMsg;
+		this.rasterFolder = rasterFolder;
 	}
 	
 	@Override
@@ -40,8 +42,8 @@ public class SDEGetDatasetInfoHandler extends UntypedActor {
 		getContext().setReceiveTimeout(Duration.create(30, TimeUnit.SECONDS));
 	}
 	
-	public static Props props(ActorRef originalSender, GetDatasetInfo originalMsg) {
-		return Props.create(SDEGetDatasetInfoHandler.class, originalSender, originalMsg);
+	public static Props props(ActorRef originalSender, GetDatasetInfo originalMsg, ActorRef rasterFolder) {
+		return Props.create(SDEGetDatasetInfoHandler.class, originalSender, originalMsg, rasterFolder);
 	}
 	
 	private Procedure<Object> onReceiveCommitAck() {
@@ -91,36 +93,6 @@ public class SDEGetDatasetInfoHandler extends UntypedActor {
 			}
 		};
 	}
-	
-	private Procedure<Object> onReceiveItemInfo() {
-		return new Procedure<Object>() {
-
-			@Override
-			public void apply(Object msg) throws Exception {
-				if(msg instanceof SDEItemInfo) {
-					log.debug("item info received");
-					
-					SDEItemInfo itemInfo = (SDEItemInfo)msg;
-					String tableName = itemInfo.getPhysicalname();
-						
-					log.debug("tableName: {}", tableName);
-					
-					ActorRef tableInfoReceiver = getContext().actorOf(
-						SDEReceiveTableInfo.props(
-							getSelf(),
-							itemInfo),
-						"table-info-receiver");
-					
-					transaction.tell(new DescribeTable(tableName), tableInfoReceiver);
-					getContext().become(onReceiveDatasetInfo());
-				} else if(msg instanceof ReceiveTimeout) {
-					log.debug("timeout received");
-					unavailable();
-				}
-			}
-			
-		};
-	}
 
 	@Override
 	public void onReceive(Object msg) throws Exception {
@@ -128,15 +100,20 @@ public class SDEGetDatasetInfoHandler extends UntypedActor {
 			log.debug("transaction created");
 			
 			transaction = ((TransactionCreated)msg).getActor();
+			
+			ActorRef datasetInfoGatherer = getContext().actorOf(
+					SDEGatherDatasetInfo.props(getSelf(), transaction, rasterFolder),
+					"dataset-info-gatherer");
+			
 			ActorRef itemInfoReceiver = getContext().actorOf(
-				SDEReceiveSingleItemInfo.props(getSelf()), 
+				SDEReceiveSingleItemInfo.props(datasetInfoGatherer), 
 				"item-info-receiver");
 			
 			transaction.tell(
 				SDEUtils.getFetchTable(SDEUtils.getItemsFilter(originalMsg.getIdentification())), 
 				itemInfoReceiver);
 			
-			getContext().become(onReceiveItemInfo());
+			getContext().become(onReceiveDatasetInfo());
 		} else if(msg instanceof ReceiveTimeout){
 			log.error("timeout received");
 			getContext().stop(getSelf());

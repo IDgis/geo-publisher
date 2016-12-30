@@ -180,13 +180,20 @@ public class SDEGetVectorDatasetHandler extends UntypedActor {
 					log.debug("item info received");
 					
 					SDEItemInfo itemInfo = (SDEItemInfo)msg;
+					SDEItemInfoType type = itemInfo.getType();
 					String tableName = itemInfo.getPhysicalname();
-						
-					log.debug("tableName: {}", tableName);
 					
-					SDEGetVectorDatasetHandler.this.tableName = tableName;
-					transaction.tell(new DescribeTable(tableName), getSelf());
-					getContext().become(onReceiveDatabaseTableInfo());
+					if(SDEItemInfoType.FEATURE_CLASS == type ||
+						SDEItemInfoType.TABLE == type) {
+						log.debug("tableName: {}", tableName);
+						
+						SDEGetVectorDatasetHandler.this.tableName = tableName;
+						transaction.tell(new DescribeTable(tableName), getSelf());
+						getContext().become(onReceiveDatabaseTableInfo());
+					} else {
+						log.error("wrong item type: {}", type);
+						unavailable();
+					}
 				} else if(msg instanceof ReceiveTimeout) {
 					log.debug("timeout received");
 					unavailable();

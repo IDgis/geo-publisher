@@ -5,7 +5,6 @@ import java.util.concurrent.TimeUnit;
 import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.protocol.messages.Ack;
-import nl.idgis.publisher.provider.database.messages.DescribeTable;
 import nl.idgis.publisher.provider.protocol.DatasetInfo;
 import nl.idgis.publisher.provider.protocol.Records;
 import nl.idgis.publisher.stream.messages.End;
@@ -33,14 +32,17 @@ public class SDEListDatasetInfoHandler extends UntypedActor {
 	
 	private final ActorRef sender;
 	
+	private  final ActorRef rasterFolder;
+	
 	private ActorRef transaction;
 	
-	public SDEListDatasetInfoHandler(ActorRef sender) {
+	public SDEListDatasetInfoHandler(ActorRef sender, ActorRef rasterFolder) {
 		this.sender = sender;
+		this.rasterFolder = rasterFolder;
 	}
 	
-	public static Props props(ActorRef sender) {
-		return Props.create(SDEListDatasetInfoHandler.class, sender);
+	public static Props props(ActorRef sender, ActorRef rasterFolder) {
+		return Props.create(SDEListDatasetInfoHandler.class, sender, rasterFolder);
 	}
 	
 	@Override
@@ -113,12 +115,11 @@ public class SDEListDatasetInfoHandler extends UntypedActor {
 						
 						SDEItemInfo itemInfo = SDEUtils.toItemInfo((Records)content);
 						
-						ActorRef receiver = getContext().actorOf(
-							SDEReceiveTableInfo.props(getSelf(), itemInfo),
-							nameGenerator.getName(SDEReceiveTableInfo.class));
+						ActorRef datasetInfoGatherer = getContext().actorOf(
+								SDEGatherDatasetInfo.props(getSelf(), transaction, rasterFolder),
+								nameGenerator.getName(SDEGatherDatasetInfo.class));
 						
-						String tableName = itemInfo.getPhysicalname();
-						transaction.tell(new DescribeTable(tableName), receiver);
+						datasetInfoGatherer.tell(itemInfo, getSelf());
 					} else {
 						unhandled(msg);
 					}

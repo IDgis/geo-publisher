@@ -5,6 +5,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import nl.idgis.publisher.provider.database.messages.ColumnFilter;
 import nl.idgis.publisher.provider.database.messages.CompoundFilter;
@@ -28,18 +29,15 @@ final class SDEUtils {
 				"IS NOT NULL"),
 			new CompoundFilter(
 				"OR",
-				new ColumnFilter(
-					new DatabaseColumnInfo(
-						"TYPE", 
-						"CHAR"),
-					"=",
-					"{70737809-852C-4A03-9E22-2CECEA5B9BFA}" /* NAME = Feature Class */),
-				new ColumnFilter(
-					new DatabaseColumnInfo(
-						"TYPE", 
-						"CHAR"),
-					"=", 
-					"{CD06BC3B-789D-4C51-AAFA-A467912B8965}" /* NAME = Table */)));
+				Stream.of(SDEItemInfoType.values())
+					.map(itemInfoType ->
+						new ColumnFilter(	
+							new DatabaseColumnInfo(
+								"TYPE", 
+								"CHAR"),
+							"=", 
+							itemInfoType.getUuid()))
+					.toArray(length -> new ColumnFilter[length])));
 	}
 	
 	static Filter getItemsFilter(String uuid) {
@@ -57,6 +55,7 @@ final class SDEUtils {
 	static FetchTable getFetchTable(Filter filter) {
 		List<DatabaseColumnInfo> columns = new ArrayList<>();
 		columns.add(new DatabaseColumnInfo("UUID", "CHAR"));
+		columns.add(new DatabaseColumnInfo("TYPE", "CHAR"));
 		columns.add(new DatabaseColumnInfo("PHYSICALNAME", "CHAR"));
 		columns.add(new DatabaseColumnInfo("DOCUMENTATION", "CLOB"));
 		
@@ -77,6 +76,11 @@ final class SDEUtils {
 			.map(value -> value.orElse(null))
 			.iterator();
 		
-		return new SDEItemInfo(valueItr.next(), valueItr.next(), valueItr.next());
+		// Note: parameter order should match column order in 'getFetchTable'
+		return new SDEItemInfo(
+			valueItr.next(), // uuid
+			SDEItemInfoType.fromUuid(valueItr.next()), // type 
+			valueItr.next(), // physicalname
+			valueItr.next()); // documentation
 	}
 }
