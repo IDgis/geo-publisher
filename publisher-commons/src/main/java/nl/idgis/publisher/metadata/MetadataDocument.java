@@ -47,13 +47,18 @@ public class MetadataDocument {
 	protected final BiMap<String, String> namespaces;
 	
 	public MetadataDocument(XMLDocument xmlDocument) {
-		this.xmlDocument = xmlDocument;
-		
 		namespaces = HashBiMap.create();
 		namespaces.put("gmd", "http://www.isotc211.org/2005/gmd");
 		namespaces.put("gco", "http://www.isotc211.org/2005/gco");
 		namespaces.put("srv", "http://www.isotc211.org/2005/srv");
 		namespaces.put("xlink", "http://www.w3.org/1999/xlink");
+		
+		String rootNode = "/gmd:MD_Metadata";
+		if(xmlDocument.xpath(Optional.of(namespaces)).node(rootNode).isPresent()) {
+			this.xmlDocument = xmlDocument;
+		} else {
+			this.xmlDocument = xmlDocument.clone(namespaces, "/" + rootNode);
+		}
 	}
 	
 	@Override

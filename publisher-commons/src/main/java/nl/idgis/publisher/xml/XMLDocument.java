@@ -152,15 +152,14 @@ public class XMLDocument {
 		} catch(Exception e) {
 			throw new RuntimeException(e);
 		}
-	}	
+	}
 	
-	@Override
-	public XMLDocument clone() {
+	private XMLDocument clone(Node root) {
 		try {
 			TransformerFactory tfactory = TransformerFactory.newInstance();
 			Transformer tx   = tfactory.newTransformer();
 			
-			DOMSource source = new DOMSource(document);
+			DOMSource source = new DOMSource(root);
 			DOMResult result = new DOMResult();
 			
 			tx.transform(source,result);
@@ -168,6 +167,19 @@ public class XMLDocument {
 		} catch(Exception e) {
 			throw new RuntimeException(e);
 		}
+	}
+	
+	public XMLDocument clone(BiMap<String, String> namespaces, String path) {
+		return clone(
+			xpath(Optional.of(namespaces))
+				.node(path)
+				.orElseThrow(() -> new IllegalArgumentException("path not found: " + path))
+				.getItem());
+	}
+	
+	@Override
+	public XMLDocument clone() {
+		return clone(document);
 	}
 	
 	public void removeStylesheet() {

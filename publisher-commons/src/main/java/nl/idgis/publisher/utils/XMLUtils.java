@@ -54,6 +54,10 @@ public class XMLUtils {
 			this.namespaces = namespaces;
 		}
 		
+		public Node getItem() {
+			return item;
+		}
+		
 		public Optional<String> getLocalName () {
 			return Optional.ofNullable (item.getLocalName ());
 		}
