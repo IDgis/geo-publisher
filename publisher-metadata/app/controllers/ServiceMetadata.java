@@ -263,7 +263,11 @@ public class ServiceMetadata extends AbstractMetadata {
 				metadataDocument.addSVCoupledResource(serviceType.getOperationName(), identifier, scopedName);
 			}
 			
-			metadataDocument.setStylesheet(routes.WebJarAssets.at(webJarAssets.locate(stylesheet())).url());
+			if(!displayWithoutStylesheet()) {
+				metadataDocument.setStylesheet(routes.WebJarAssets.at(webJarAssets.locate(stylesheet())).url());
+			} else {
+				metadataDocument.removeStylesheet();
+			}
 			
 			return Optional.<Resource>of(new DefaultResource("application/xml", metadataDocument.getContent()));
 		}));

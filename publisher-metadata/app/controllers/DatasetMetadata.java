@@ -179,7 +179,12 @@ public class DatasetMetadata extends AbstractMetadata {
 			
 			String oldDatasetIdentifier = metadataDocument.getDatasetIdentifier();
 			
-			metadataDocument.setStylesheet(routes.WebJarAssets.at(webJarAssets.locate(stylesheet())).url());
+			if(!displayWithoutStylesheet()) {
+				metadataDocument.setStylesheet(routes.WebJarAssets.at(webJarAssets.locate(stylesheet())).url());
+			} else {
+				metadataDocument.removeStylesheet();
+			}
+			
 			metadataDocument.setDatasetIdentifier(datasetIdentifier);
 			metadataDocument.setFileIdentifier(fileIdentifier);
 			
