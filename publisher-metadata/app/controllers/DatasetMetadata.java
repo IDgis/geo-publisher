@@ -35,10 +35,12 @@ import util.QueryDSL;
 import util.QueryDSL.Transaction;
 
 import static nl.idgis.publisher.database.QDataset.dataset;
+import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetMetadata.sourceDatasetMetadata;
 import static nl.idgis.publisher.database.QSourceDatasetMetadataAttachment.sourceDatasetMetadataAttachment;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
+import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
 import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServiceDataset;
 import static nl.idgis.publisher.database.QPublishedService.publishedService;
 import static nl.idgis.publisher.database.QEnvironment.environment;
@@ -47,6 +49,7 @@ import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -309,6 +312,60 @@ public class DatasetMetadata extends AbstractMetadata {
 							}
 						}
 					}
+				}
+				
+				List<Tuple> listDatasetAttributeAlias = tx.query().from(dataset)
+					.join(datasetColumn).on(dataset.id.eq(datasetColumn.datasetId))
+					.where(dataset.id.eq(datasetId))
+					.list(datasetColumn.name, datasetColumn.alias);
+				
+				Iterator<Tuple> iteratorAlias = listDatasetAttributeAlias.iterator();
+				while(iteratorAlias.hasNext()) {
+					Tuple alias = iteratorAlias.next();
+					if(alias.get(datasetColumn.alias) == null) {
+						iteratorAlias.remove();
+					}
+				}
+				
+				if(listDatasetAttributeAlias.size() > 0) {
+					StringBuilder textAlias = new StringBuilder("INHOUD ATTRIBUTENTABEL:");
+					
+					for(Tuple alias : listDatasetAttributeAlias) {
+						textAlias.append(" " + alias.get(datasetColumn.name) 
+								+ ": " + alias.get(datasetColumn.alias));
+					}
+					
+					metadataDocument.addProcessStep(textAlias.toString());
+				}
+			} else {
+				List<Tuple> listSourceDatasetAttributeAlias = tx.query().from(sourceDataset)
+						.join(sourceDatasetVersion)
+							.on(sourceDatasetVersion.id.eq(
+									new SQLSubQuery().from(sourceDatasetVersion)
+										.where(sourceDatasetVersion.sourceDatasetId.eq(sourceDatasetId))
+										.unique(sourceDatasetVersion.id.max())))
+						.join(sourceDatasetVersionColumn)
+							.on(sourceDatasetVersion.id.eq(sourceDatasetVersionColumn.sourceDatasetVersionId))
+						.where(sourceDataset.id.eq(sourceDatasetId))
+						.list(sourceDatasetVersionColumn.name,
+								sourceDatasetVersionColumn.alias);
+				
+				Iterator<Tuple> iteratorAlias = listSourceDatasetAttributeAlias.iterator();
+				while(iteratorAlias.hasNext()) {
+					Tuple alias = iteratorAlias.next();
+					if(alias.get(sourceDatasetVersionColumn.alias) == null) {
+						iteratorAlias.remove();
+					}
+				}
+				if(listSourceDatasetAttributeAlias.size() > 0) {
+					StringBuilder textAlias = new StringBuilder("INHOUD ATTRIBUTENTABEL:");
+					
+					for(Tuple alias : listSourceDatasetAttributeAlias) {
+						textAlias.append(" " + alias.get(sourceDatasetVersionColumn.name) 
+								+ ": " + alias.get(sourceDatasetVersionColumn.alias));
+					}
+					
+					metadataDocument.addProcessStep(textAlias.toString());
 				}
 			}
 			
