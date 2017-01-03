@@ -25,6 +25,8 @@ import nl.idgis.publisher.provider.database.messages.DatabaseTableInfo;
 import nl.idgis.publisher.provider.database.messages.DescribeTable;
 import nl.idgis.publisher.provider.database.messages.PerformCount;
 import nl.idgis.publisher.provider.database.messages.TableNotFound;
+import nl.idgis.publisher.provider.protocol.Attachment;
+import nl.idgis.publisher.provider.protocol.AttachmentType;
 import nl.idgis.publisher.provider.protocol.ColumnInfo;
 import nl.idgis.publisher.provider.protocol.RasterDatasetInfo;
 import nl.idgis.publisher.provider.protocol.RasterFormat;
@@ -49,6 +51,8 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 	
 	private final ActorRef rasterFolder;
 	
+	private final Set<AttachmentType> attachmentTypes;
+	
 	private SDEItemInfo itemInfo;
 	
 	private String identification;
@@ -65,19 +69,25 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 
 	private Path rasterFile;
 	
-	public SDEGatherDatasetInfo(ActorRef target, ActorRef transaction, ActorRef rasterFolder) {
+	private Set<Attachment> attachments;
+	
+	private boolean confidential;
+	
+	public SDEGatherDatasetInfo(ActorRef target, ActorRef transaction, ActorRef rasterFolder, Set<AttachmentType> attachmentTypes) {
 		this.target = target;
 		this.transaction = transaction;
 		this.rasterFolder = rasterFolder;
+		this.attachmentTypes = attachmentTypes;
 	}
 	
-	public static Props props(ActorRef target, ActorRef transaction, ActorRef rasterFolder) {
-		return Props.create(SDEGatherDatasetInfo.class, target, transaction, rasterFolder);
+	public static Props props(ActorRef target, ActorRef transaction, ActorRef rasterFolder, Set<AttachmentType> attachmentTypes) {
+		return Props.create(SDEGatherDatasetInfo.class, target, transaction, rasterFolder, attachmentTypes);
 	}
 	
 	@Override
 	public void preStart() {
-		
+		 attachments = new HashSet<>();
+		 confidential = true;
 	}
 
 	@Override
@@ -93,14 +103,14 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 			
 			target.tell(
 				new UnavailableDatasetInfo(
-					identification, 
-					title, 
-					alternateTitle, 
-					categoryId, 
-					new Date(), 
-					Collections.emptySet(), // attachments 
+					identification,
+					title,
+					alternateTitle,
+					categoryId,
+					new Date(),
+					attachments,
 					logs,
-					false /* confidential */),
+					confidential),
 				getSelf());
 			getContext().stop(getSelf());
 		} else if(msg instanceof FileSize) {
@@ -113,9 +123,9 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 					alternateTitle, 
 					categoryId, 
 					new Date(), 
-					Collections.emptySet(), // attachments 
+					attachments,
 					Collections.emptySet(), // logs
-					false, //
+					confidential,
 					RasterFormat.TIFF,
 					((FileSize)msg).getSize()),
 				getSelf());
@@ -133,6 +143,14 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 				try {
 					MetadataDocumentFactory mdf = new MetadataDocumentFactory();
 					MetadataDocument md = mdf.parseDocument(documentation.getBytes("utf-8"));
+					
+					if(attachmentTypes.contains(AttachmentType.METADATA)) {
+						attachments.add(new Attachment(
+							"sde.gdb_items_vw.documentation", 
+							AttachmentType.METADATA,
+							false, // confidential
+							md.getContent()));
+					}
 				
 					try {
 						title = md.getDatasetTitle();
@@ -185,9 +203,9 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 					alternateTitle,
 					categoryId,
 					new Date(), 
-					Collections.emptySet(), // attachments
+					attachments,
 					Collections.emptySet(), // logs
-					false, // confidential
+					confidential,
 					physicalname, // tableName
 					tableInfo,
 					numberOfRecords),
@@ -212,9 +230,9 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 					alternateTitle,
 					categoryId,
 					new Date(),
-					Collections.emptySet(), // attachments
+					attachments,
 					logs,
-					false /* confidential */),
+					confidential),
 				getSelf());
 			
 			getContext().stop(getSelf());

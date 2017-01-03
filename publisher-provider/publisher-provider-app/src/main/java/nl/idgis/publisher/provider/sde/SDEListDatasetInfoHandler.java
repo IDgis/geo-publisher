@@ -6,6 +6,7 @@ import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.provider.protocol.DatasetInfo;
+import nl.idgis.publisher.provider.protocol.ListDatasetInfo;
 import nl.idgis.publisher.provider.protocol.Records;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.Item;
@@ -30,19 +31,22 @@ public class SDEListDatasetInfoHandler extends UntypedActor {
 	
 	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
 	
-	private final ActorRef sender;
+	private final ActorRef originalSender;
+
+	private final ListDatasetInfo originalMsg;
 	
-	private  final ActorRef rasterFolder;
+	private final ActorRef rasterFolder;
 	
 	private ActorRef transaction;
 	
-	public SDEListDatasetInfoHandler(ActorRef sender, ActorRef rasterFolder) {
-		this.sender = sender;
+	public SDEListDatasetInfoHandler(ActorRef originalSender, ListDatasetInfo originalMsg, ActorRef rasterFolder) {
+		this.originalSender = originalSender;
+		this.originalMsg = originalMsg;
 		this.rasterFolder = rasterFolder;
 	}
 	
-	public static Props props(ActorRef sender, ActorRef rasterFolder) {
-		return Props.create(SDEListDatasetInfoHandler.class, sender, rasterFolder);
+	public static Props props(ActorRef originalSender, ListDatasetInfo originalMsg, ActorRef rasterFolder) {
+		return Props.create(SDEListDatasetInfoHandler.class, originalSender, originalMsg, rasterFolder);
 	}
 	
 	@Override
@@ -94,7 +98,7 @@ public class SDEListDatasetInfoHandler extends UntypedActor {
 			
 			Item<?> item;
 			
-			ActorRef consumer = sender, producer;
+			ActorRef consumer = originalSender, producer;
 
 			@Override
 			public void apply(Object msg) throws Exception {
@@ -116,7 +120,11 @@ public class SDEListDatasetInfoHandler extends UntypedActor {
 						SDEItemInfo itemInfo = SDEUtils.toItemInfo((Records)content);
 						
 						ActorRef datasetInfoGatherer = getContext().actorOf(
-								SDEGatherDatasetInfo.props(getSelf(), transaction, rasterFolder),
+								SDEGatherDatasetInfo.props(
+									getSelf(), 
+									transaction, 
+									rasterFolder, 
+									originalMsg.getAttachmentTypes()),
 								nameGenerator.getName(SDEGatherDatasetInfo.class));
 						
 						datasetInfoGatherer.tell(itemInfo, getSelf());

@@ -102,7 +102,11 @@ public class SDEGetDatasetInfoHandler extends UntypedActor {
 			transaction = ((TransactionCreated)msg).getActor();
 			
 			ActorRef datasetInfoGatherer = getContext().actorOf(
-					SDEGatherDatasetInfo.props(getSelf(), transaction, rasterFolder),
+					SDEGatherDatasetInfo.props(
+						getSelf(), 
+						transaction, 
+						rasterFolder, 
+						originalMsg.getAttachmentTypes()),
 					"dataset-info-gatherer");
 			
 			ActorRef itemInfoReceiver = getContext().actorOf(
