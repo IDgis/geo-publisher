@@ -184,8 +184,8 @@ public abstract class AbstractDatabaseTest {
 
 	protected VectorDataset createVectorDataset(String id) throws Exception {
 		List<Column> columns = Arrays.asList(
-				new Column("col0", Type.TEXT),
-				new Column("col1", Type.NUMERIC));
+				new Column("col0", Type.TEXT, null/*alias*/),
+				new Column("col1", Type.NUMERIC, null));
 		Table table = new Table(columns);
 		
 		Timestamp revision = new Timestamp(new Date().getTime());

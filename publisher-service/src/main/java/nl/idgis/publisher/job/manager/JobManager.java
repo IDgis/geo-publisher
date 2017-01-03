@@ -27,9 +27,11 @@ import static nl.idgis.publisher.database.DatabaseUtils.consumeList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import nl.idgis.publisher.protocol.messages.Failure;
 
@@ -607,20 +609,20 @@ public class JobManager extends UntypedActor {
 						
 						ArrayList<ImportJobInfo> jobs = new ArrayList<>();
 						
-						ListIterator<Tuple> importJobColumns = importJobColumnsList.listIterator();
-						ListIterator<Tuple> sourceDatasetColumns = sourceDatasetColumnsList.listIterator();
-						ListIterator<Tuple> jobNotifications = jobNotificationsList.listIterator();
+						ListIterator<Tuple> importJobColumnsTuples = importJobColumnsList.listIterator();
+						ListIterator<Tuple> sourceDatasetColumnsTuples = sourceDatasetColumnsList.listIterator();
+						ListIterator<Tuple> jobNotificationsTuples = jobNotificationsList.listIterator();
 						
 						for(Tuple t : baseList) {
 							int jobId = t.get(job.id);
 							
 							List<Notification> notifications = new ArrayList<>();
-							for(; jobNotifications.hasNext();) {
-								Tuple tn = jobNotifications.next();
+							for(; jobNotificationsTuples.hasNext();) {
+								Tuple tn = jobNotificationsTuples.next();
 								
-								int notificationJobId = tn.get(job.id);				
+								int notificationJobId = tn.get(job.id);
 								if(notificationJobId != jobId) {
-									jobNotifications.previous();
+									jobNotificationsTuples.previous();
 									break;
 								}
 								
@@ -652,7 +654,33 @@ public class JobManager extends UntypedActor {
 											t.get(dataset.name),
 											notifications));
 									break;
-								case "VECTOR":							
+								case "VECTOR":
+									List<Column> sourceDatasetColumns = consumeList(
+										sourceDatasetColumnsTuples, jobId, job.id, column ->
+											new Column(
+												column.get(sourceDatasetVersionColumn.name),
+												column.get(sourceDatasetVersionColumn.dataType),
+												column.get(sourceDatasetVersionColumn.alias)));
+									
+									// the import job doens't contain column aliases,
+									// therefore we have to obtain these from the source dataset.
+									Map<String, String> columnAliases = 
+										sourceDatasetColumns.stream()
+											.filter(column -> column.getAlias() != null)
+											.collect(Collectors.toMap(
+												Column::getName,
+												column -> column.getAlias()));
+									
+									List<Column> importJobColumns = consumeList(
+										importJobColumnsTuples, jobId, job.id, column -> {
+											String columnName = column.get(importJobColumn.name);
+											
+											return new Column(
+												columnName, 
+												column.get(importJobColumn.dataType),
+												columnAliases.get(columnName));
+										});
+									
 									jobs.add(new VectorImportJobInfo(
 											t.get(job.id),
 											t.get(category.identification),
@@ -662,19 +690,13 @@ public class JobManager extends UntypedActor {
 											t.get(dataset.identification),
 											t.get(dataset.name),
 											t.get(importJob.filterConditions),
-											consumeList(importJobColumns, jobId, job.id, column ->
-												new Column(
-													column.get(importJobColumn.name), 
-													column.get(importJobColumn.dataType))),												
-											consumeList(sourceDatasetColumns, jobId, job.id, column ->
-												new Column(
-													column.get(sourceDatasetVersionColumn.name),
-													column.get(sourceDatasetVersionColumn.dataType))),
+											importJobColumns,
+											sourceDatasetColumns,
 											notifications));
 								break;
 							}
-						}						
-
+						}
+						
 						return new TypedList<>(ImportJobInfo.class, jobs);
 					});
 			});

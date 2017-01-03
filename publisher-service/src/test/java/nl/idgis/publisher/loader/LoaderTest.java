@@ -430,7 +430,7 @@ public class LoaderTest extends AbstractServiceTest {
 				new OperatorExpression(
 						OperatorType.EQUALS, 
 						Arrays.asList(
-								new ColumnReferenceExpression(new Column("col3", Type.TEXT)),
+								new ColumnReferenceExpression(new Column("col3", Type.TEXT, null/*alias*/)),
 								new ValueExpression(Type.TEXT, "filterValue"))));
 		
 		ObjectMapper mapper = new ObjectMapper();

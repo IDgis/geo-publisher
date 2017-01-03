@@ -6,20 +6,24 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class Column implements Serializable {
-	
-	private static final long serialVersionUID = 6110525555358536529L;
-	
+
+	private static final long serialVersionUID = -131755354136052813L;
+
 	private final String name;
+	
 	private final Type dataType;
+	
+	private final String alias;
 
 	@JsonCreator
-	public Column(@JsonProperty("name") String name, @JsonProperty("dataType") Type dataType) {
+	public Column(@JsonProperty("name") String name, @JsonProperty("dataType") Type dataType, @JsonProperty("alias") String alias) {
 		this.name = name;
 		this.dataType = dataType;
+		this.alias = alias;
 	}
 	
-	public Column(String name, String dataType) {
-		this(name, Type.valueOf(dataType));		
+	public Column(String name, String dataType, String alias) {
+		this(name, Type.valueOf(dataType), alias);
 	}
 
 	public String getName() {
@@ -29,18 +33,18 @@ public class Column implements Serializable {
 	public Type getDataType() {
 		return dataType;
 	}
-
-	@Override
-	public String toString() {
-		return "Column [name=" + name + ", dataType=" + dataType + "]";
+	
+	public String getAlias() {
+		return alias;
 	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((name == null) ? 0 : name.hashCode());
+		result = prime * result + ((alias == null) ? 0 : alias.hashCode());
 		result = prime * result + ((dataType == null) ? 0 : dataType.hashCode());
+		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		return result;
 	}
 
@@ -53,18 +57,24 @@ public class Column implements Serializable {
 		if (getClass() != obj.getClass())
 			return false;
 		Column other = (Column) obj;
+		if (alias == null) {
+			if (other.alias != null)
+				return false;
+		} else if (!alias.equals(other.alias))
+			return false;
+		if (dataType != other.dataType)
+			return false;
 		if (name == null) {
 			if (other.name != null)
 				return false;
 		} else if (!name.equals(other.name))
 			return false;
-		if (dataType == null) {
-			if (other.dataType != null)
-				return false;
-		} else if (!dataType.equals(other.dataType))
-			return false;
 		return true;
 	}
-	
+
+	@Override
+	public String toString() {
+		return "Column [name=" + name + ", dataType=" + dataType + ", alias=" + alias + "]";
+	}
 }
 

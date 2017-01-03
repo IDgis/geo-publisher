@@ -336,8 +336,8 @@ public class DatasetManagerTest extends AbstractServiceTest {
 	@Test
 	public void testCleanup () throws Exception {
 		final List<Column> columns = Arrays.asList(
-				new Column("col0", Type.TEXT),
-				new Column("col1", Type.NUMERIC));
+				new Column("col0", Type.TEXT, null /*alias*/),
+				new Column("col1", Type.NUMERIC, null));
 		final Table table = new Table(columns);
 		final Timestamp revision = new Timestamp(new Date().getTime());
 		final VectorDataset[] datasets = {

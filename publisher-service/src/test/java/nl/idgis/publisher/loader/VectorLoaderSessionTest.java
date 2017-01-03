@@ -112,7 +112,7 @@ public class VectorLoaderSessionTest {
 		columns = new ArrayList<>();
 		
 		for(int i = 0; i < 5; i++) {
-			columns.add(new Column("column" + i, Type.NUMERIC));
+			columns.add(new Column("column" + i, Type.NUMERIC, null/*alias*/));
 		}
 		
 		VectorImportJobInfo importJob = new VectorImportJobInfo(0, "categoryId", "dataSourceId", UUID.randomUUID().toString(), "sourceDatasetId", 
