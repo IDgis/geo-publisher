@@ -165,7 +165,7 @@ public class Admin extends AbstractAdmin {
 		return db.query().from(datasetColumn)
 			.join(dataset).on(dataset.id.eq(datasetColumn.datasetId))
 			.where(dataset.identification.eq(listColumns.getDatasetId()))
-			.list(new QColumn(datasetColumn.name, datasetColumn.dataType, datasetColumn.alias))
+			.list(new QColumn(datasetColumn.name, datasetColumn.dataType, null))
 			.thenApply(columns -> columns.list());
 	}
 	

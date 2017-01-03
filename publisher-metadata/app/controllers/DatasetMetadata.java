@@ -53,6 +53,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -249,6 +252,23 @@ public class DatasetMetadata extends AbstractMetadata {
 			}
 			
 			metadataDocument.removeServiceLinkage();
+			
+			// build a sorted map with all column aliases for the source dataset 
+			SortedMap<String, String> columnAliases = new TreeMap<>();
+			for(Tuple columnInfo : tx.query().from(sourceDatasetVersionColumn)
+				.where(sourceDatasetVersionColumn.sourceDatasetVersionId.eq(
+					new SQLSubQuery().from(sourceDatasetVersion)
+						.where(sourceDatasetVersion.sourceDatasetId.eq(sourceDatasetId))
+						.unique(sourceDatasetVersion.id.max())))
+				.where(sourceDatasetVersionColumn.alias.isNotNull())
+				.orderBy(sourceDatasetVersionColumn.index.desc())
+				.list(sourceDatasetVersionColumn.name, sourceDatasetVersionColumn.alias)) {
+				
+				columnAliases.put(
+					columnInfo.get(sourceDatasetVersionColumn.name), 
+					columnInfo.get(sourceDatasetVersionColumn.alias));
+			}	
+			
 			if(datasetId != null) {
 				SQLQuery serviceQuery = tx.query().from(publishedService)
 						.join(publishedServiceDataset).on(publishedServiceDataset.serviceId.eq(publishedService.serviceId))
@@ -314,59 +334,35 @@ public class DatasetMetadata extends AbstractMetadata {
 					}
 				}
 				
-				List<Tuple> listDatasetAttributeAlias = tx.query().from(dataset)
+				// determine which columns are included in the dataset
+				Set<String> columnNames = tx.query().from(dataset)
 					.join(datasetColumn).on(dataset.id.eq(datasetColumn.datasetId))
 					.where(dataset.id.eq(datasetId))
-					.list(datasetColumn.name, datasetColumn.alias);
+					.list(datasetColumn.name)
+					.stream()
+					.collect(Collectors.toSet());
 				
-				Iterator<Tuple> iteratorAlias = listDatasetAttributeAlias.iterator();
-				while(iteratorAlias.hasNext()) {
-					Tuple alias = iteratorAlias.next();
-					if(alias.get(datasetColumn.alias) == null) {
-						iteratorAlias.remove();
-					}
+				// determine which source dataset columns are omitted 
+				Set<String> omittedColumnNames = columnAliases.keySet().stream()
+					.filter(columnName -> !columnNames.contains(columnName))
+					.collect(Collectors.toSet());
+				
+				// remove aliases of columns not included in the dataset
+				omittedColumnNames.forEach(columnAliases::remove);
+			}
+			
+			if(!columnAliases.isEmpty()) {
+				StringBuilder textAlias = new StringBuilder("INHOUD ATTRIBUTENTABEL:");
+				
+				for(Map.Entry<String, String> columnAlias : columnAliases.entrySet()) {
+					textAlias
+						.append(" ")
+						.append(columnAlias.getKey())
+						.append(": ")
+						.append(columnAlias.getValue());
 				}
 				
-				if(listDatasetAttributeAlias.size() > 0) {
-					StringBuilder textAlias = new StringBuilder("INHOUD ATTRIBUTENTABEL:");
-					
-					for(Tuple alias : listDatasetAttributeAlias) {
-						textAlias.append(" " + alias.get(datasetColumn.name) 
-								+ ": " + alias.get(datasetColumn.alias));
-					}
-					
-					metadataDocument.addProcessStep(textAlias.toString());
-				}
-			} else {
-				List<Tuple> listSourceDatasetAttributeAlias = tx.query().from(sourceDataset)
-						.join(sourceDatasetVersion)
-							.on(sourceDatasetVersion.id.eq(
-									new SQLSubQuery().from(sourceDatasetVersion)
-										.where(sourceDatasetVersion.sourceDatasetId.eq(sourceDatasetId))
-										.unique(sourceDatasetVersion.id.max())))
-						.join(sourceDatasetVersionColumn)
-							.on(sourceDatasetVersion.id.eq(sourceDatasetVersionColumn.sourceDatasetVersionId))
-						.where(sourceDataset.id.eq(sourceDatasetId))
-						.list(sourceDatasetVersionColumn.name,
-								sourceDatasetVersionColumn.alias);
-				
-				Iterator<Tuple> iteratorAlias = listSourceDatasetAttributeAlias.iterator();
-				while(iteratorAlias.hasNext()) {
-					Tuple alias = iteratorAlias.next();
-					if(alias.get(sourceDatasetVersionColumn.alias) == null) {
-						iteratorAlias.remove();
-					}
-				}
-				if(listSourceDatasetAttributeAlias.size() > 0) {
-					StringBuilder textAlias = new StringBuilder("INHOUD ATTRIBUTENTABEL:");
-					
-					for(Tuple alias : listSourceDatasetAttributeAlias) {
-						textAlias.append(" " + alias.get(sourceDatasetVersionColumn.name) 
-								+ ": " + alias.get(sourceDatasetVersionColumn.alias));
-					}
-					
-					metadataDocument.addProcessStep(textAlias.toString());
-				}
+				metadataDocument.addProcessStep(textAlias.toString());
 			}
 			
 			metadataDocument.addProcessStep("Originele bestandsnaam: " + oldDatasetIdentifier + ".xml");
