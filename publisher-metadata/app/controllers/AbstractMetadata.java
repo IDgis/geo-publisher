@@ -75,4 +75,14 @@ public abstract class AbstractMetadata extends SimpleWebDAV {
 		
 		return "1".equals(trustedHeader);
 	}
+	
+	protected boolean displayWithoutStylesheet() {
+		Boolean noStyle = Boolean.parseBoolean(request().getQueryString("noStyle"));
+		
+		if(noStyle) {
+			return true;
+		} else {
+			return false;
+		}
+	}
 }

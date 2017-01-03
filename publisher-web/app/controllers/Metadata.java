@@ -51,7 +51,14 @@ public class Metadata extends Controller {
 					return notFound();
 				}
 				
-				return ok(setStylesheet(metadata.content(), routes.WebJarAssets.at(WebJarAssets$.MODULE$.locate(datasetStylesheet)).url())).as("application/xml");
+				String stylesheet = null;
+				Boolean noStyle = Boolean.parseBoolean(request().getQueryString("noStyle"));
+				if(!noStyle) {
+					stylesheet = 
+						routes.WebJarAssets.at(WebJarAssets$.MODULE$.locate(datasetStylesheet)).url();
+				}
+				
+				return ok(setStylesheet(metadata.content(), stylesheet)).as("application/xml");
 			});
 	}
 	
@@ -74,12 +81,14 @@ public class Metadata extends Controller {
 			}
 		}
 		
-		// add stylesheet
-		d.insertBefore(
-				d.createProcessingInstruction(
-					"xml-stylesheet", 
-					"type=\"text/xsl\" href=\"" + stylesheet + "\""),
-				d.getFirstChild());
+		if(stylesheet != null) {
+			// add stylesheet
+			d.insertBefore(
+					d.createProcessingInstruction(
+						"xml-stylesheet", 
+						"type=\"text/xsl\" href=\"" + stylesheet + "\""),
+					d.getFirstChild());
+		}
 		
 		TransformerFactory tf = TransformerFactory.newInstance();
 		Transformer t = tf.newTransformer();
