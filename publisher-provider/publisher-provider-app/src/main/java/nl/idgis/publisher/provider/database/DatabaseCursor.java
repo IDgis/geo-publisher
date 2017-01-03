@@ -1,6 +1,7 @@
 package nl.idgis.publisher.provider.database;
 
 import java.sql.Blob;
+import java.sql.Clob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -8,6 +9,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
+import org.apache.commons.io.IOUtils;
 
 import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.provider.database.messages.DatabaseColumnInfo;
@@ -43,6 +45,10 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 	}
 	
 	private Object convert(DatabaseColumnInfo columnInfo, Object value) throws Exception {
+		if(value == null) {
+			return null;
+		}
+		
 		if(columnInfo.getType() == Type.GEOMETRY) {
 			if(value instanceof Blob) {
 				Blob blob = (Blob)value;
@@ -57,6 +63,16 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 				return null;
 			}
 		} else {
+			if(value instanceof Clob) {
+				Clob clob = (Clob)value;
+				if(clob.length() > Integer.MAX_VALUE) {
+					log.error("clob value too large: {}", clob.length());
+					return null;
+				}
+				
+				return IOUtils.toString(clob.getCharacterStream());
+			}
+			
 			return value;
 		}
 	}
@@ -96,7 +112,7 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 				
 				future.complete(new Records(records));
 			} catch(Throwable t) {
-				log.error("failed to fetch records: {}", t);
+				log.error(t, "failed to fetch records");
 				
 				future.completeExceptionally(t);
 			}

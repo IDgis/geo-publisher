@@ -16,14 +16,20 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+
 import org.apache.commons.io.IOUtils;
 import org.junit.Test;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 
 import nl.idgis.publisher.metadata.MetadataDocument.Keywords;
 import nl.idgis.publisher.metadata.MetadataDocument.OperatesOn;
 import nl.idgis.publisher.metadata.MetadataDocument.ServiceLinkage;
 import nl.idgis.publisher.metadata.MetadataDocument.Topic;
 import nl.idgis.publisher.utils.XMLUtils.XPathHelper;
+import nl.idgis.publisher.xml.XMLDocument;
 import nl.idgis.publisher.xml.exceptions.NotFound;
 import nl.idgis.publisher.xml.exceptions.NotParseable;
 
@@ -648,5 +654,25 @@ public class MetadataDocumentTest {
 		
 		document.addProcessStep(secondDescription);
 		assertTrue(document.xpath().node(processStepDescriptionPath + "[text() = '" + secondDescription + "']").isPresent());
+	}
+	
+	@Test
+	public void testEncapsulatingDocument() throws Exception {
+		InputStream stream = MetadataDocumentTest.class.getResourceAsStream("dataset_metadata.xml");
+		assertNotNull(stream);
+		
+		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		dbf.setNamespaceAware(true);
+		DocumentBuilder db = dbf.newDocumentBuilder();
+		
+		Document datasetMetadata = db.parse(stream);
+		
+		Document encapsulatingDocument = db.newDocument();
+		Element rootElement = encapsulatingDocument.createElement("metadata");
+		encapsulatingDocument.appendChild(rootElement);
+		rootElement.appendChild(encapsulatingDocument.adoptNode(datasetMetadata.getDocumentElement()));
+		
+		MetadataDocument metadataDocument = new MetadataDocument(new XMLDocument(encapsulatingDocument));
+		assertNotNull(metadataDocument.getDatasetTitle());
 	}
 }
