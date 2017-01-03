@@ -73,6 +73,8 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 	
 	private boolean confidential;
 	
+	private Date revisionDate;
+	
 	public SDEGatherDatasetInfo(ActorRef target, ActorRef transaction, ActorRef rasterFolder, Set<AttachmentType> attachmentTypes) {
 		this.target = target;
 		this.transaction = transaction;
@@ -107,7 +109,7 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 					title,
 					alternateTitle,
 					categoryId,
-					new Date(),
+					revisionDate,
 					attachments,
 					logs,
 					confidential),
@@ -122,7 +124,7 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 					title, 
 					alternateTitle, 
 					categoryId, 
-					new Date(), 
+					revisionDate, 
 					attachments,
 					Collections.emptySet(), // logs
 					confidential,
@@ -143,6 +145,8 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 				try {
 					MetadataDocumentFactory mdf = new MetadataDocumentFactory();
 					MetadataDocument md = mdf.parseDocument(documentation.getBytes("utf-8"));
+					
+					revisionDate = md.getDatasetRevisionDate();
 					
 					if(attachmentTypes.contains(AttachmentType.METADATA)) {
 						attachments.add(new Attachment(
@@ -202,7 +206,7 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 					title, 
 					alternateTitle,
 					categoryId,
-					new Date(), 
+					revisionDate, 
 					attachments,
 					Collections.emptySet(), // logs
 					confidential,
@@ -229,7 +233,7 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 					title, 
 					alternateTitle,
 					categoryId,
-					new Date(),
+					revisionDate,
 					attachments,
 					logs,
 					confidential),
