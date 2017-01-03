@@ -5,6 +5,7 @@ import java.sql.Timestamp;
 import java.text.Format;
 import java.text.SimpleDateFormat;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -43,7 +44,10 @@ public class MetadataDocument {
 	
 	protected static final String [] ROLE_CODES = {"owner","pointOfContact"}; 
 	
-	protected final XMLDocument xmlDocument;
+	protected final XMLDocument isoMetadata;
+	
+	protected final XMLDocument eainfo;
+	
 	protected final BiMap<String, String> namespaces;
 	
 	public MetadataDocument(XMLDocument xmlDocument) {
@@ -55,15 +59,22 @@ public class MetadataDocument {
 		
 		String rootNode = "/gmd:MD_Metadata";
 		if(xmlDocument.xpath(Optional.of(namespaces)).node(rootNode).isPresent()) {
-			this.xmlDocument = xmlDocument;
+			this.isoMetadata = xmlDocument;
 		} else {
-			this.xmlDocument = xmlDocument.clone(namespaces, "/" + rootNode);
+			this.isoMetadata = xmlDocument.clone(namespaces, "/" + rootNode);
+		}
+		
+		String eaInfoPath = "//eainfo";
+		if(xmlDocument.xpath(Optional.empty()).node(eaInfoPath).isPresent()) {
+			this.eainfo = xmlDocument.clone(null, eaInfoPath); 
+		} else {
+			this.eainfo = null;
 		}
 	}
 	
 	@Override
 	public MetadataDocument clone() {
-		return new MetadataDocument(xmlDocument.clone());
+		return new MetadataDocument(isoMetadata.clone());
 	}
 
 	/*
@@ -71,7 +82,7 @@ public class MetadataDocument {
 	 */
 	
 	public byte[] getContent() throws IOException {
-		return xmlDocument.getContent();
+		return isoMetadata.getContent();
 	}
 	
 	protected String dateToString(String pattern, Date date){		
@@ -117,10 +128,10 @@ public class MetadataDocument {
 		String datePath = getDatePath(topic, codeListValue); 
 		
 		try { 
-			String dateString = xmlDocument.getString(namespaces, datePath + "/gco:DateTime");
+			String dateString = isoMetadata.getString(namespaces, datePath + "/gco:DateTime");
 			return SimpleDateFormatMapper.isoDateTime().apply(dateString);
 		} catch(NotFound nf) {
-			String dateString = xmlDocument.getString(namespaces, datePath + "/gco:Date");
+			String dateString = isoMetadata.getString(namespaces, datePath + "/gco:Date");
 			return SimpleDateFormatMapper.isoDate().apply(dateString);
 		}
 	}
@@ -131,7 +142,7 @@ public class MetadataDocument {
 		
 		String dateString = dateToString(METADATA_DATE_PATTERN, date);
 		
-		xmlDocument.updateString(namespaces, datePath, dateString);
+		isoMetadata.updateString(namespaces, datePath, dateString);
 	}
 	
 	protected void setDate(Topic topic,String codeListValue, Timestamp ts) throws Exception{
@@ -177,23 +188,23 @@ public class MetadataDocument {
 	}
 	
 	public String getServiceTitle() throws NotFound {
-		return xmlDocument.getString(namespaces, getTitlePath(Topic.SERVICE));
+		return isoMetadata.getString(namespaces, getTitlePath(Topic.SERVICE));
 	}
 	
 	public void setServiceTitle (String title) throws QueryFailure {
-		xmlDocument.updateString(namespaces, getTitlePath(Topic.SERVICE), title);		
+		isoMetadata.updateString(namespaces, getTitlePath(Topic.SERVICE), title);		
 	}
 	
 	public void setServiceAlternateTitle(String alternateTitle) throws QueryFailure {		
-		xmlDocument.updateString(namespaces, getAlternateTitlePath(Topic.SERVICE), alternateTitle);
+		isoMetadata.updateString(namespaces, getAlternateTitlePath(Topic.SERVICE), alternateTitle);
 	}
 	
 	public String getDatasetTitle() throws NotFound {
-		return xmlDocument.getString(namespaces, getTitlePath(Topic.DATASET));
+		return isoMetadata.getString(namespaces, getTitlePath(Topic.DATASET));
 	}
 	
 	public void setDatasetTitle (String title) throws QueryFailure {
-		xmlDocument.updateString(namespaces, getTitlePath(Topic.DATASET), title);		
+		isoMetadata.updateString(namespaces, getTitlePath(Topic.DATASET), title);		
 	}
 	
 	/*
@@ -207,23 +218,23 @@ public class MetadataDocument {
 	}
 		
 	public String getServiceAbstract() throws NotFound {
-		return xmlDocument.getString(namespaces, getAbstractPath(Topic.SERVICE));
+		return isoMetadata.getString(namespaces, getAbstractPath(Topic.SERVICE));
 	}
 	
 	public void setServiceAbstract (String Abstract) throws QueryFailure {
-		xmlDocument.updateString(namespaces, getAbstractPath(Topic.SERVICE), Abstract);		
+		isoMetadata.updateString(namespaces, getAbstractPath(Topic.SERVICE), Abstract);		
 	}
 	
 	public String getDatasetAbstract() throws NotFound {
-		return xmlDocument.getString(namespaces, getAbstractPath(Topic.DATASET));
+		return isoMetadata.getString(namespaces, getAbstractPath(Topic.DATASET));
 	}
 	
 	public String getServiceAlternateTitle() throws NotFound {
-		return xmlDocument.getString(namespaces, getAlternateTitlePath(Topic.SERVICE));
+		return isoMetadata.getString(namespaces, getAlternateTitlePath(Topic.SERVICE));
 	}
 	
 	public void setDatasetAbstract (String Abstract) throws QueryFailure {
-		xmlDocument.updateString(namespaces, getAbstractPath(Topic.DATASET), Abstract);		
+		isoMetadata.updateString(namespaces, getAbstractPath(Topic.DATASET), Abstract);		
 	}
 	
 	/*
@@ -238,11 +249,11 @@ public class MetadataDocument {
 	}
 
 	protected int removeKeywords(Topic topic) throws NotFound {
-		return xmlDocument.removeNodes(namespaces, getKeywordPath(topic));
+		return isoMetadata.removeNodes(namespaces, getKeywordPath(topic));
 	}
 	
 	protected void addKeywords(Topic topic, Collection<String> keywords, String thesaurusTitle, String thesaurusDate, String thesaurusCodeList, String thesaurusCodeListValue) throws NotFound {		
-		String keywordsPath = xmlDocument.addNode(
+		String keywordsPath = isoMetadata.addNode(
 				namespaces, 
 				getIdentificationPath(topic), 
 				new String[] { 
@@ -264,20 +275,20 @@ public class MetadataDocument {
 			);
 		
 		for (String keyword : keywords) {
-			xmlDocument.addNode(namespaces, keywordsPath, "gmd:keyword/gco:CharacterString", keyword);
+			isoMetadata.addNode(namespaces, keywordsPath, "gmd:keyword/gco:CharacterString", keyword);
 		}
-		String thesaurusPath = xmlDocument.addNode(namespaces, keywordsPath, "gmd:thesaurusName/gmd:CI_Citation");
-		xmlDocument.addNode(namespaces, thesaurusPath, "gmd:title/gco:CharacterString", thesaurusTitle);
+		String thesaurusPath = isoMetadata.addNode(namespaces, keywordsPath, "gmd:thesaurusName/gmd:CI_Citation");
+		isoMetadata.addNode(namespaces, thesaurusPath, "gmd:title/gco:CharacterString", thesaurusTitle);
 		
-		String thesaurusDatePath = xmlDocument.addNode(namespaces, thesaurusPath, "gmd:date/gmd:CI_Date");
+		String thesaurusDatePath = isoMetadata.addNode(namespaces, thesaurusPath, "gmd:date/gmd:CI_Date");
 
-		xmlDocument.addNode(namespaces, thesaurusDatePath, "gmd:date/gco:Date", thesaurusDate);
+		isoMetadata.addNode(namespaces, thesaurusDatePath, "gmd:date/gco:Date", thesaurusDate);
 		
 		Map<String, String> attributes = new HashMap<String, String>();
 		attributes.put("codeList", thesaurusCodeList);
 		attributes.put("codeListValue", thesaurusCodeListValue);		
 		
-		xmlDocument.addNode(namespaces, thesaurusDatePath, "gmd:dateType/gmd:CI_DateTypeCode", attributes);
+		isoMetadata.addNode(namespaces, thesaurusDatePath, "gmd:dateType/gmd:CI_DateTypeCode", attributes);
 	}
 	
 	public int removeDatasetKeywords() throws NotFound {
@@ -314,7 +325,7 @@ public class MetadataDocument {
 	}
 	
 	protected List<Keywords> getKeywords(Topic topic) {
-		return xmlDocument
+		return isoMetadata
 			.xpath(Optional.of(namespaces))
 			.nodes(getKeywordPath(topic) + "/gmd:MD_Keywords").stream()
 				.map(node -> (Keywords)new Keywords() {
@@ -399,35 +410,35 @@ public class MetadataDocument {
 	}
 	
 	public String getServiceResponsiblePartyName(String role) throws Exception{
-		return xmlDocument.getString(namespaces, getResponsiblePartyNamePath(Topic.SERVICE, role));
+		return isoMetadata.getString(namespaces, getResponsiblePartyNamePath(Topic.SERVICE, role));
 	}
 	
 	public void setServiceResponsiblePartyName(String role, String name) throws Exception{
-		xmlDocument.updateString(namespaces, getResponsiblePartyNamePath(Topic.SERVICE, role), name);
+		isoMetadata.updateString(namespaces, getResponsiblePartyNamePath(Topic.SERVICE, role), name);
 	}
 	
 	public String getServiceResponsiblePartyEmail(String role) throws Exception{
-		return xmlDocument.getString(namespaces, getResponsiblePartyEmailPath(Topic.SERVICE, role));
+		return isoMetadata.getString(namespaces, getResponsiblePartyEmailPath(Topic.SERVICE, role));
 	}
 	
 	public void setServiceResponsiblePartyEmail(String role, String email) throws Exception{
-		xmlDocument.updateString(namespaces, getResponsiblePartyEmailPath(Topic.SERVICE, role), email);
+		isoMetadata.updateString(namespaces, getResponsiblePartyEmailPath(Topic.SERVICE, role), email);
 	}
 	
 	public String getDatasetResponsiblePartyName(String role) throws Exception{
-		return xmlDocument.getString(namespaces, getResponsiblePartyNamePath(Topic.DATASET, role));
+		return isoMetadata.getString(namespaces, getResponsiblePartyNamePath(Topic.DATASET, role));
 	}
 	
 	public void setDatasetResponsiblePartyName(String role, String name) throws Exception{
-		xmlDocument.updateString(namespaces, getResponsiblePartyNamePath(Topic.DATASET, role), name);
+		isoMetadata.updateString(namespaces, getResponsiblePartyNamePath(Topic.DATASET, role), name);
 	}
 	
 	public String getDatasetResponsiblePartyEmail(String role) throws Exception{
-		return xmlDocument.getString(namespaces, getResponsiblePartyEmailPath(Topic.DATASET, role));
+		return isoMetadata.getString(namespaces, getResponsiblePartyEmailPath(Topic.DATASET, role));
 	}
 	
 	public void setDatasetResponsiblePartyEmail(String role, String email) throws Exception{
-		xmlDocument.updateString(namespaces, getResponsiblePartyEmailPath(Topic.DATASET, role), email);
+		isoMetadata.updateString(namespaces, getResponsiblePartyEmailPath(Topic.DATASET, role), email);
 	}
 	
 	
@@ -449,11 +460,11 @@ public class MetadataDocument {
 	}
 	
 	public String getMetaDataIdentifier() throws Exception{
-		return xmlDocument.getString(namespaces, getMetaDataIdentifierPath());
+		return isoMetadata.getString(namespaces, getMetaDataIdentifierPath());
 	}
 	
 	public void setMetaDataIdentifier(String identifier) throws Exception{
-		xmlDocument.updateString(namespaces, getMetaDataIdentifierPath(), identifier);
+		isoMetadata.updateString(namespaces, getMetaDataIdentifierPath(), identifier);
 	}
 
 	/*
@@ -501,19 +512,19 @@ public class MetadataDocument {
 	}
 	
 	public String getMetaDataPointOfContactName(String role) throws NotFound{
-		return xmlDocument.getString(namespaces, getMetaDataPointOfContactNamePath(role));
+		return isoMetadata.getString(namespaces, getMetaDataPointOfContactNamePath(role));
 	}
 	
 	public String getMetaDataPointOfContactEmail(String role) throws Exception{
-		return xmlDocument.getString(namespaces, getMetaDataPointOfContactEmailPath(role));
+		return isoMetadata.getString(namespaces, getMetaDataPointOfContactEmailPath(role));
 	}
 	
 	public void setMetaDataPointOfContactName(String role, String name) throws Exception{
-		xmlDocument.updateString(namespaces, getMetaDataPointOfContactNamePath(role), name);
+		isoMetadata.updateString(namespaces, getMetaDataPointOfContactNamePath(role), name);
 	}
 	
 	public void setMetaDataPointOfContactEmail(String role, String email) throws Exception{
-		xmlDocument.updateString(namespaces, getMetaDataPointOfContactEmailPath(role), email);
+		isoMetadata.updateString(namespaces, getMetaDataPointOfContactEmailPath(role), email);
 	}
 	
 
@@ -529,11 +540,11 @@ public class MetadataDocument {
 	}
 	
 	public String getMetaDataCreationDate() throws Exception{
-		return xmlDocument.getString(namespaces, getMetaDataCreationDatePath());
+		return isoMetadata.getString(namespaces, getMetaDataCreationDatePath());
 	}
 	
 	public void setMetaDataCreationDate(Date date) throws Exception{
-		xmlDocument.updateString(namespaces, getMetaDataCreationDatePath(), dateToString(METADATA_DATE_PATTERN, date));
+		isoMetadata.updateString(namespaces, getMetaDataCreationDatePath(), dateToString(METADATA_DATE_PATTERN, date));
 	}
 
 	
@@ -553,11 +564,11 @@ public class MetadataDocument {
 	}
 	
 	public String getDatasetAlternateTitle() throws NotFound {
-		return xmlDocument.getString(namespaces, getAlternateTitlePath(Topic.DATASET));
+		return isoMetadata.getString(namespaces, getAlternateTitlePath(Topic.DATASET));
 	}
 
 	public void setDatasetAlternateTitle(String newTitle) throws QueryFailure {
-		xmlDocument.updateString(namespaces, getAlternateTitlePath(Topic.DATASET), newTitle);
+		isoMetadata.updateString(namespaces, getAlternateTitlePath(Topic.DATASET), newTitle);
 	}
 	
 	protected String getUseLimitationsPath() {
@@ -566,7 +577,7 @@ public class MetadataDocument {
 	}
 	
 	public List<String> getUseLimitations() throws NotFound {
-		return xmlDocument
+		return isoMetadata
 			.xpath(Optional.of(namespaces))
 			.strings(getUseLimitationsPath());
 	}
@@ -581,7 +592,7 @@ public class MetadataDocument {
 	}
 	
 	public List<String> getOtherConstraints() throws NotFound {
-		return xmlDocument
+		return isoMetadata
 			.xpath(Optional.of(namespaces))
 			.strings(getOtherconstraintsPath());
 	}
@@ -609,7 +620,7 @@ public class MetadataDocument {
 	 * @throws Exception
 	 */
 	public int removeServiceLinkage() throws Exception{
-		return xmlDocument.removeNodes(namespaces, getServiceLinkagePath());
+		return isoMetadata.removeNodes(namespaces, getServiceLinkagePath());
 	}
 	
 	/**
@@ -620,16 +631,16 @@ public class MetadataDocument {
 	 * @throws NotFound 
 	 */
 	public void addServiceLinkage(String linkage, String protocol, String name) throws NotFound{
-		String parentPath = xmlDocument.addNode(namespaces, getDigitalTransferOptionsPath(), new String[]{"gmd:offLine"}, "gmd:onLine/gmd:CI_OnlineResource");
-		xmlDocument.addNode(namespaces, parentPath, "gmd:linkage/gmd:URL", linkage);
-		xmlDocument.addNode(namespaces, parentPath, "gmd:protocol/gco:CharacterString", protocol);
+		String parentPath = isoMetadata.addNode(namespaces, getDigitalTransferOptionsPath(), new String[]{"gmd:offLine"}, "gmd:onLine/gmd:CI_OnlineResource");
+		isoMetadata.addNode(namespaces, parentPath, "gmd:linkage/gmd:URL", linkage);
+		isoMetadata.addNode(namespaces, parentPath, "gmd:protocol/gco:CharacterString", protocol);
 		if(name != null) {
-			xmlDocument.addNode(namespaces, parentPath, "gmd:name/gco:CharacterString", name);
+			isoMetadata.addNode(namespaces, parentPath, "gmd:name/gco:CharacterString", name);
 		}
 	}
 	
 	protected XPathHelper xpath() {
-		return xmlDocument.xpath(Optional.of(namespaces));
+		return isoMetadata.xpath(Optional.of(namespaces));
 	}
 	
 	public interface ServiceLinkage {
@@ -687,11 +698,11 @@ public class MetadataDocument {
 	}
 	
 	public void setDatasetIdentifier(String datasetIdentifier) throws QueryFailure {
-		xmlDocument.updateString(namespaces, getDatasetIdentifierPath(), datasetIdentifier);
+		isoMetadata.updateString(namespaces, getDatasetIdentifierPath(), datasetIdentifier);
 	}
 	
 	public String getDatasetIdentifier() throws QueryFailure {
-		return xmlDocument.getString(namespaces, getDatasetIdentifierPath());
+		return isoMetadata.getString(namespaces, getDatasetIdentifierPath());
 	}
 	
 	
@@ -707,7 +718,7 @@ public class MetadataDocument {
 	}	
 	
 	public int removeServiceType() throws NotFound {
-		return xmlDocument.removeNodes(namespaces, getServiceTypePath());		
+		return isoMetadata.removeNodes(namespaces, getServiceTypePath());		
 	}
 	
 	/**
@@ -716,7 +727,7 @@ public class MetadataDocument {
 	 * @throws NotFound 
 	 */
 	public void addServiceType(String serviceLocalName) throws NotFound{		
-		xmlDocument.addNode(namespaces, getServiceIdentificationPath(), 
+		isoMetadata.addNode(namespaces, getServiceIdentificationPath(), 
 			new String[]{
 				"srv:serviceTypeVersion",
 				"srv:accessProperties",
@@ -733,7 +744,7 @@ public class MetadataDocument {
 	}
 	
 	public String getServiceType() throws QueryFailure {
-		return xmlDocument.getString(namespaces, getServiceTypePath() + "/gco:LocalName");
+		return isoMetadata.getString(namespaces, getServiceTypePath() + "/gco:LocalName");
 	}
 	
 	/**
@@ -748,7 +759,7 @@ public class MetadataDocument {
 	}
 	
 	public int removeBrowseGraphic() throws NotFound {
-		return xmlDocument.removeNodes(namespaces, getServiceGraphicOverviewPath());		
+		return isoMetadata.removeNodes(namespaces, getServiceGraphicOverviewPath());		
 	}
 	
 	/**
@@ -757,7 +768,7 @@ public class MetadataDocument {
 	 * @throws NotFound 
 	 */
 	public void addServiceBrowseGraphic(String fileName) throws NotFound {		
-		xmlDocument.addNode(
+		isoMetadata.addNode(
 				namespaces, 
 				getServiceIdentificationPath (), 
 				new String[] {
@@ -788,7 +799,7 @@ public class MetadataDocument {
 	 * @throws NotFound 
 	 */
 	public void addDatasetBrowseGraphic(String fileName) throws NotFound {		
-		xmlDocument.addNode(
+		isoMetadata.addNode(
 				namespaces, 
 				getDatasetIdentificationPath (), 
 				new String[] {
@@ -837,7 +848,7 @@ public class MetadataDocument {
 	
 	
 	public int removeServiceEndpoint() throws NotFound {
-		return xmlDocument.removeNodes(namespaces, getOperationMetadataPath());
+		return isoMetadata.removeNodes(namespaces, getOperationMetadataPath());
 	}
 
 	/**
@@ -849,32 +860,32 @@ public class MetadataDocument {
 	 * @throws NotFound
 	 */
 	public void addServiceEndpoint(String operationName, String codeList, String codeListValue, String linkage) throws NotFound {
-		String parentPath = xmlDocument.addNode(namespaces, getOperationsPath(), "srv:SV_OperationMetadata");		
+		String parentPath = isoMetadata.addNode(namespaces, getOperationsPath(), "srv:SV_OperationMetadata");		
 		
-		xmlDocument.addNode(namespaces, parentPath, "srv:operationName/gco:CharacterString", operationName);
+		isoMetadata.addNode(namespaces, parentPath, "srv:operationName/gco:CharacterString", operationName);
 		
 		Map<String, String> attributes = new HashMap<String, String>();
 		attributes.put("codeList", codeList);
 		attributes.put("codeListValue", codeListValue);
-		xmlDocument.addNode(namespaces, parentPath, "srv:DCP/srv:DCPList", attributes);
+		isoMetadata.addNode(namespaces, parentPath, "srv:DCP/srv:DCPList", attributes);
 		
-		xmlDocument.addNode(namespaces, parentPath, "srv:connectPoint/gmd:CI_OnlineResource/gmd:linkage/gmd:URL", linkage);
+		isoMetadata.addNode(namespaces, parentPath, "srv:connectPoint/gmd:CI_OnlineResource/gmd:linkage/gmd:URL", linkage);
 	}
 	
 	public String getServiceEndpointOperationName() throws QueryFailure {
-		return xmlDocument.getString(namespaces, getOperationsPath() + "/srv:SV_OperationMetadata/srv:operationName/gco:CharacterString");
+		return isoMetadata.getString(namespaces, getOperationsPath() + "/srv:SV_OperationMetadata/srv:operationName/gco:CharacterString");
 	}
 	
 	public String getServiceEndpointCodeList() throws QueryFailure {
-		return xmlDocument.getString(namespaces, getOperationsPath() + "/srv:SV_OperationMetadata/srv:DCP/srv:DCPList/@codeList");
+		return isoMetadata.getString(namespaces, getOperationsPath() + "/srv:SV_OperationMetadata/srv:DCP/srv:DCPList/@codeList");
 	}
 	
 	public String getServiceEndpointCodeListValue() throws QueryFailure {
-		return xmlDocument.getString(namespaces, getOperationsPath() + "/srv:SV_OperationMetadata/srv:DCP/srv:DCPList/@codeListValue");
+		return isoMetadata.getString(namespaces, getOperationsPath() + "/srv:SV_OperationMetadata/srv:DCP/srv:DCPList/@codeListValue");
 	}
 	
 	public String getServiceEndpointUrl() throws QueryFailure {
-		return xmlDocument.getString(namespaces, getOperationsPath() + "/srv:SV_OperationMetadata/srv:connectPoint/gmd:CI_OnlineResource/gmd:linkage/gmd:URL");
+		return isoMetadata.getString(namespaces, getOperationsPath() + "/srv:SV_OperationMetadata/srv:connectPoint/gmd:CI_OnlineResource/gmd:linkage/gmd:URL");
 	}
 	
 
@@ -886,7 +897,7 @@ public class MetadataDocument {
 	}
 	
 	public int removeSVCoupledResource() throws NotFound {
-		return xmlDocument.removeNodes(namespaces, getCoupledResourcePath());
+		return isoMetadata.removeNodes(namespaces, getCoupledResourcePath());
 	}
 
 	/**
@@ -897,7 +908,7 @@ public class MetadataDocument {
 	 * @throws NotFound
 	 */
 	public void addSVCoupledResource(String operationName, String identifier, String scopedName) throws NotFound {
-		String parentPath = xmlDocument.addNode (
+		String parentPath = isoMetadata.addNode (
 				namespaces, 
 				getServiceIdentificationPath (),
 				new String[] { 
@@ -907,22 +918,22 @@ public class MetadataDocument {
 				}, 
 				"srv:coupledResource/srv:SV_CoupledResource"
 			);
-		xmlDocument.addNode(namespaces, parentPath, "srv:operationName/gco:CharacterString", operationName);
-		xmlDocument.addNode(namespaces, parentPath, "srv:identifier/gco:CharacterString", identifier);
-		xmlDocument.addNode(namespaces, parentPath, "gco:ScopedName", scopedName);
+		isoMetadata.addNode(namespaces, parentPath, "srv:operationName/gco:CharacterString", operationName);
+		isoMetadata.addNode(namespaces, parentPath, "srv:identifier/gco:CharacterString", identifier);
+		isoMetadata.addNode(namespaces, parentPath, "gco:ScopedName", scopedName);
 	}
 	
 	
 	public String getServiceCoupledResourceOperationName() throws QueryFailure {
-		return xmlDocument.getString(namespaces, getCoupledResourcePath() + "/srv:SV_CoupledResource/srv:operationName/gco:CharacterString");
+		return isoMetadata.getString(namespaces, getCoupledResourcePath() + "/srv:SV_CoupledResource/srv:operationName/gco:CharacterString");
 	}
 	
 	public String getServiceCoupledResourceIdentifier() throws QueryFailure {
-		return xmlDocument.getString(namespaces, getCoupledResourcePath() + "/srv:SV_CoupledResource/srv:identifier/gco:CharacterString");
+		return isoMetadata.getString(namespaces, getCoupledResourcePath() + "/srv:SV_CoupledResource/srv:identifier/gco:CharacterString");
 	}
 	
 	public String getServiceCoupledResourceScopedName() throws QueryFailure {
-		return xmlDocument.getString(namespaces, getCoupledResourcePath() + "/srv:SV_CoupledResource/gco:ScopedName");
+		return isoMetadata.getString(namespaces, getCoupledResourcePath() + "/srv:SV_CoupledResource/gco:ScopedName");
 	}
 	
 	
@@ -936,7 +947,7 @@ public class MetadataDocument {
 	}
 	
 	public int removeOperatesOn() throws NotFound {
-		return xmlDocument.removeNodes(namespaces, getOperatesOnPath());
+		return isoMetadata.removeNodes(namespaces, getOperatesOnPath());
 	}
 
 	/**
@@ -950,7 +961,7 @@ public class MetadataDocument {
 		attributes.put("uuidref", uuidref);
 		attributes.put("xlink:href", href);
 		
-		xmlDocument.addNode(namespaces, getServiceIdentificationPath(), "srv:operatesOn", attributes);
+		isoMetadata.addNode(namespaces, getServiceIdentificationPath(), "srv:operatesOn", attributes);
 	}
 	
 	public interface OperatesOn {
@@ -1028,11 +1039,11 @@ public class MetadataDocument {
 	}
 	
 	public void removeStylesheet() {
-		xmlDocument.removeStylesheet();
+		isoMetadata.removeStylesheet();
 	}
 	
 	public void setStylesheet(String stylesheet) {
-		xmlDocument.setStylesheet(stylesheet);
+		isoMetadata.setStylesheet(stylesheet);
 	}
 	
 	public List<String> getSpatialSchema() {
@@ -1101,14 +1112,14 @@ public class MetadataDocument {
 		if(!xpath()
 			.node(lineagePath)
 			.isPresent()) {
-			xmlDocument.addNode(
+			isoMetadata.addNode(
 					namespaces, 
 					path,
 					"gmd:lineage"
 						+ "/gmd:LI_Lineage");
 		}
 		
-		String processStepDescriptionPath = xmlDocument.addNode(
+		String processStepDescriptionPath = isoMetadata.addNode(
 			namespaces, 
 			lineagePath,
 			new String[]{
@@ -1127,7 +1138,7 @@ public class MetadataDocument {
 		String processStepPath = processStepDescriptionPath 
 			+ "/ancestor::gmd:LI_ProcessStep";
 		
-		xmlDocument.addNode(
+		isoMetadata.addNode(
 			namespaces, 
 			processStepPath,
 			"gmd:processor"
@@ -1150,7 +1161,7 @@ public class MetadataDocument {
 					+ " and @codeListValue='dataset']]";
 		
 		if(xpath().nodes(dataQualityPath).isEmpty()) {
-			String dataQualityInfoPath = xmlDocument.addNode(
+			String dataQualityInfoPath = isoMetadata.addNode(
 					namespaces,
 					"/gmd:MD_Metadata",
 					new String[]{
@@ -1169,7 +1180,7 @@ public class MetadataDocument {
 			scopeCodeAttr.put("codeList", "./resources/codeList.xml#MD_ScopeCode");
 			scopeCodeAttr.put("codeListValue", "dataset");
 			
-			xmlDocument.addNode(
+			isoMetadata.addNode(
 				namespaces, 
 				dataQualityInfoPath, 
 				"gmd:DQ_DataQuality"
@@ -1186,6 +1197,20 @@ public class MetadataDocument {
 				description);
 		} else {
 			addLineage(dataQualityPath, description);
+		}
+	}
+
+	public Map<String, String> getAttributeAliases() {
+		if(eainfo == null) {
+			return Collections.emptyMap();
+		} else {
+			return eainfo
+				.xpath(Optional.empty())
+				.nodes("eainfo/detailed/attr[attrlabl and attalias]")
+				.stream()
+				.collect(Collectors.toMap(
+					attr -> attr.string("attrlabl").get(),
+					attr -> attr.string("attalias").get()));
 		}
 	}
 }
