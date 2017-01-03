@@ -146,13 +146,15 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 					MetadataDocumentFactory mdf = new MetadataDocumentFactory();
 					MetadataDocument md = mdf.parseDocument(documentation.getBytes("utf-8"));
 					
+					confidential = !md.getOtherConstraints().contains("http://creativecommons.org/publicdomain/mark/1.0/deed.nl");
+					
 					revisionDate = md.getDatasetRevisionDate();
 					
 					if(attachmentTypes.contains(AttachmentType.METADATA)) {
 						attachments.add(new Attachment(
 							"sde.gdb_items_vw.documentation", 
 							AttachmentType.METADATA,
-							false, // confidential
+							confidential, // confidential
 							md.getContent()));
 					}
 				
