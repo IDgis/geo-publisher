@@ -638,7 +638,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		for (final Tuple t: baseQuery.clone ().list (sourceDatasetColumnDiff.diff, sourceDatasetColumnDiff.name, sourceDatasetColumnDiff.dataType)) {
 			diffs.add (new ColumnDiff (new Column (
 					t.get (sourceDatasetColumnDiff.name),
-					Type.valueOf (t.get (sourceDatasetColumnDiff.dataType))
+					Type.valueOf (t.get (sourceDatasetColumnDiff.dataType)),
+					null // alias
 				), 
 				ColumnDiffOperation.valueOf (t.get (sourceDatasetColumnDiff.diff))
 			));

@@ -84,7 +84,7 @@ public class ProviderDataSourceTest {
 		
 		Set<Log> logs = new HashSet<>();
 		
-		ColumnInfo[] columns = {new ColumnInfo("id", Type.NUMERIC), new ColumnInfo("title", Type.TEXT)};
+		ColumnInfo[] columns = {new ColumnInfo("id", Type.NUMERIC, "the id"), new ColumnInfo("title", Type.TEXT, "the title")};
 		TableInfo tableInfo = new TableInfo(columns);
 		
 		vectorDatasetInfo = new VectorDatasetInfo("vectorDataset", "vectorDatasetTitle", "vectorDatasetAlternateTitle", "categoryId", new Date(), attachments, logs, false, "tableName", tableInfo, 42);				

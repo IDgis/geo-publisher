@@ -171,7 +171,7 @@ public class XMLDocument {
 	
 	public XMLDocument clone(BiMap<String, String> namespaces, String path) {
 		return clone(
-			xpath(Optional.of(namespaces))
+			xpath(Optional.ofNullable(namespaces))
 				.node(path)
 				.orElseThrow(() -> new IllegalArgumentException("path not found: " + path))
 				.getItem());

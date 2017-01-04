@@ -47,9 +47,9 @@ public class FilterEvaluatorTest {
 		Set<Column> requiredColumns =  FilterEvaluator.getRequiredColumns(expression);
 		assertNotNull(requiredColumns);
 		assertEquals(1, requiredColumns.size());
-		assertTrue(requiredColumns.contains(new Column("OPPV", Type.NUMERIC)));
+		assertTrue(requiredColumns.contains(new Column("OPPV", Type.NUMERIC, null /*alias*/)));
 		
-		List<Column> columns = Arrays.asList(new Column("OPPV", Type.NUMERIC));
+		List<Column> columns = Arrays.asList(new Column("OPPV", Type.NUMERIC, null));
 		FilterEvaluator evaluator = new FilterEvaluator(columns, expression);
 		 
 		assertFalse(evaluator.evaluate(new Record(Arrays.<Object>asList(5000))));
@@ -271,7 +271,7 @@ public class FilterEvaluatorTest {
 	
 	@Test
 	public void testNotNull() {
-		Column testColumn = new Column("col0", Type.TEXT);		
+		Column testColumn = new Column("col0", Type.TEXT, null /*alias*/);
 		FilterEvaluator evaluator = new FilterEvaluator(Arrays.asList(testColumn), null);
 		
 		assertEquals(
@@ -295,7 +295,7 @@ public class FilterEvaluatorTest {
 	
 	@Test
 	public void testNullColumnValueEquals() {
-		Column testColumn = new Column("col0", Type.TEXT);		
+		Column testColumn = new Column("col0", Type.TEXT, null/*alias*/);
 		FilterEvaluator evaluator = new FilterEvaluator(Arrays.asList(testColumn), null);
 		
 		assertEquals(

@@ -267,7 +267,8 @@ public class DatasetManager extends UntypedActor {
 					viewInfo.list().stream()
 						.map(t -> new Column(
 							t.get(datasetView.name), 
-							t.get(datasetView.dataType)))
+							t.get(datasetView.dataType),
+							null /* column alias (irrelevant in this context) */))
 						.collect(Collectors.toList()));
 	}
 
@@ -335,7 +336,8 @@ public class DatasetManager extends UntypedActor {
 				.orderBy(sourceDatasetVersionColumn.index.asc())
 				.list(new QColumn(
 					sourceDatasetVersionColumn.name,
-					sourceDatasetVersionColumn.dataType))).thenApply((baseInfoOptional, logInfo, columnInfo) -> {
+					sourceDatasetVersionColumn.dataType,
+					sourceDatasetVersionColumn.alias))).thenApply((baseInfoOptional, logInfo, columnInfo) -> {
 						Tuple baseInfo = baseInfoOptional.orElseThrow(() -> new IllegalArgumentException("source dataset version missing"));
 						
 						String id = baseInfo.get(sourceDataset.externalIdentification);
@@ -587,6 +589,7 @@ public class DatasetManager extends UntypedActor {
 					.set(sourceDatasetVersionColumn.index, indexedColumn.getIndex())
 					.set(sourceDatasetVersionColumn.name, column.getName())
 					.set(sourceDatasetVersionColumn.dataType, column.getDataType().toString())
+					.set(sourceDatasetVersionColumn.alias, column.getAlias())
 					.execute();
 			})			
 			.reduce(f.successful(0l), DatasetManager::sum)

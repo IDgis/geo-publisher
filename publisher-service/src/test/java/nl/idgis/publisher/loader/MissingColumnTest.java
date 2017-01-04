@@ -102,8 +102,8 @@ public class MissingColumnTest extends AbstractServiceTest {
 		
 		// register source dataset
 		List<Column> columns = Arrays.asList(
-			new Column("col0", Type.TEXT),
-			new Column("col1", Type.NUMERIC));
+			new Column("col0", Type.TEXT, null/*alias*/),
+			new Column("col1", Type.NUMERIC, null));
 		
 		final String sourceDatasetId = "testSourceDataset";
 				

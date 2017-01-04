@@ -7,6 +7,7 @@ import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.service.DatabaseLog;
 import nl.idgis.publisher.domain.service.DatasetLogType;
+import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.provider.database.messages.DatabaseColumnInfo;
 import nl.idgis.publisher.provider.database.messages.DatabaseTableInfo;
 import nl.idgis.publisher.provider.database.messages.DescribeTable;
@@ -52,7 +53,11 @@ public class VectorDatasetInfoBuilder extends AbstractDatasetInfoBuilder {
 			
 			ArrayList<ColumnInfo> columns = new ArrayList<>();
 			for(DatabaseColumnInfo columnInfo : ((DatabaseTableInfo)msg).getColumns()) {
-				columns.add(new ColumnInfo(columnInfo.getName(), columnInfo.getType()));
+				String columnName = columnInfo.getName();
+				Type columnType = columnInfo.getType();
+				String columnAlias = attributeAliases.get(columnName);
+				
+				columns.add(new ColumnInfo(columnName, columnType, columnAlias));
 			}
 			
 			tableInfo = new TableInfo(columns.toArray(new ColumnInfo[columns.size()]));

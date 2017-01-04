@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -527,7 +528,7 @@ public class MetadataDocumentTest {
 		assertEquals(Calendar.NOVEMBER, calendar.get(Calendar.MONTH));
 		assertEquals(19, calendar.get(Calendar.DAY_OF_MONTH));
 		
-		document.xmlDocument.removeNodes(document.namespaces,
+		document.isoMetadata.removeNodes(document.namespaces,
 			document.getDatePath(Topic.DATASET, MetadataDocument.REVISION));
 		
 		// should return the creation date
@@ -539,7 +540,7 @@ public class MetadataDocumentTest {
 		assertEquals(Calendar.JUNE, calendar.get(Calendar.MONTH));
 		assertEquals(9, calendar.get(Calendar.DAY_OF_MONTH));
 		
-		document.xmlDocument.removeNodes(document.namespaces,
+		document.isoMetadata.removeNodes(document.namespaces,
 				document.getDatePath(Topic.DATASET, MetadataDocument.CREATION));
 		
 		// should fail (raise NotFound exception)
@@ -580,7 +581,7 @@ public class MetadataDocumentTest {
 	public void testRemoveAdditionalPointOfContacts() throws Exception {
 		MetadataDocument document = getDocument("dataset_metadata.xml");
 		
-		List<XPathHelper> pointOfContacts = document.xmlDocument
+		List<XPathHelper> pointOfContacts = document.isoMetadata
 			.xpath(Optional.of(document.namespaces))
 			.nodes("/gmd:MD_Metadata"
 				+ "/gmd:identificationInfo"
@@ -598,7 +599,7 @@ public class MetadataDocumentTest {
 		
 		document.removeAdditionalPointOfContacts();
 		
-		pointOfContacts = document.xmlDocument
+		pointOfContacts = document.isoMetadata
 			.xpath(Optional.of(document.namespaces))
 			.nodes("/gmd:MD_Metadata"
 				+ "/gmd:identificationInfo"
@@ -674,5 +675,16 @@ public class MetadataDocumentTest {
 		
 		MetadataDocument metadataDocument = new MetadataDocument(new XMLDocument(encapsulatingDocument));
 		assertNotNull(metadataDocument.getDatasetTitle());
+	}
+	
+	@Test
+	public void testAttributeAliases() throws Exception {
+		MetadataDocument metadataDocument = getDocument("sde_metadata.xml");
+		assertNotNull(metadataDocument);
+		
+		Map<String, String> attributeAliases = metadataDocument.getAttributeAliases();
+		assertNotNull(attributeAliases);
+		assertTrue(attributeAliases.containsKey("NAAM"));
+		assertEquals("Project", attributeAliases.get("NAAM"));
 	}
 }

@@ -89,6 +89,7 @@ import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.Expression;
 import com.mysema.query.types.ExpressionUtils;
+import com.mysema.query.types.NullExpression;
 import com.mysema.query.types.Order;
 import com.mysema.query.types.query.SimpleSubQuery;
 
@@ -152,7 +153,10 @@ public class Admin extends AbstractAdmin {
 				.on(dataSource.id.eq(sourceDataset.dataSourceId))
 				.where(sourceDataset.identification.eq(listColumns.getSourceDatasetId()).and(
 						dataSource.identification.eq(listColumns.getDataSourceId())))
-				.list(new QColumn(sourceDatasetVersionColumn.name, sourceDatasetVersionColumn.dataType))
+				.list(new QColumn(
+					sourceDatasetVersionColumn.name, 
+					sourceDatasetVersionColumn.dataType, 
+					sourceDatasetVersionColumn.alias))
 				.thenApply(columns -> columns.list());		
 	}
 
@@ -162,7 +166,10 @@ public class Admin extends AbstractAdmin {
 		return db.query().from(datasetColumn)
 			.join(dataset).on(dataset.id.eq(datasetColumn.datasetId))
 			.where(dataset.identification.eq(listColumns.getDatasetId()))
-			.list(new QColumn(datasetColumn.name, datasetColumn.dataType))
+			.list(new QColumn(
+				datasetColumn.name, 
+				datasetColumn.dataType, 
+				new NullExpression<>(String.class)))
 			.thenApply(columns -> columns.list());
 	}
 	

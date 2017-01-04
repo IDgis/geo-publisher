@@ -98,7 +98,7 @@ public class ColumnDiffTest extends AbstractServiceTest {
 		// dataset updated
 		assertFalse(query().from(datasetColumnDiff).exists());
 		
-		Column newColumn = new Column("my_new_column", Type.GEOMETRY);		
+		Column newColumn = new Column("my_new_column", Type.GEOMETRY, "a new column");
 		updateDataset(
 					"testDataset", 
 					"My Test Dataset", 
@@ -171,7 +171,7 @@ public class ColumnDiffTest extends AbstractServiceTest {
 		// dataset updated
 		assertFalse(query().from(sourceDatasetColumnDiff).exists());
 		
-		Column newColumn = new Column("additional_column", Type.DATE);
+		Column newColumn = new Column("additional_column", Type.DATE, "an additional column");
 		newTable = new Table(Arrays.asList(testColumns.get(0), newColumn));
 		newSourceDataset = new VectorDataset(
 			testSourceDataset.getId(),

@@ -7,9 +7,9 @@ import com.mysema.query.types.Expression;
 
 public class QColumn extends ConstructorExpression<Column>{
 
-	private static final long serialVersionUID = 5555217006415319690L;
+	private static final long serialVersionUID = -1465683968149077924L;
 
-	public QColumn(Expression<String> name, Expression<String> dataType) {
-		super(Column.class, new Class<?>[]{String.class, String.class}, name, dataType);
+	public QColumn(Expression<String> name, Expression<String> dataType, Expression<String> alias) {
+		super(Column.class, new Class<?>[]{String.class, String.class, String.class}, name, dataType, alias);
 	}
 }

@@ -458,7 +458,7 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 			Stream
 				.concat(
 					importColumns.stream(), 
-					Stream.of(new Column(currentJob.getDatasetId() + "_id", Type.SERIAL)))
+					Stream.of(new Column(currentJob.getDatasetId() + "_id", Type.SERIAL, null /*alias*/)))
 				.collect(Collectors.toList());
 		
 		tx.tell(

@@ -1,7 +1,9 @@
 package nl.idgis.publisher.provider;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -43,6 +45,8 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 	
 	protected Set<Log> logs;
 	
+	protected Map<String, String> attributeAliases;
+	
 	protected MetadataDocumentFactory metadataDocumentFactory;
 	
 	protected String identification, title, alternateTitle, reportedTitle, categoryId;
@@ -64,6 +68,7 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 	public final void preStart () throws Exception {
 		attachments = new HashSet<>();
 		logs = new HashSet<>();
+		attributeAliases = Collections.emptyMap();
 		
 		metadataDocumentFactory = new MetadataDocumentFactory();
 		
@@ -113,6 +118,9 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 		try {
 			log.debug("parsing metadata");
 			MetadataDocument metadataDocument = metadataDocumentFactory.parseDocument(content);
+			
+			attributeAliases = metadataDocument.getAttributeAliases();
+			log.debug("attributeAliases: {}", attributeAliases);
 			
 			try {
 				title = metadataDocument.getDatasetTitle();

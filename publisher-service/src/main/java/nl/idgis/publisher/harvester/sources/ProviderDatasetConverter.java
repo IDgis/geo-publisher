@@ -110,11 +110,14 @@ public class ProviderDatasetConverter extends StreamConverter {
 			if(datasetInfo instanceof VectorDatasetInfo) {
 				log.debug("vector dataset info: " + datasetInfo);
 				
-				VectorDatasetInfo vectorDatasetInfo = (VectorDatasetInfo)datasetInfo;				
+				VectorDatasetInfo vectorDatasetInfo = (VectorDatasetInfo)datasetInfo;
 				TableInfo tableInfo = vectorDatasetInfo.getTableInfo();
 				
 				List<Column> columns = Arrays.stream(tableInfo.getColumns())
-					.map(column -> new Column(column.getName(), column.getType()))
+					.map(column -> new Column(
+						column.getName(), 
+						column.getType(), 
+						column.getAlias().orElse(null)))
 					.collect(Collectors.toList());
 				
 				Table table = new Table(columns);				

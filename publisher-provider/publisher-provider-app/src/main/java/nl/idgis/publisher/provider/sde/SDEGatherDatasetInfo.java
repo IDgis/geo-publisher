@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import nl.idgis.publisher.domain.Log;
@@ -75,6 +76,8 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 	
 	private Date revisionDate;
 	
+	private Map<String, String> attributeAliases;
+	
 	public SDEGatherDatasetInfo(ActorRef target, ActorRef transaction, ActorRef rasterFolder, Set<AttachmentType> attachmentTypes) {
 		this.target = target;
 		this.transaction = transaction;
@@ -90,6 +93,7 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 	public void preStart() {
 		 attachments = new HashSet<>();
 		 confidential = true;
+		 attributeAliases = Collections.emptyMap();
 	}
 
 	@Override
@@ -147,7 +151,7 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 					MetadataDocument md = mdf.parseDocument(documentation.getBytes("utf-8"));
 					
 					confidential = !md.getOtherConstraints().contains("http://creativecommons.org/publicdomain/mark/1.0/deed.nl");
-					
+					attributeAliases = md.getAttributeAliases();
 					revisionDate = md.getDatasetRevisionDate();
 					
 					if(attachmentTypes.contains(AttachmentType.METADATA)) {
@@ -189,12 +193,15 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 			
 			ArrayList<ColumnInfo> columns = new ArrayList<>();
 			for(DatabaseColumnInfo columnInfo : databaseTableInfo.getColumns()) {
-				Type type = columnInfo.getType();
+				Type columnType = columnInfo.getType();
 				
-				if(type == null) {
+				if(columnType == null) {
 					log.debug("unknown data type: " + columnInfo.getTypeName());
 				} else {
-					columns.add(new ColumnInfo(columnInfo.getName(), type));
+					String columnName = columnInfo.getName();
+					String columnAlias = attributeAliases.get(columnName);
+					
+					columns.add(new ColumnInfo(columnName, columnType, columnAlias));
 				}
 			}
 			

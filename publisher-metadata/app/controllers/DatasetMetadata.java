@@ -10,6 +10,9 @@ import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.Expression;
 import com.mysema.query.types.QTuple;
 import com.mysema.query.types.expr.BooleanExpression;
+import com.mysema.query.types.expr.NumberExpression;
+import com.mysema.query.types.path.NumberPath;
+import com.mysema.query.types.path.StringPath;
 
 import nl.idgis.dav.model.Resource;
 import nl.idgis.dav.model.ResourceDescription;
@@ -18,7 +21,8 @@ import nl.idgis.dav.model.ResourceProperties;
 import nl.idgis.dav.model.DefaultResource;
 import nl.idgis.dav.model.DefaultResourceDescription;
 import nl.idgis.dav.model.DefaultResourceProperties;
-
+import nl.idgis.publisher.database.QSourceDatasetVersion;
+import nl.idgis.publisher.database.QSourceDatasetVersionColumn;
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.xml.exceptions.NotFound;
@@ -44,6 +48,8 @@ import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceData
 import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServiceDataset;
 import static nl.idgis.publisher.database.QPublishedService.publishedService;
 import static nl.idgis.publisher.database.QEnvironment.environment;
+import static nl.idgis.publisher.database.QDatasetCopy.datasetCopy;
+import static nl.idgis.publisher.database.QDatasetView.datasetView;
 
 import java.io.IOException;
 import java.sql.Timestamp;
@@ -53,6 +59,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -172,6 +181,27 @@ public class DatasetMetadata extends AbstractMetadata {
 				id, 
 				datasetTuple.get(dataset.metadataIdentification)));
 	}
+	
+	private List<Tuple> datasetColumnAliases(Transaction tx, Expression<?> datasetRel, NumberPath<Integer> datasetRelId, StringPath datasetRelName, int datasetId) {
+		final QSourceDatasetVersionColumn sourceDatasetVersionColumnSub = new QSourceDatasetVersionColumn("source_dataset_version_column_sub");
+		final QSourceDatasetVersion sourceDatasetVersionSub = new QSourceDatasetVersion("source_dataset_version_sub");
+		
+		return tx.query().from(datasetRel)
+			.join(dataset).on(dataset.id.eq(datasetRelId))
+			.join(sourceDatasetVersionColumn).on(sourceDatasetVersionColumn.name.eq(datasetRelName))
+			.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(sourceDatasetVersionColumn.sourceDatasetVersionId)
+				.and(dataset.sourceDatasetId.eq(sourceDatasetVersion.sourceDatasetId)))
+			.where(datasetRelId.eq(datasetId))
+			.where(new SQLSubQuery().from(sourceDatasetVersionColumnSub)
+				.join(sourceDatasetVersionSub).on(sourceDatasetVersionSub.id.eq(sourceDatasetVersionColumnSub.sourceDatasetVersionId))
+				.where(sourceDatasetVersionColumnSub.name.eq(sourceDatasetVersionColumn.name))
+				.where(sourceDatasetVersionColumnSub.sourceDatasetVersionId.gt(sourceDatasetVersionColumn.sourceDatasetVersionId))
+				.where(sourceDatasetVersionSub.sourceDatasetId.eq(dataset.sourceDatasetId))
+				.notExists())
+			.where(sourceDatasetVersionColumn.alias.isNotNull())
+			.orderBy(sourceDatasetVersionColumn.index.desc())
+			.list(sourceDatasetVersionColumn.name, sourceDatasetVersionColumn.alias);
+	}
 
 	private Resource tupleToDatasetResource(Transaction tx, Tuple datasetTuple, int sourceDatasetId, Integer datasetId, String fileIdentifier, String datasetIdentifier) {
 		try {
@@ -254,7 +284,61 @@ public class DatasetMetadata extends AbstractMetadata {
 			}
 			
 			metadataDocument.removeServiceLinkage();
-			if(datasetId != null) {
+			
+			Consumer<List<Tuple>> columnAliasWriter = columnTuples -> {
+				if(columnTuples.isEmpty()) {
+					return;
+				}
+				
+				StringBuilder textAlias = new StringBuilder("INHOUD ATTRIBUTENTABEL:");
+				
+				for(Tuple columnTuple : columnTuples) {
+					textAlias
+						.append(" ")
+						.append(columnTuple.get(sourceDatasetVersionColumn.name))
+						.append(": ")
+						.append(columnTuple.get(sourceDatasetVersionColumn.alias));
+				}
+				
+				try {
+					metadataDocument.addProcessStep(textAlias.toString());
+				} catch(NotFound nf) {
+					throw new RuntimeException(nf);
+				}
+			};
+			
+			if(datasetId == null) {
+				columnAliasWriter.accept(
+					tx.query().from(sourceDatasetVersionColumn)
+						.where(sourceDatasetVersionColumn.sourceDatasetVersionId.eq(
+							new SQLSubQuery().from(sourceDatasetVersion)
+								.where(sourceDatasetVersion.sourceDatasetId.eq(sourceDatasetId))
+								.unique(sourceDatasetVersion.id.max())))
+						.where(sourceDatasetVersionColumn.alias.isNotNull())
+						.orderBy(sourceDatasetVersionColumn.index.desc())
+						.list(sourceDatasetVersionColumn.name, sourceDatasetVersionColumn.alias));
+			} else {
+				final QSourceDatasetVersionColumn sourceDatasetVersionColumnSub = new QSourceDatasetVersionColumn("source_dataset_version_column_sub");
+				
+				List<Tuple> datasetCopyAliases = 
+					datasetColumnAliases(
+						tx, 
+						datasetCopy, 
+						datasetCopy.datasetId, 
+						datasetCopy.name, 
+						datasetId);
+				
+				if(datasetCopyAliases.isEmpty()) {
+					columnAliasWriter.accept(
+						datasetColumnAliases(
+							tx, datasetView, 
+							datasetView.datasetId, 
+							datasetView.name, 
+							datasetId));
+				} else {
+					columnAliasWriter.accept(datasetCopyAliases);
+				}
+				
 				SQLQuery serviceQuery = tx.query().from(publishedService)
 						.join(publishedServiceDataset).on(publishedServiceDataset.serviceId.eq(publishedService.serviceId))
 						.join(environment).on(environment.id.eq(publishedService.environmentId));
@@ -317,60 +401,6 @@ public class DatasetMetadata extends AbstractMetadata {
 							}
 						}
 					}
-				}
-				
-				List<Tuple> listDatasetAttributeAlias = tx.query().from(dataset)
-					.join(datasetColumn).on(dataset.id.eq(datasetColumn.datasetId))
-					.where(dataset.id.eq(datasetId))
-					.list(datasetColumn.name, datasetColumn.alias);
-				
-				Iterator<Tuple> iteratorAlias = listDatasetAttributeAlias.iterator();
-				while(iteratorAlias.hasNext()) {
-					Tuple alias = iteratorAlias.next();
-					if(alias.get(datasetColumn.alias) == null) {
-						iteratorAlias.remove();
-					}
-				}
-				
-				if(listDatasetAttributeAlias.size() > 0) {
-					StringBuilder textAlias = new StringBuilder("INHOUD ATTRIBUTENTABEL:");
-					
-					for(Tuple alias : listDatasetAttributeAlias) {
-						textAlias.append(" " + alias.get(datasetColumn.name) 
-								+ ": " + alias.get(datasetColumn.alias));
-					}
-					
-					metadataDocument.addProcessStep(textAlias.toString());
-				}
-			} else {
-				List<Tuple> listSourceDatasetAttributeAlias = tx.query().from(sourceDataset)
-						.join(sourceDatasetVersion)
-							.on(sourceDatasetVersion.id.eq(
-									new SQLSubQuery().from(sourceDatasetVersion)
-										.where(sourceDatasetVersion.sourceDatasetId.eq(sourceDatasetId))
-										.unique(sourceDatasetVersion.id.max())))
-						.join(sourceDatasetVersionColumn)
-							.on(sourceDatasetVersion.id.eq(sourceDatasetVersionColumn.sourceDatasetVersionId))
-						.where(sourceDataset.id.eq(sourceDatasetId))
-						.list(sourceDatasetVersionColumn.name,
-								sourceDatasetVersionColumn.alias);
-				
-				Iterator<Tuple> iteratorAlias = listSourceDatasetAttributeAlias.iterator();
-				while(iteratorAlias.hasNext()) {
-					Tuple alias = iteratorAlias.next();
-					if(alias.get(sourceDatasetVersionColumn.alias) == null) {
-						iteratorAlias.remove();
-					}
-				}
-				if(listSourceDatasetAttributeAlias.size() > 0) {
-					StringBuilder textAlias = new StringBuilder("INHOUD ATTRIBUTENTABEL:");
-					
-					for(Tuple alias : listSourceDatasetAttributeAlias) {
-						textAlias.append(" " + alias.get(sourceDatasetVersionColumn.name) 
-								+ ": " + alias.get(sourceDatasetVersionColumn.alias));
-					}
-					
-					metadataDocument.addProcessStep(textAlias.toString());
 				}
 			}
 			
