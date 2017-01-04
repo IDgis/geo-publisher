@@ -7,9 +7,9 @@
     </layout>
   </appender>
 
-   
+  <!-- 
   	<logger name="nl.idgis.publisher.provider" level="debug"/>
-  
+   -->
    
   <!--
   	<logger name="nl.idgis.publisher.provider.App" level="debug"/>

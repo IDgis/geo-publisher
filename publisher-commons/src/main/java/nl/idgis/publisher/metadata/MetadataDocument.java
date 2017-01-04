@@ -1213,4 +1213,15 @@ public class MetadataDocument {
 					attr -> attr.string("attalias").get()));
 		}
 	}
+	
+	public String getDatasetSpatialRepresentationType() {
+		return xpath()
+			.string("/gmd:MD_Metadata"
+					+ "/gmd:identificationInfo"
+					+ "/gmd:MD_DataIdentification"
+					+ "/gmd:spatialRepresentationType"
+					+ "/gmd:MD_SpatialRepresentationTypeCode"
+					+ "/@codeListValue")
+			.get();
+	}
 }
