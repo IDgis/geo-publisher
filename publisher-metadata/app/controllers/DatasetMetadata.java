@@ -7,12 +7,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLQuery;
 import com.mysema.query.sql.SQLSubQuery;
+import com.mysema.query.support.Expressions;
 import com.mysema.query.types.Expression;
 import com.mysema.query.types.QTuple;
 import com.mysema.query.types.expr.BooleanExpression;
 import com.mysema.query.types.expr.NumberExpression;
 import com.mysema.query.types.path.NumberPath;
 import com.mysema.query.types.path.StringPath;
+import com.mysema.query.types.template.BooleanTemplate;
 
 import nl.idgis.dav.model.Resource;
 import nl.idgis.dav.model.ResourceDescription;
@@ -99,14 +101,20 @@ public class DatasetMetadata extends AbstractMetadata {
 		}
 	}
 	
-	private SQLQuery fromSourceDataset(Transaction tx) {
+	private SQLQuery fromNonPublishedSourceDataset(Transaction tx) {
 		return joinSourceDatasetVersion(
 			tx.query().from(sourceDataset)
 				.join(sourceDatasetMetadata).on(sourceDatasetMetadata.sourceDatasetId.eq(sourceDataset.id))
 				.where(new SQLSubQuery().from(dataset)
 					.where(dataset.sourceDatasetId.eq(sourceDataset.id))
-					.where(isPublished())
+					.where(isPublishedDataset())
 					.notExists()));
+	}
+	
+	private SQLQuery fromSourceDataset(Transaction tx) {
+		return joinSourceDatasetVersion(
+			tx.query().from(sourceDataset)
+				.join(sourceDatasetMetadata).on(sourceDatasetMetadata.sourceDatasetId.eq(sourceDataset.id)));
 	}
 
 	private SQLQuery joinSourceDatasetVersion(SQLQuery query) {
@@ -123,14 +131,20 @@ public class DatasetMetadata extends AbstractMetadata {
 		}
 	}
 	
-	private SQLQuery fromDataset(Transaction tx) {
+	private SQLQuery fromPublishedDataset(Transaction tx) {
 		return joinSourceDatasetVersion(tx.query().from(dataset)
 			.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
 			.join(sourceDatasetMetadata).on(sourceDatasetMetadata.sourceDatasetId.eq(sourceDataset.id))
-			.where(isPublished()));
+			.where(isPublishedDataset()));
+	}
+	
+	private SQLQuery fromDataset(Transaction tx) {
+		return joinSourceDatasetVersion(tx.query().from(dataset)
+			.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
+			.join(sourceDatasetMetadata).on(sourceDatasetMetadata.sourceDatasetId.eq(sourceDataset.id)));
 	}
 
-	private BooleanExpression isPublished() {
+	private BooleanExpression isPublishedDataset() {
 		return new SQLSubQuery().from(publishedServiceDataset)
 			.where(publishedServiceDataset.datasetId.eq(dataset.id))
 			.exists();
@@ -419,16 +433,16 @@ public class DatasetMetadata extends AbstractMetadata {
 			sourceDatasetDescriptions(tx)));
 	}
 	
-	public Stream<ResourceDescription> sourceDatasetDescriptions(Transaction tx) {
-		return fromSourceDataset(tx).list(
+	private Stream<ResourceDescription> sourceDatasetDescriptions(Transaction tx) {
+		return fromNonPublishedSourceDataset(tx).list(
 			sourceDataset.metadataFileIdentification,
 			sourceDatasetVersion.metadataConfidential,
 			sourceDatasetVersion.revision).stream()
 			.map(tuple -> tupleToDatasetDescription(tuple, sourceDataset.metadataFileIdentification, false));
 	}
 	
-	public Stream<ResourceDescription> datasetDescriptions(Transaction tx) {
-		return fromDataset(tx).list(
+	private Stream<ResourceDescription> datasetDescriptions(Transaction tx) {
+		return fromPublishedDataset(tx).list(
 			dataset.metadataFileIdentification, 
 			sourceDatasetVersion.metadataConfidential,
 			sourceDatasetVersion.revision).stream()
@@ -463,18 +477,20 @@ public class DatasetMetadata extends AbstractMetadata {
 	private Optional<ResourceProperties> sourceDatasetProperties(String id, Transaction tx) {
 		return tupleToDatasetProperties(
 			fromSourceDataset(tx).where(sourceDataset.metadataFileIdentification.eq(id)),
-			false);
+			BooleanTemplate.FALSE);
 	}
 
 	private Optional<ResourceProperties> datasetProperties(String id, Transaction tx) {
 		return tupleToDatasetProperties(
 			fromDataset(tx).where(dataset.metadataFileIdentification.eq(id)),
-			true);
+			isPublishedDataset());
 	}
 	
-	private Optional<ResourceProperties> tupleToDatasetProperties(SQLQuery query, boolean published) {
+	private Optional<ResourceProperties> tupleToDatasetProperties(SQLQuery query, BooleanExpression isPublished) {
+		final BooleanExpression isPublishedAliased = isPublished.as("is_published");
+		
 		return Optional.ofNullable(query
-			.singleResult(sourceDatasetVersion.revision, sourceDatasetVersion.metadataConfidential))
+			.singleResult(sourceDatasetVersion.revision, sourceDatasetVersion.metadataConfidential, isPublishedAliased))
 			.map(datasetTuple -> {
 				Timestamp createTime = datasetTuple.get(sourceDatasetVersion.revision);
 				boolean confidential = datasetTuple.get(sourceDatasetVersion.metadataConfidential);
@@ -482,7 +498,7 @@ public class DatasetMetadata extends AbstractMetadata {
 				return new DefaultResourceProperties(
 					false, 
 					createTime,
-					resourceProperties(confidential, published));
+					resourceProperties(confidential, datasetTuple.get(isPublishedAliased)));
 			});
 	}
 
