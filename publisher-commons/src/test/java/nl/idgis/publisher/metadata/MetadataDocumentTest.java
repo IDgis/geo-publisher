@@ -687,4 +687,11 @@ public class MetadataDocumentTest {
 		assertTrue(attributeAliases.containsKey("NAAM"));
 		assertEquals("Project", attributeAliases.get("NAAM"));
 	}
+	
+	@Test
+	public void testDatasetSpatialRepresentationType() throws Exception {
+		MetadataDocument metadataDocument = getDocument("dataset_metadata.xml");
+		assertNotNull(metadataDocument);
+		assertEquals("vector", metadataDocument.getDatasetSpatialRepresentationType());
+	}
 }
