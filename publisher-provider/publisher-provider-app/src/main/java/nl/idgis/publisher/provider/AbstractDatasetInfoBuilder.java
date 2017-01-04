@@ -122,6 +122,7 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 			MetadataDocument metadataDocument = metadataDocumentFactory.parseDocument(content);
 			
 			spatialRepresentationType = metadataDocument.getDatasetSpatialRepresentationType();
+			log.debug("spatialRepresentationType: {}", spatialRepresentationType);
 			
 			attributeAliases = metadataDocument.getAttributeAliases();
 			log.debug("attributeAliases: {}", attributeAliases);
