@@ -147,6 +147,7 @@ public class DefaultGeoServerRestTest {
 			"test", "test_table", "title", "abstract", 
 				Arrays.asList("keyword0", "keyword1"),
 				Collections.emptyList(),
+				"EPSG:28992",
 				Arrays.asList(
 					new Attribute("id"),
 					new Attribute("test"),
@@ -220,6 +221,7 @@ public class DefaultGeoServerRestTest {
 			"test", "test_table", "title", "abstract", 
 				Arrays.asList("keyword0", "keyword1"),
 				Collections.emptyList(),
+				"EPSG:4326",
 				Arrays.asList(
 					new Attribute("id"),
 					new Attribute("test"),
@@ -263,6 +265,7 @@ public class DefaultGeoServerRestTest {
 			"test", "test_table", "title", "abstract", 
 				Arrays.asList("keyword0", "keyword1"),
 				Collections.emptyList(),
+				"EPSG:4326",
 				Arrays.asList(
 					new Attribute("id"),
 					new Attribute("the_geom")))).get();
@@ -330,6 +333,7 @@ public class DefaultGeoServerRestTest {
 				Arrays.asList("keyword0", "keyword1"),
 				Arrays.asList(
 					new MetadataLink("text/plain", "ISO19115:2003", "content")),
+				"EPSG:28992",
 				Arrays.asList(
 					new Attribute("id"),
 					new Attribute("test"),
@@ -400,6 +404,7 @@ public class DefaultGeoServerRestTest {
 			"test", "test_table", "title", "abstract", 
 				Arrays.asList("keyword0", "keyword1"),
 				Collections.emptyList(),
+				"EPSG:28992",
 				Arrays.asList(
 					new Attribute("id"), 
 					new Attribute("test"), 
@@ -587,6 +592,7 @@ public class DefaultGeoServerRestTest {
 		FeatureType featureType = new FeatureType("test", "test_table", "test", "test", 
 			Arrays.asList("test"),
 			Collections.emptyList(),
+			"EPSG:28992",
 			Arrays.asList(
 				new Attribute("id"), 
 				new Attribute("test"), 
@@ -636,6 +642,7 @@ public class DefaultGeoServerRestTest {
 			"test", "test_table", "title", "abstract", 
 				Arrays.asList("keyword0", "keyword1"),
 				Collections.emptyList(),
+				"EPSG:28992",
 				Arrays.asList(
 						new Attribute("id"), 
 						new Attribute("test"), 
@@ -716,6 +723,7 @@ public class DefaultGeoServerRestTest {
 			"anotherTest", "test_table", "title", "abstract",			
 			Arrays.asList("keyword0", "keyword1"),
 			Collections.emptyList(),
+			"EPSG:28992",
 			Arrays.asList(
 				new Attribute("id"), 
 				new Attribute("test"), 
@@ -743,14 +751,14 @@ public class DefaultGeoServerRestTest {
 		String nativeName = testRasterFile.getName().split("\\.")[0];
 		Coverage coverage = new Coverage("test", nativeName, "title", 
 			"abstract", Arrays.asList("keyword0", "keyword1"), 
-				Arrays.asList(new MetadataLink("text/plain", "ISO19115:2003", "content")));
+				Arrays.asList(new MetadataLink("text/plain", "ISO19115:2003", "content")), "EPSG:28992");
 		service.postCoverage(workspace, coverageStore, coverage).get();
 		
 		Layer layer = service.getLayer(workspace, coverage).get();
 		assertEquals("raster", layer.getDefaultStyle().getStyleName());
 		
 		Coverage modifiedCoveraged = new Coverage(coverage.getName(), coverage.getNativeName(), 
-			"modified title", coverage.getAbstract(), coverage.getKeywords(), coverage.getMetadataLinks());
+			"modified title", coverage.getAbstract(), coverage.getKeywords(), coverage.getMetadataLinks(), coverage.getSrs());
 		service.putCoverage(workspace, coverageStore, modifiedCoveraged).get();
 		
 		List<Coverage> coverages = service.getCoverages(workspace, coverageStore).get();
@@ -843,6 +851,7 @@ public class DefaultGeoServerRestTest {
 				"test", "test_table", "title", "abstract", 
 					Arrays.asList("keyword0", "keyword1"),
 					Collections.emptyList(),
+					"EPSG:28992",
 					Arrays.asList(
 							new Attribute("id"), 
 							new Attribute("test"),

@@ -13,7 +13,7 @@ public abstract class EnsureDatasetLayer extends EnsureLayer {
 
 	private static final long serialVersionUID = -6905763318052888376L;
 
-	protected final String defaultStyleName, groupStyleName;
+	protected final String defaultStyleName, groupStyleName, srs;
 	
 	protected final List<String> additionalStyleNames;
 	
@@ -21,13 +21,14 @@ public abstract class EnsureDatasetLayer extends EnsureLayer {
 	
 	protected final List<String> metadataLinks;
 
-	protected EnsureDatasetLayer(String layerId, String title, String abstr, List<String> keywords, List<String> metadataLinks, 
+	protected EnsureDatasetLayer(String layerId, String title, String abstr, List<String> keywords, List<String> metadataLinks, String srs, 
 		Tiling tilingSettings, String defaultStyleName, String groupStyleName, List<String> additionalStyleNames, boolean reimported) {
 		
 		super(layerId, title, abstr, tilingSettings, reimported);
 		
 		this.keywords = keywords;
 		this.metadataLinks = metadataLinks;
+		this.srs = srs;
 		this.defaultStyleName = defaultStyleName;
 		this.groupStyleName = groupStyleName;
 		this.additionalStyleNames = additionalStyleNames;

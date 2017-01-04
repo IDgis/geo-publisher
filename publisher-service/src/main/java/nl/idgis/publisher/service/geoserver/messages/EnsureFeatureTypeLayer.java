@@ -16,10 +16,10 @@ public class EnsureFeatureTypeLayer extends EnsureDatasetLayer {
 	
 	private final List<String> columnNames;
 	
-	public EnsureFeatureTypeLayer(String layerId, String title, String abstr, List<String> keywords, List<String> metadataLinks, 
+	public EnsureFeatureTypeLayer(String layerId, String title, String abstr, List<String> keywords, List<String> metadataLinks, String srs, 
 			Tiling tilingSettings, String defaultStyleName, String groupStyleName, List<String> additionalStyleNames, boolean reimported, 
 			String tableName, List<String> columnNames) {
-		super(layerId, title, abstr, keywords, metadataLinks, tilingSettings, defaultStyleName, groupStyleName, additionalStyleNames, reimported);
+		super(layerId, title, abstr, keywords, metadataLinks, srs, tilingSettings, defaultStyleName, groupStyleName, additionalStyleNames, reimported);
 		
 		this.tableName = tableName;
 		this.columnNames = columnNames;
@@ -41,6 +41,7 @@ public class EnsureFeatureTypeLayer extends EnsureDatasetLayer {
 				abstr,
 				keywords,
 				getMetadataLinks(),
+				srs,
 				columnNames.stream()
 					.map(Attribute::new)
 					.collect(Collectors.toList()));

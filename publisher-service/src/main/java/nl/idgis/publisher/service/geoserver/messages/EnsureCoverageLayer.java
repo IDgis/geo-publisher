@@ -12,9 +12,9 @@ public class EnsureCoverageLayer extends EnsureDatasetLayer {
 	
 	private final String fileName;
 
-	public EnsureCoverageLayer(String layerId, String title, String abstr, List<String> keywords, List<String> metadataLinks, 
+	public EnsureCoverageLayer(String layerId, String title, String abstr, List<String> keywords, List<String> metadataLinks, String srs, 
 		Tiling tilingSettings, String defaultStyleName, String groupStyleName, List<String> additionalStyleNames, boolean reimported, String fileName) {
-		super(layerId, title, abstr, keywords, metadataLinks, tilingSettings, defaultStyleName, groupStyleName, additionalStyleNames, reimported);
+		super(layerId, title, abstr, keywords, metadataLinks, srs, tilingSettings, defaultStyleName, groupStyleName, additionalStyleNames, reimported);
 		
 		this.fileName = fileName;
 	}
@@ -28,7 +28,7 @@ public class EnsureCoverageLayer extends EnsureDatasetLayer {
 	}
 	
 	public Coverage getCoverage() {
-		return new Coverage(layerId, getNativeName(), title, abstr, keywords, getMetadataLinks());
+		return new Coverage(layerId, getNativeName(), title, abstr, keywords, getMetadataLinks(), srs);
 	}
 	
 	@Override

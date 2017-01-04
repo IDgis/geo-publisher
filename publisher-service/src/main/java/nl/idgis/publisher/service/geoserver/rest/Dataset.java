@@ -4,19 +4,20 @@ import java.util.List;
 
 public abstract class Dataset {
 
-	protected final String name, nativeName, title, abstr;
+	protected final String name, nativeName, title, abstr, srs;
 	
 	protected final List<String> keywords;
 	
 	protected final List<MetadataLink> metadataLinks;
 	
-	protected Dataset(String name, String nativeName, String title, String abstr, List<String> keywords, List<MetadataLink> metadataLinks) {
+	protected Dataset(String name, String nativeName, String title, String abstr, List<String> keywords, List<MetadataLink> metadataLinks, String srs) {
 		this.name = name;
 		this.nativeName = nativeName;
 		this.title = title;
 		this.abstr = abstr;		
 		this.keywords = keywords;
 		this.metadataLinks = metadataLinks;
+		this.srs = srs;
 	}
 
 	public String getName() {
@@ -41,5 +42,9 @@ public abstract class Dataset {
 	
 	public List<MetadataLink> getMetadataLinks() {
 		return metadataLinks;
+	}
+	
+	public String getSrs() {
+		return srs;
 	}
 }

@@ -58,6 +58,10 @@ import static nl.idgis.publisher.utils.XMLUtils.xpath;
 
 public class DefaultGeoServerRest implements GeoServerRest {
 	
+	private static enum RequestType {
+		PUT, POST
+	}
+	
 	private static final String RECURSE = "?recurse=true";
 	
 	private static final Set<String> DEFAULT_STYLE_NAMES = Collections.unmodifiableSet(
@@ -535,6 +539,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 								metadataLink.string("type").get(), 
 								metadataLink.string("metadataType").get(), 
 								metadataLink.string("content").get()))),
+					featureType.string("srs").get(),
 					Collections.unmodifiableList(
 						featureType.map("attributes/attribute/name", 
 							name -> new Attribute(name.string().get()))));
@@ -564,7 +569,8 @@ public class DefaultGeoServerRest implements GeoServerRest {
 							metadataLink -> new MetadataLink(
 								metadataLink.string("type").get(), 
 								metadataLink.string("metadataType").get(), 
-								metadataLink.string("content").get()))));
+								metadataLink.string("content").get()))),
+					coverage.string("srs").get());
 			}));
 	}
 	
@@ -590,20 +596,20 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	@Override
 	public CompletableFuture<Void> putFeatureType(Workspace workspace, DataStore dataStore, FeatureType featureType) {
 		try {
-			return put(getFeatureTypePath(workspace, dataStore, featureType), getFeatureTypeDocument(featureType));
+			return put(getFeatureTypePath(workspace, dataStore, featureType), getFeatureTypeDocument(featureType, RequestType.PUT));
 		} catch(Exception e) {			
 			return f.failed(e);
 		}
 	}
 
-	private byte[] getFeatureTypeDocument(FeatureType featureType) throws XMLStreamException, IOException {
+	private byte[] getFeatureTypeDocument(FeatureType featureType, RequestType requestType) throws XMLStreamException, IOException {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		
 		XMLOutputFactory of = XMLOutputFactory.newInstance();
 		XMLStreamWriter sw = of.createXMLStreamWriter(os);
 		sw.writeStartDocument();
 		sw.writeStartElement("featureType");
-			writeDatasetInfo(featureType, sw);
+			writeDatasetInfo(featureType, sw, requestType);
 			
 			List<Attribute> attributes = featureType.getAttributes();				
 			
@@ -625,7 +631,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		return os.toByteArray();		
 	}
 
-	private void writeDatasetInfo(Dataset dataset, XMLStreamWriter sw) throws XMLStreamException {
+	private void writeDatasetInfo(Dataset dataset, XMLStreamWriter sw, RequestType requestType) throws XMLStreamException {
 		sw.writeStartElement("name");
 			sw.writeCharacters(dataset.getName());
 		sw.writeEndElement();
@@ -675,6 +681,12 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		}
 		sw.writeEndElement();
 		
+		if(requestType == RequestType.POST) {
+			sw.writeStartElement("srs");
+				sw.writeCharacters(dataset.getSrs());
+			sw.writeEndElement();
+		}
+		
 		sw.writeStartElement("enabled");
 			sw.writeCharacters("true");
 		sw.writeEndElement();
@@ -700,14 +712,14 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		return getCoveragesPath(workspace, coverageStore) + "/" + coverageName;
 	}
 	
-	private byte[] getCoverageDocument(Coverage coverage) throws XMLStreamException, IOException {
+	private byte[] getCoverageDocument(Coverage coverage, RequestType requestType) throws XMLStreamException, IOException {
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		
 		XMLOutputFactory of = XMLOutputFactory.newInstance();
 		XMLStreamWriter sw = of.createXMLStreamWriter(os);
 		sw.writeStartDocument();
 		sw.writeStartElement("coverage");
-			writeDatasetInfo(coverage, sw);
+			writeDatasetInfo(coverage, sw, requestType);
 		sw.writeEndElement();
 		sw.writeEndDocument();
 		sw.close();
@@ -720,7 +732,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	@Override
 	public CompletableFuture<Void> postCoverage(Workspace workspace, CoverageStore coverageStore, Coverage coverage) {
 		try {
-			return post(getCoveragesPath(workspace, coverageStore), getCoverageDocument(coverage));
+			return post(getCoveragesPath(workspace, coverageStore), getCoverageDocument(coverage, RequestType.POST));
 		} catch(Exception e) {
 			return f.failed(e);
 		}
@@ -729,7 +741,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	@Override
 	public CompletableFuture<Void> putCoverage(Workspace workspace, CoverageStore coverageStore, Coverage coverage) {
 		try {
-			return put(getCoveragePath(workspace, coverageStore, coverage), getCoverageDocument(coverage));
+			return put(getCoveragePath(workspace, coverageStore, coverage), getCoverageDocument(coverage, RequestType.PUT));
 		} catch(Exception e) {
 			return f.failed(e);
 		}
@@ -738,7 +750,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	@Override
 	public CompletableFuture<Void> postFeatureType(Workspace workspace, DataStore dataStore, FeatureType featureType) {
 		try {
-			return post(getFeatureTypesPath(workspace, dataStore), getFeatureTypeDocument(featureType));
+			return post(getFeatureTypesPath(workspace, dataStore), getFeatureTypeDocument(featureType, RequestType.POST));
 		} catch(Exception e) {			
 			return f.failed(e);
 		}
