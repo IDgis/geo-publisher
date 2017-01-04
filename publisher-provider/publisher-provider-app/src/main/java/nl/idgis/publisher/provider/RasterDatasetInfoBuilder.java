@@ -10,6 +10,7 @@ import nl.idgis.publisher.domain.service.FileLog;
 import nl.idgis.publisher.folder.messages.FileNotExists;
 import nl.idgis.publisher.folder.messages.FileSize;
 import nl.idgis.publisher.folder.messages.GetFileSize;
+import nl.idgis.publisher.provider.messages.SkipDataset;
 import nl.idgis.publisher.provider.protocol.AttachmentType;
 import nl.idgis.publisher.provider.protocol.RasterDatasetInfo;
 import nl.idgis.publisher.provider.protocol.RasterFormat;
@@ -36,6 +37,11 @@ public class RasterDatasetInfoBuilder extends AbstractDatasetInfoBuilder {
 
 	@Override
 	protected void processMetadata() {
+		if(!"grid".equals(spatialRepresentationType)) {
+			tellTarget(new SkipDataset(identification));
+			return;
+		}
+		
 		categoryId = "raster";
 		
 		if(alternateTitle != null && !alternateTitle.trim().isEmpty()) {

@@ -57,6 +57,8 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 	
 	protected boolean metadataConfidential = true;
 	
+	protected String spatialRepresentationType;
+	
 	private final ActorRef sender;
 	
 	protected AbstractDatasetInfoBuilder(ActorRef sender, Set<AttachmentType> requestedAttachmentTypes) {
@@ -118,6 +120,8 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 		try {
 			log.debug("parsing metadata");
 			MetadataDocument metadataDocument = metadataDocumentFactory.parseDocument(content);
+			
+			spatialRepresentationType = metadataDocument.getDatasetSpatialRepresentationType();
 			
 			attributeAliases = metadataDocument.getAttributeAliases();
 			log.debug("attributeAliases: {}", attributeAliases);

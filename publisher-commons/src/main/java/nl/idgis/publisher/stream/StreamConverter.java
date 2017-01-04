@@ -29,14 +29,25 @@ public abstract class StreamConverter extends UntypedActor {
 		getContext().setReceiveTimeout(Duration.apply(30, TimeUnit.SECONDS));
 	}
 	
+	protected boolean includeInStream(Object msg) {
+		return true;
+	}
+	
 	private Procedure<Object> converting(Item<?> original, ActorRef sender) {
 		return new Procedure<Object>() {
 
 			@Override
 			public void apply(Object msg) throws Exception {
-				log.debug("converted item received");
+				log.debug("converted item received: {}", msg);
 				
-				sender.tell(new Item<>(original.getSequenceNumber(), msg), getSelf());
+				if(includeInStream(msg)) {
+					log.debug("sending to consumer");
+					sender.tell(new Item<>(original.getSequenceNumber(), msg), getSelf());
+				} else {
+					log.debug("skipping, requesting next item from producer");
+					producer.tell(new NextItem(), getSelf());
+				}
+				
 				getContext().become(receive());
 			}
 			

@@ -13,6 +13,7 @@ import nl.idgis.publisher.provider.database.messages.DatabaseTableInfo;
 import nl.idgis.publisher.provider.database.messages.DescribeTable;
 import nl.idgis.publisher.provider.database.messages.PerformCount;
 import nl.idgis.publisher.provider.database.messages.TableNotFound;
+import nl.idgis.publisher.provider.messages.SkipDataset;
 import nl.idgis.publisher.provider.protocol.AttachmentType;
 import nl.idgis.publisher.provider.protocol.ColumnInfo;
 import nl.idgis.publisher.provider.protocol.TableInfo;
@@ -73,6 +74,11 @@ public class VectorDatasetInfoBuilder extends AbstractDatasetInfoBuilder {
 	}
 
 	protected void processMetadata() {
+		if(!"vector".equals(spatialRepresentationType)) {
+			tellTarget(new SkipDataset(identification));
+			return;
+		}
+		
 		tableName = ProviderUtils.getTableName(alternateTitle);
 		log.debug("tableName: {}", tableName);
 		

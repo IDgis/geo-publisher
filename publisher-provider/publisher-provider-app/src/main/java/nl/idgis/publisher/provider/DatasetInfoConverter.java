@@ -5,6 +5,7 @@ import java.util.Set;
 import nl.idgis.publisher.provider.metadata.messages.GetAllMetadata;
 import nl.idgis.publisher.provider.metadata.messages.MetadataItem;
 import nl.idgis.publisher.provider.protocol.AttachmentType;
+import nl.idgis.publisher.provider.protocol.DatasetInfo;
 import nl.idgis.publisher.provider.protocol.ListDatasetInfo;
 import nl.idgis.publisher.stream.StreamConverter;
 import nl.idgis.publisher.stream.messages.Start;
@@ -31,6 +32,11 @@ public class DatasetInfoConverter extends StreamConverter {
 	
 	public static Props props(Set<AttachmentType> attachmentTypes, ActorRef metadata, DatasetInfoBuilderPropsFactory datasetInfoBuilderPropsFactory) {
 		return Props.create(DatasetInfoConverter.class, attachmentTypes, metadata, datasetInfoBuilderPropsFactory);
+	}
+	
+	@Override
+	protected boolean includeInStream(Object msg) {
+		return msg instanceof DatasetInfo;
 	}
 
 	@Override
