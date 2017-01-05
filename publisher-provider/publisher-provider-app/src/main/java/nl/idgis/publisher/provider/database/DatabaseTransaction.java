@@ -67,14 +67,14 @@ public class DatabaseTransaction extends JdbcTransaction {
 		int separatorIndex = requestedTableName.indexOf(".");
 		if(separatorIndex == -1) {
 			sql = "select column_name, data_type from user_tab_columns "
-					+ "where table_name = '" + requestedTableName.toUpperCase() + "' "
+					+ "where table_name = '" + requestedTableName + "' "
 					+ "order by column_id";
 		} else {
 			String owner = requestedTableName.substring(0, separatorIndex);
 			String tableName = requestedTableName.substring(separatorIndex + 1);
 			
 			sql = "select column_name, data_type from all_tab_columns "
-					+ "where owner = '" + owner.toUpperCase() + "' and table_name = '" + tableName.toUpperCase() 
+					+ "where owner = '" + owner + "' and table_name = '" + tableName
 					+ "' " + "order by column_id";
 		}
 		

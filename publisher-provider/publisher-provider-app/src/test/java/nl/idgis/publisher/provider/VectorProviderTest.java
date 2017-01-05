@@ -279,7 +279,7 @@ public class VectorProviderTest {
 		metadataDocument.setDatasetAlternateTitle("Test_schema.Test_table");
 		final String secondTableName = getTable();
 		
-		assertEquals("test_schema.test_table", secondTableName);
+		assertEquals("TEST_SCHEMA.TEST_TABLE", secondTableName);
 		
 		f.ask(metadata, new PutMetadata("second", metadataDocument.getContent()), Ack.class).get();
 		

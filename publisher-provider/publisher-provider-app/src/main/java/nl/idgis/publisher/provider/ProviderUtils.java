@@ -17,7 +17,7 @@ public class ProviderUtils {
 				tableName = alternateTitle.trim();
 			}
 			
-			return tableName.replace(":", ".").toLowerCase();
+			return tableName.replace(":", ".").toUpperCase();
 		}
 		
 		return null;
