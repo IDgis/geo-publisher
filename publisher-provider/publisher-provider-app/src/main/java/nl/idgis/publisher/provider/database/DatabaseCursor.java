@@ -52,11 +52,15 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 		if(columnInfo.getType() == Type.GEOMETRY) {
 			if(value instanceof Blob) {
 				Blob blob = (Blob)value;
-				if(blob.length() > Integer.MAX_VALUE) {
-					log.error("blob value too large: {}", blob.length());
+				long blobLength = blob.length();
+				if(blobLength > Integer.MAX_VALUE) {
+					log.error("blob value too large: {}", blobLength);
+					return null;
+				} if(blobLength == 0) { // known to be returned by SDE.ST_ASBINARY on empty geometries
+					log.error("empty blob");
 					return null;
 				} else {
-					return new WKBGeometry(blob.getBytes(1l, (int)blob.length()));
+					return new WKBGeometry(blob.getBytes(1l, (int)blobLength));
 				}
 			} else {
 				log.error("unsupported value: {}", value.getClass().getCanonicalName());

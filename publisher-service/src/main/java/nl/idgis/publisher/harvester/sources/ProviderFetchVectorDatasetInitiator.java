@@ -12,7 +12,8 @@ import nl.idgis.publisher.provider.protocol.VectorDatasetInfo;
 
 public class ProviderFetchVectorDatasetInitiator extends ProviderFetchDatasetInitiator<FetchVectorDataset, VectorDatasetInfo> {
 	
-	private final int GET_VECTOR_DATASET_MESSAGE_SIZE = 100;
+	//private final int GET_VECTOR_DATASET_MESSAGE_SIZE = 100;
+	private final int GET_VECTOR_DATASET_MESSAGE_SIZE = 1;
 	
 	public ProviderFetchVectorDatasetInitiator(ActorRef sender, FetchVectorDataset request, ActorRef receiver, ActorRef provider) {
 		super(sender, request, receiver, provider);
