@@ -77,12 +77,12 @@ public class DatasetMetadata extends AbstractMetadata {
 	private final Pattern urlPattern;
 	
 	@Inject
-	public DatasetMetadata(WebJarAssets webJarAssets, MetadataConfig config, QueryDSL q) throws Exception {
-		this(webJarAssets, config, q, new MetadataDocumentFactory(), "/");
+	public DatasetMetadata(MetadataConfig config, QueryDSL q) throws Exception {
+		this(config, q, new MetadataDocumentFactory(), "/");
 	}
 	
-	public DatasetMetadata(WebJarAssets webJarAssets, MetadataConfig config, QueryDSL q, MetadataDocumentFactory mdf, String prefix) {
-		super(webJarAssets, config, q, prefix);
+	public DatasetMetadata(MetadataConfig config, QueryDSL q, MetadataDocumentFactory mdf, String prefix) {
+		super(config, q, prefix);
 		
 		this.mdf = mdf;
 		urlPattern = Pattern.compile(".*/(.*)(\\?.*)?$");
@@ -90,15 +90,21 @@ public class DatasetMetadata extends AbstractMetadata {
 	
 	@Override
 	public DatasetMetadata withPrefix(String prefix) {
-		return new DatasetMetadata(webJarAssets, config, q, mdf, prefix);
+		return new DatasetMetadata(config, q, mdf, prefix);
 	}
 	
-	private String stylesheet() {
-		if(isTrusted()) {
-			return "datasets/intern/metadata.xsl";
-		} else {
-			return "datasets/extern/metadata.xsl";
+	private Optional<String> stylesheet() {
+		if(displayWithoutStylesheet()) {
+			return Optional.empty();
 		}
+		
+		return config.getMetadataStylesheetPrefix().map(prefix -> {
+			if(isTrusted()) {
+				return prefix + "datasets/intern/metadata.xsl";
+			} else {
+				return prefix +"datasets/extern/metadata.xsl";
+			}
+		});
 	}
 	
 	private SQLQuery fromNonPublishedSourceDataset(Transaction tx) {
@@ -223,11 +229,8 @@ public class DatasetMetadata extends AbstractMetadata {
 			
 			String oldDatasetIdentifier = metadataDocument.getDatasetIdentifier();
 			
-			if(!displayWithoutStylesheet()) {
-				metadataDocument.setStylesheet(routes.WebJarAssets.at(webJarAssets.locate(stylesheet())).url());
-			} else {
-				metadataDocument.removeStylesheet();
-			}
+			metadataDocument.removeStylesheet();
+			stylesheet().ifPresent(metadataDocument::setStylesheet);
 			
 			metadataDocument.setDatasetIdentifier(datasetIdentifier);
 			metadataDocument.setFileIdentifier(fileIdentifier);

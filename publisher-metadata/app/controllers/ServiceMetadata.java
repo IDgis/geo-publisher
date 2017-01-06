@@ -1,60 +1,43 @@
 package controllers;
 
-import javax.inject.Inject;
-import javax.xml.namespace.QName;
-
-import org.apache.commons.io.IOUtils;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.mysema.query.Tuple;
-import com.mysema.query.sql.SQLQuery;
-import com.mysema.query.sql.SQLSubQuery;
-import com.mysema.query.types.Predicate;
-import com.mysema.query.types.QTuple;
-import com.typesafe.config.Config;
-
-import nl.idgis.dav.model.Resource;
-import nl.idgis.dav.model.ResourceDescription;
-import nl.idgis.dav.model.ResourceProperties;
-
-import nl.idgis.dav.model.DefaultResource;
-import nl.idgis.dav.model.DefaultResourceDescription;
-import nl.idgis.dav.model.DefaultResourceProperties;
-
-import nl.idgis.publisher.metadata.MetadataDocument;
-import nl.idgis.publisher.metadata.MetadataDocumentFactory;
-import nl.idgis.publisher.xml.exceptions.NotFound;
-import play.Configuration;
-import play.api.mvc.Handler;
-import play.api.mvc.RequestHeader;
-import play.api.routing.Router;
-import play.libs.Json;
-import play.mvc.Controller;
-import play.mvc.Result;
-
-import util.MetadataConfig;
-import util.QueryDSL;
-import util.QueryDSL.Transaction;
-
-import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QConstants.constants;
-import static nl.idgis.publisher.database.QService.service;
-import static nl.idgis.publisher.database.QPublishedService.publishedService;
+import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QEnvironment.environment;
-import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
-import static nl.idgis.publisher.database.QSourceDatasetMetadata.sourceDatasetMetadata;
-import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
-import static nl.idgis.publisher.database.QPublishedServiceKeyword.publishedServiceKeyword;
+import static nl.idgis.publisher.database.QPublishedService.publishedService;
 import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServiceDataset;
+import static nl.idgis.publisher.database.QPublishedServiceKeyword.publishedServiceKeyword;
+import static nl.idgis.publisher.database.QService.service;
+import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
+import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 
 import java.sql.Timestamp;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
-import java.util.stream.Collectors;
+
+import javax.inject.Inject;
+import javax.xml.namespace.QName;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.mysema.query.Tuple;
+import com.mysema.query.sql.SQLQuery;
+import com.mysema.query.sql.SQLSubQuery;
+
+import nl.idgis.dav.model.DefaultResource;
+import nl.idgis.dav.model.DefaultResourceDescription;
+import nl.idgis.dav.model.DefaultResourceProperties;
+import nl.idgis.dav.model.Resource;
+import nl.idgis.dav.model.ResourceDescription;
+import nl.idgis.dav.model.ResourceProperties;
+import nl.idgis.publisher.metadata.MetadataDocument;
+import nl.idgis.publisher.metadata.MetadataDocumentFactory;
+import nl.idgis.publisher.xml.exceptions.NotFound;
+import play.libs.Json;
+import util.MetadataConfig;
+import util.QueryDSL;
+import util.QueryDSL.Transaction;
 
 public class ServiceMetadata extends AbstractMetadata {
 	
@@ -67,12 +50,12 @@ public class ServiceMetadata extends AbstractMetadata {
 	private final MetadataDocument template;
 	
 	@Inject
-	public ServiceMetadata(WebJarAssets webJarAssets,MetadataConfig config, QueryDSL q) throws Exception {
-		this(webJarAssets, config, q, getTemplate(), "/");
+	public ServiceMetadata(MetadataConfig config, QueryDSL q) throws Exception {
+		this(config, q, getTemplate(), "/");
 	}
 	
-	public ServiceMetadata(WebJarAssets webJarAssets, MetadataConfig config, QueryDSL q, MetadataDocument template, String prefix) {
-		super(webJarAssets, config, q, prefix);
+	public ServiceMetadata(MetadataConfig config, QueryDSL q, MetadataDocument template, String prefix) {
+		super(config, q, prefix);
 		
 		this.template = template;
 	}
@@ -88,15 +71,21 @@ public class ServiceMetadata extends AbstractMetadata {
 	
 	@Override
 	public ServiceMetadata withPrefix(String prefix) {
-		return new ServiceMetadata(webJarAssets, config, q, template, prefix);
+		return new ServiceMetadata(config, q, template, prefix);
 	}
 	
-	private String stylesheet() {
-		if(isTrusted()) {
-			return "services/intern/metadata.xsl";
-		} else {
-			return "services/extern/metadata.xsl";
+	private Optional<String> stylesheet() {
+		if(displayWithoutStylesheet()) {
+			return Optional.empty();
 		}
+		
+		return config.getMetadataStylesheetPrefix().map(prefix -> {
+			if(isTrusted()) {
+				return "services/intern/metadata.xsl";
+			} else {
+				return "services/extern/metadata.xsl";
+			}
+		});
 	}
 	
 	private SQLQuery fromService(Transaction tx) {
@@ -263,11 +252,8 @@ public class ServiceMetadata extends AbstractMetadata {
 				metadataDocument.addSVCoupledResource(serviceType.getOperationName(), identifier, scopedName);
 			}
 			
-			if(!displayWithoutStylesheet()) {
-				metadataDocument.setStylesheet(routes.WebJarAssets.at(webJarAssets.locate(stylesheet())).url());
-			} else {
-				metadataDocument.removeStylesheet();
-			}
+			metadataDocument.removeStylesheet();
+			stylesheet().ifPresent(metadataDocument::setStylesheet);
 			
 			return Optional.<Resource>of(new DefaultResource("application/xml", metadataDocument.getContent()));
 		}));
