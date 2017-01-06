@@ -73,4 +73,18 @@ public abstract class AbstractMetadata extends SimpleWebDAV {
 	protected boolean displayWithoutStylesheet() {
 		return Boolean.parseBoolean(request().getQueryString("noStyle"));
 	}
+	
+	protected Optional<String> stylesheet(String type) {
+		if(displayWithoutStylesheet()) {
+			return Optional.empty();
+		}
+		
+		return config.getMetadataStylesheetPrefix().map(prefix -> {
+			if(isTrusted()) {
+				return prefix + type + "/intern/metadata.xsl";
+			} else {
+				return prefix + type + "/extern/metadata.xsl";
+			}
+		});
+	}
 }

@@ -74,20 +74,6 @@ public class ServiceMetadata extends AbstractMetadata {
 		return new ServiceMetadata(config, q, template, prefix);
 	}
 	
-	private Optional<String> stylesheet() {
-		if(displayWithoutStylesheet()) {
-			return Optional.empty();
-		}
-		
-		return config.getMetadataStylesheetPrefix().map(prefix -> {
-			if(isTrusted()) {
-				return "services/intern/metadata.xsl";
-			} else {
-				return "services/extern/metadata.xsl";
-			}
-		});
-	}
-	
 	private SQLQuery fromService(Transaction tx) {
 		SQLQuery query = tx.query().from(service)
 			.join(publishedService).on(publishedService.serviceId.eq(service.id))
@@ -253,7 +239,7 @@ public class ServiceMetadata extends AbstractMetadata {
 			}
 			
 			metadataDocument.removeStylesheet();
-			stylesheet().ifPresent(metadataDocument::setStylesheet);
+			stylesheet("services").ifPresent(metadataDocument::setStylesheet);
 			
 			return Optional.<Resource>of(new DefaultResource("application/xml", metadataDocument.getContent()));
 		}));
