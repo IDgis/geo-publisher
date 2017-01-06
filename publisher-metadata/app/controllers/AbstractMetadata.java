@@ -1,28 +1,22 @@
 package controllers;
 
-import java.net.UnknownHostException;
+import static play.mvc.Controller.request;
+
 import java.util.Optional;
 
-import play.Logger;
 import nl.idgis.dav.router.SimpleWebDAV;
-
 import util.MetadataConfig;
 import util.QueryDSL;
 
-import static play.mvc.Controller.request;
-
 public abstract class AbstractMetadata extends SimpleWebDAV {
-	
-	protected final WebJarAssets webJarAssets;
 	
 	protected final MetadataConfig config;
 	
 	protected final QueryDSL q;
 	
-	protected AbstractMetadata(WebJarAssets webJarAssets, MetadataConfig config, QueryDSL q, String prefix) {
+	protected AbstractMetadata(MetadataConfig config, QueryDSL q, String prefix) {
 		super(prefix);
 		
-		this.webJarAssets = webJarAssets;
 		this.config = config;
 		this.q = q;
 	}
@@ -77,12 +71,6 @@ public abstract class AbstractMetadata extends SimpleWebDAV {
 	}
 	
 	protected boolean displayWithoutStylesheet() {
-		Boolean noStyle = Boolean.parseBoolean(request().getQueryString("noStyle"));
-		
-		if(noStyle) {
-			return true;
-		} else {
-			return false;
-		}
+		return Boolean.parseBoolean(request().getQueryString("noStyle"));
 	}
 }

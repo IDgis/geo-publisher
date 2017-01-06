@@ -8,8 +8,25 @@ import play.Configuration;
 
 public class MetadataConfig {
 	
-	private final String host, path, metadataUrlPrefix, zooKeeperHosts, zooKeeperNamespace, trustedHeader, downloadUrlPrefix, viewerUrlPrefix,
-		browseGraphicWmsRequest;
+	private final String host;
+	
+	private final String path;
+	
+	private final String metadataUrlPrefix;
+	
+	private final String zooKeeperHosts;
+	
+	private final String zooKeeperNamespace;
+	
+	private final String trustedHeader;
+	
+	private final String downloadUrlPrefix;
+	
+	private final String viewerUrlPrefix;
+		
+	private final String browseGraphicWmsRequest;
+	
+	private final String metadataStylesheetPrefix;
 	
 	@Inject
 	public MetadataConfig(Configuration config) {
@@ -33,6 +50,8 @@ public class MetadataConfig {
 		browseGraphicWmsRequest = "?request=GetMap&service=WMS&SRS=EPSG:28992&CRS=EPSG:28992&bbox=" 
 			+ metadata.getString("bbox", "180000,459000,270000,540000")
 			+ "&width=600&height=662&format=image/png&styles=&layers=";
+		
+		metadataStylesheetPrefix = metadata.getString("stylesheet-url-prefix");
 	}
 	
 	public String getHost() {
@@ -41,6 +60,10 @@ public class MetadataConfig {
 	
 	public String getPath() {
 		return path;
+	}
+	
+	public Optional<String> getMetadataStylesheetPrefix() {
+		return Optional.ofNullable(metadataStylesheetPrefix);
 	}
 	
 	public String getMetadataUrlPrefix() {

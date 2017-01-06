@@ -39,7 +39,16 @@ public class Metadata extends Controller {
 	
 	private final static String serviceMetadata = Play.application().configuration().getString("publisher.metadata.service");
 	
-	private final static String datasetStylesheet = "datasets/intern/metadata.xsl";
+	private final static String datasetStylesheet;
+	
+	static {
+		String stylesheetPrefix = Play.application().configuration().getString("publisher.metadata.stylesheet");
+		if(stylesheetPrefix == null) {
+			datasetStylesheet = null;
+		} else {
+			datasetStylesheet =  stylesheetPrefix + "datasets/intern/metadata.xsl";
+		}
+	}
 	
 	public static Promise<Result> sourceDataset(final String sourceDatasetId) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
@@ -54,8 +63,7 @@ public class Metadata extends Controller {
 				String stylesheet = null;
 				Boolean noStyle = Boolean.parseBoolean(request().getQueryString("noStyle"));
 				if(!noStyle) {
-					stylesheet = 
-						routes.WebJarAssets.at(WebJarAssets$.MODULE$.locate(datasetStylesheet)).url();
+					stylesheet = datasetStylesheet;
 				}
 				
 				return ok(setStylesheet(metadata.content(), stylesheet)).as("application/xml");

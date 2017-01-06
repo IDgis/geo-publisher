@@ -1,3 +1,2 @@
 ->		/metadata/		controllers.Index
 GET		/attachment/:id/*file	controllers.Attachment.get(id, file)
-GET		/webjars/*file		controllers.WebJarAssets.at(file)

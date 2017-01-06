@@ -617,7 +617,6 @@ project(':publisher-metadata') {
 	
 		play project(':publisher-database')
 		play "nl.idgis.dav:play-simple-webdav_${scalaAbiVersion}:1.1.0"
-		play "org.webjars:webjars-play_${scalaAbiVersion}:2.4.0-2"
 		play "com.typesafe.play:play-java-jdbc_2.11:${playVersion}"
 		play "com.typesafe.play:play-cache_2.11:${playVersion}"
 		play "com.typesafe.play:play-java-ws_2.11:${playVersion}"
