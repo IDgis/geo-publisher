@@ -67,14 +67,14 @@ public class DatabaseTransaction extends JdbcTransaction {
 		int separatorIndex = requestedTableName.indexOf(".");
 		if(separatorIndex == -1) {
 			sql = "select column_name, data_type from user_tab_columns "
-					+ "where table_name = '" + requestedTableName.toUpperCase() + "' "
+					+ "where table_name = '" + requestedTableName + "' "
 					+ "order by column_id";
 		} else {
 			String owner = requestedTableName.substring(0, separatorIndex);
 			String tableName = requestedTableName.substring(separatorIndex + 1);
 			
 			sql = "select column_name, data_type from all_tab_columns "
-					+ "where owner = '" + owner.toUpperCase() + "' and table_name = '" + tableName.toUpperCase() 
+					+ "where owner = '" + owner + "' and table_name = '" + tableName
 					+ "' " + "order by column_id";
 		}
 		
@@ -173,22 +173,32 @@ public class DatabaseTransaction extends JdbcTransaction {
 			sb.append(separator);
 			
 			String typeName = columnInfo.getTypeName();
+			String columnName = columnInfo.getName();
 			if("SDO_GEOMETRY".equals(typeName)) {
 				sb
-					.append("SDO_UTIL.TO_WKBGEOMETRY")
-					.append("(\"")
-					.append(columnInfo.getName())
-					.append("\")");
+					.append("SDO_UTIL.TO_WKBGEOMETRY(")
+					.append("CASE ") 
+						.append("WHEN T.\"").append(columnName).append("\".GET_LRS_DIM() = 0 THEN ")
+							.append("CASE ")
+								.append("WHEN T.\"").append(columnName).append("\".GET_DIMS() = 3 THEN SDO_CS.MAKE_2D(T.\"").append(columnName).append("\") ")
+								.append("ELSE T.\"").append(columnName).append("\" ")
+							.append("END ")
+						.append("ELSE ") 
+							.append("CASE ") 
+								.append("WHEN T.\"").append(columnName).append("\".GET_DIMS() = 3 THEN SDO_LRS.CONVERT_TO_STD_GEOM(T.\"").append(columnName).append("\") ")
+								.append("WHEN T.\"").append(columnName).append("\".GET_DIMS() = 4 THEN SDO_LRS.CONVERT_TO_STD_GEOM(SDO_CS.MAKE_2D(T.\"").append(columnName).append("\")) ")
+							.append("END ")
+					.append("END)");
 			} else if("ST_GEOMETRY".equals(typeName)) {
 				sb
 					.append("SDE.ST_ASBINARY")
 					.append("(\"")
-					.append(columnInfo.getName())
+					.append(columnName)
 					.append("\")");
 			} else {
 				sb
 					.append("\"")
-					.append(columnInfo.getName())
+					.append(columnName)
 					.append("\"");
 			}
 			
@@ -208,7 +218,7 @@ public class DatabaseTransaction extends JdbcTransaction {
 				.append(tableName.substring(separatorIdx + 1));
 		}
 		
-		sb.append("\"");
+		sb.append("\" T");
 		
 		msg.getFilter().ifPresent(filter -> {
 			sb.append(" WHERE ");
