@@ -93,20 +93,6 @@ public class DatasetMetadata extends AbstractMetadata {
 		return new DatasetMetadata(config, q, mdf, prefix);
 	}
 	
-	private Optional<String> stylesheet() {
-		if(displayWithoutStylesheet()) {
-			return Optional.empty();
-		}
-		
-		return config.getMetadataStylesheetPrefix().map(prefix -> {
-			if(isTrusted()) {
-				return prefix + "datasets/intern/metadata.xsl";
-			} else {
-				return prefix +"datasets/extern/metadata.xsl";
-			}
-		});
-	}
-	
 	private SQLQuery fromNonPublishedSourceDataset(Transaction tx) {
 		return joinSourceDatasetVersion(
 			tx.query().from(sourceDataset)
@@ -230,7 +216,7 @@ public class DatasetMetadata extends AbstractMetadata {
 			String oldDatasetIdentifier = metadataDocument.getDatasetIdentifier();
 			
 			metadataDocument.removeStylesheet();
-			stylesheet().ifPresent(metadataDocument::setStylesheet);
+			stylesheet("datasets").ifPresent(metadataDocument::setStylesheet);
 			
 			metadataDocument.setDatasetIdentifier(datasetIdentifier);
 			metadataDocument.setFileIdentifier(fileIdentifier);
