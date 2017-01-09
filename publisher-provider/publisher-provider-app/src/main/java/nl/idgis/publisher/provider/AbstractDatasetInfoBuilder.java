@@ -114,12 +114,13 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 	protected abstract void processMetadata();
 		
 	private void handleMetadataItem(MetadataItem metadataItem) {
-		identification = metadataItem.getIdentification();
 		byte[] content = metadataItem.getContent();
 		
 		try {
 			log.debug("parsing metadata");
 			MetadataDocument metadataDocument = metadataDocumentFactory.parseDocument(content);
+			
+			identification = metadataDocument.getDatasetIdentifier();
 			
 			spatialRepresentationType = metadataDocument.getDatasetSpatialRepresentationType();
 			log.debug("spatialRepresentationType: {}", spatialRepresentationType);

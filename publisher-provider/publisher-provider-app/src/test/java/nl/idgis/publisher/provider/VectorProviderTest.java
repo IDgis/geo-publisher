@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -247,7 +248,7 @@ public class VectorProviderTest {
 		
 		Item<UnavailableDatasetInfo> unavailableDatasetInfoItem = unavailableDatasetInfoWithSender.getMessage();
 		UnavailableDatasetInfo unavailableDatasetInfo = unavailableDatasetInfoItem.getContent(); 
-		assertEquals("first", unavailableDatasetInfo.getIdentification());
+		assertEquals(metadataDocument.getDatasetIdentifier(), unavailableDatasetInfo.getIdentification());
 		
 		f.ask(unavailableDatasetInfoWithSender.getSender(), new NextItem(), End.class);
 		
@@ -264,7 +265,7 @@ public class VectorProviderTest {
 		
 		Item<VectorDatasetInfo> vectorDatasetInfoItem = vectorDatasetInfoWithSender.getMessage();
 		VectorDatasetInfo vectorDatasetInfo = vectorDatasetInfoItem.getContent();
-		assertEquals("first", vectorDatasetInfo.getIdentification());
+		assertEquals(metadataDocument.getDatasetIdentifier(), vectorDatasetInfo.getIdentification());
 		assertTableInfo(vectorDatasetInfo.getTableInfo());
 		
 		assertEquals(42, vectorDatasetInfo.getNumberOfRecords());
@@ -281,7 +282,9 @@ public class VectorProviderTest {
 		
 		assertEquals("TEST_SCHEMA.TEST_TABLE", secondTableName);
 		
-		f.ask(metadata, new PutMetadata("second", metadataDocument.getContent()), Ack.class).get();
+		MetadataDocument secondMetadataDocument = metadataDocument.clone();
+		secondMetadataDocument.setDatasetIdentifier(UUID.randomUUID().toString());
+		f.ask(metadata, new PutMetadata("second", secondMetadataDocument.getContent()), Ack.class).get();
 		
 		clearRecording();
 		
@@ -289,12 +292,12 @@ public class VectorProviderTest {
 		
 		Item<DatasetInfo> datasetInfoItem = datasetInfoWithSender.getMessage(); 
 		DatasetInfo datasetInfo = datasetInfoItem.getContent();
-		assertEquals("first", datasetInfo.getIdentification());
+		assertEquals(metadataDocument.getDatasetIdentifier(), datasetInfo.getIdentification());
 		
 		datasetInfoWithSender = f.askWithSender(datasetInfoWithSender.getSender(), new NextItem(), Item.class).get();
 		datasetInfoItem = datasetInfoWithSender.getMessage();
 		datasetInfo = datasetInfoItem.getContent();
-		assertEquals("second", datasetInfo.getIdentification());
+		assertEquals(secondMetadataDocument.getDatasetIdentifier(), datasetInfo.getIdentification());
 		
 		f.ask(datasetInfoWithSender.getSender(), new NextItem(), End.class);
 		
@@ -334,7 +337,7 @@ public class VectorProviderTest {
 		clearRecording();
 		
 		UnavailableDatasetInfo unavailableDatasetInfo = f.ask(provider, new GetDatasetInfo(metadataType, "test"), UnavailableDatasetInfo.class).get();
-		assertEquals("test", unavailableDatasetInfo.getIdentification());		
+		assertEquals(metadataDocument.getDatasetIdentifier(), unavailableDatasetInfo.getIdentification());		
 		
 		replayRecording(3)
 			.assertNext(GetMetadata.class, msg -> {				
@@ -346,7 +349,7 @@ public class VectorProviderTest {
 		f.ask(database, new PutTable(getTable(), databaseTableInfo, tableContent), Ack.class).get();
 		
 		VectorDatasetInfo vectorDatasetInfo = f.ask(provider, new GetDatasetInfo(metadataType, "test"), VectorDatasetInfo.class).get();
-		assertEquals("test", vectorDatasetInfo.getIdentification());
+		assertEquals(metadataDocument.getDatasetIdentifier(), vectorDatasetInfo.getIdentification());
 		assertEquals(42, vectorDatasetInfo.getNumberOfRecords());
 		assertTableInfo(vectorDatasetInfo.getTableInfo());
 	}
