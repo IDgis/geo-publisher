@@ -46,7 +46,7 @@ public class MetadataDocument {
 	
 	protected final XMLDocument isoMetadata;
 	
-	protected final XMLDocument eainfo;
+	protected final XMLDocument featureCatalogue;
 	
 	protected final BiMap<String, String> namespaces;
 	
@@ -64,11 +64,11 @@ public class MetadataDocument {
 			this.isoMetadata = xmlDocument.clone(namespaces, "/" + rootNode);
 		}
 		
-		String eaInfoPath = "//eainfo";
-		if(xmlDocument.xpath(Optional.empty()).node(eaInfoPath).isPresent()) {
-			this.eainfo = xmlDocument.clone(null, eaInfoPath); 
+		String featureCataloguePath = "//FC_FeatureCatalogue";
+		if(xmlDocument.xpath(Optional.empty()).node(featureCataloguePath).isPresent()) {
+			this.featureCatalogue = xmlDocument.clone(null, featureCataloguePath); 
 		} else {
-			this.eainfo = null;
+			this.featureCatalogue = null;
 		}
 	}
 	
@@ -1201,16 +1201,16 @@ public class MetadataDocument {
 	}
 
 	public Map<String, String> getAttributeAliases() {
-		if(eainfo == null) {
+		if(featureCatalogue == null) {
 			return Collections.emptyMap();
 		} else {
-			return eainfo
+			return featureCatalogue
 				.xpath(Optional.empty())
-				.nodes("eainfo/detailed/attr[attrlabl and attalias]")
+				.nodes("FC_FeatureCatalogue/featureType/featureAttribute[name[text()] and definition[text()]]")
 				.stream()
 				.collect(Collectors.toMap(
-					attr -> attr.string("attrlabl").get(),
-					attr -> attr.string("attalias").get()));
+					attr -> attr.string("name").get(),
+					attr -> attr.string("definition").get()));
 		}
 	}
 	

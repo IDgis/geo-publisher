@@ -15,6 +15,7 @@ import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
 import nl.idgis.publisher.provider.metadata.messages.GetAllMetadata;
+import nl.idgis.publisher.recorder.Recorder;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.Unavailable;
 import nl.idgis.publisher.utils.FutureUtils;
@@ -48,7 +49,9 @@ public class MetadataListProviderTest {
 	public void testDirectoryUnavailable() throws Exception {
 		File tmpDir = Files.createTempDirectory("metadata-test").toFile();
 		
-		ActorRef metadataListProvider = actorSystem.actorOf(MetadataListProvider.props(tmpDir), "metadata-list-provider");
+		ActorRef recorder = actorSystem.actorOf(Recorder.props(), "recorder");
+		
+		ActorRef metadataListProvider = actorSystem.actorOf(MetadataListProvider.props(tmpDir, recorder), "metadata-list-provider");
 		f.ask(metadataListProvider, new GetAllMetadata(), End.class).get();
 		
 		tmpDir.delete();

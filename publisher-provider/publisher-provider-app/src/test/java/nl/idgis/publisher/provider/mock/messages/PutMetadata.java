@@ -7,6 +7,7 @@ public class PutMetadata implements Serializable {
 	private static final long serialVersionUID = -428139069960332557L;
 	
 	private final String identification;
+	
 	private final byte[] content;
 	
 	public PutMetadata(String identification, byte[] content) {

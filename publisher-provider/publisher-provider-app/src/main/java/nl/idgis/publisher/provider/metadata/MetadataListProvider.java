@@ -7,18 +7,22 @@ import java.util.stream.Collectors;
 import nl.idgis.publisher.provider.metadata.messages.GetAllMetadata;
 import nl.idgis.publisher.stream.StreamProvider;
 
+import akka.actor.ActorRef;
 import akka.actor.Props;
 
 public class MetadataListProvider extends StreamProvider<GetAllMetadata> {
 
 	private final File metadataDirectory;
+	
+	private final ActorRef metadata;
 
-	public MetadataListProvider(File metadataDirectory) {
+	public MetadataListProvider(File metadataDirectory, ActorRef metadata) {
 		this.metadataDirectory = metadataDirectory;
+		this.metadata = metadata;
 	}
 
-	public static Props props(File metadataDirectory) {
-		return Props.create(MetadataListProvider.class, metadataDirectory);
+	public static Props props(File metadataDirectory, ActorRef metadata) {
+		return Props.create(MetadataListProvider.class, metadataDirectory, metadata);
 	}
 	
 	@Override
@@ -31,6 +35,7 @@ public class MetadataListProvider extends StreamProvider<GetAllMetadata> {
 		return MetadataCursor.props(
 			Arrays.asList(metadataDirectory.listFiles()).stream()
 				.filter(File::isFile)
-				.collect(Collectors.toList()).iterator());
+				.collect(Collectors.toList()).iterator(),
+			metadata);
 	}
 }
