@@ -685,7 +685,7 @@ public class MetadataDocumentTest {
 		Map<String, String> attributeAliases = metadataDocument.getAttributeAliases();
 		assertNotNull(attributeAliases);
 		assertTrue(attributeAliases.containsKey("NAAM"));
-		assertEquals("Project", attributeAliases.get("NAAM"));
+		assertEquals("gemeentenaam te gebruiken voor cartografische doeleinden", attributeAliases.get("NAAM"));
 	}
 	
 	@Test
