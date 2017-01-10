@@ -213,8 +213,6 @@ public class DatasetMetadata extends AbstractMetadata {
 		try {
 			MetadataDocument metadataDocument = mdf.parseDocument(datasetTuple.get(sourceDatasetMetadata.document));
 			
-			String oldDatasetIdentifier = metadataDocument.getDatasetIdentifier();
-			
 			metadataDocument.removeStylesheet();
 			stylesheet("datasets").ifPresent(metadataDocument::setStylesheet);
 			
@@ -406,8 +404,6 @@ public class DatasetMetadata extends AbstractMetadata {
 					}
 				}
 			}
-			
-			metadataDocument.addProcessStep("Originele bestandsnaam: " + oldDatasetIdentifier + ".xml");
 			
 			return new DefaultResource("application/xml", metadataDocument.getContent());
 		} catch(Exception e) {
