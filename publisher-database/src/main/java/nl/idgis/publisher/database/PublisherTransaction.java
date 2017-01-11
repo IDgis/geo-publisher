@@ -727,7 +727,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		for(Column column : columns) {
 			sb.append(separator);
 			if(column.getDataType() == Type.GEOMETRY) {
-				sb.append("ST_SetSRID(ST_GeomFromWKB(?), 28992)");
+				sb.append("ST_SetSRID(ST_Force2D(ST_GeomFromWKB(?)), 28992)");
 			} else {
 				sb.append("?");
 			}
