@@ -61,7 +61,11 @@ public class Metadata extends UntypedActor {
 					log.debug("metadata fileName: {}, identification: {}", fileName, identification);
 					fileNames.put(identification, fileName);
 				} catch(Exception e) {
-					log.error(e, "couldn't process file");
+					try {
+						log.error(e, "couldn't process metadata file: " + file.getCanonicalPath());
+					} catch(IOException e2) {
+						log.error(e, "couldn't process metadata file (no canonical path): " + file.getName());
+					}
 				}
 			}
 		}

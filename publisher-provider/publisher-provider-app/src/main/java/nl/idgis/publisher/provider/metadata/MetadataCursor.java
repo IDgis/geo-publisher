@@ -1,6 +1,7 @@
 package nl.idgis.publisher.provider.metadata;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -56,9 +57,9 @@ public class MetadataCursor extends StreamCursor<Iterator<File>, MetadataItem>{
 
 	@Override
 	protected CompletableFuture<MetadataItem> next() {
+		File file = t.next();
+		
 		try {
-			File file = t.next();
-			
 			log.debug("parsing metadata: {}", file);
 			
 			MetadataItem metadataItem = MetadataParser.createMetadataItem(file);
@@ -72,6 +73,11 @@ public class MetadataCursor extends StreamCursor<Iterator<File>, MetadataItem>{
 			
 			return f.successful(metadataItem);
 		} catch(Exception e) {
+			try {
+				log.error(e, "couldn't process metadata file: " + file.getCanonicalPath());
+			} catch(IOException e2) {
+				log.error(e, "couldn't process metadata file (no canonical path): " + file.getName());
+			}
 			return f.failed(e);
 		}
 	}
