@@ -2351,7 +2351,7 @@ nbi4////////////////////////////////1dXV1dXVx8fHntXVr///r///r///pOTk1dXV////
       <name>B1.gemgrens_polygon</name>
       <featureAttribute>
         <name>OBJECTID</name>
-        <definition />
+        <definition>   </definition>
       </featureAttribute>
       <featureAttribute>
         <name>GEMGRENS2_</name>
