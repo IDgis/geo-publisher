@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import nl.idgis.publisher.utils.SimpleDateFormatMapper;
 import nl.idgis.publisher.utils.XMLUtils.XPathHelper;
@@ -1204,13 +1205,18 @@ public class MetadataDocument {
 		if(featureCatalogue == null) {
 			return Collections.emptyMap();
 		} else {
-			return featureCatalogue
+			Map<String, String> retval = new HashMap<>();
+			
+			featureCatalogue
 				.xpath(Optional.empty())
-				.nodes("FC_FeatureCatalogue/featureType/featureAttribute[name[text()] and definition[text()]]")
+				.nodes("FC_FeatureCatalogue/featureType/featureAttribute")
 				.stream()
-				.collect(Collectors.toMap(
-					attr -> attr.string("name").get(),
-					attr -> attr.string("definition").get()));
+				.forEach(attr ->
+					attr.string("name").ifPresent(name ->
+					attr.string("definition").ifPresent(definition -> 
+						retval.put(name, definition))));
+			
+			return Collections.unmodifiableMap(retval);
 		}
 	}
 	
