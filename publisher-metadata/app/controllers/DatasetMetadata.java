@@ -354,6 +354,7 @@ public class DatasetMetadata extends AbstractMetadata {
 					.list(
 						publishedService.content,
 						environment.identification,
+						environment.confidential,
 						environment.url,
 						publishedServiceDataset.layerName);
 				
@@ -371,18 +372,29 @@ public class DatasetMetadata extends AbstractMetadata {
 					JsonNode serviceInfo = Json.parse(serviceTuples.get(i).get(publishedService.content));
 					
 					String serviceName = serviceInfo.get("name").asText();
-					String environmentId = serviceTuples.get(i).get(environment.identification);
 					String scopedName = serviceTuples.get(i).get(publishedServiceDataset.layerName);
 					String environmentUrl = serviceTuples.get(i).get(environment.url);
 					
 					if(i == 0) {
-						config.getViewerUrlPrefix().ifPresent(viewerUrlPrefix -> {
-							try {
-								metadataDocument.addServiceLinkage(viewerUrlPrefix + "/layer/" + serviceName + "/" + scopedName, "website", null);
-							} catch(NotFound nf) {
-								throw new RuntimeException(nf);
-							}
-						});
+						Boolean confidential = serviceTuples.get(i).get(environment.confidential);
+						
+						if(confidential) {
+							config.getViewerUrlSecurePrefix().ifPresent(viewerUrlPrefix -> {
+								try {
+									metadataDocument.addServiceLinkage(viewerUrlPrefix + "/layer/" + serviceName + "/" + scopedName, "website", null);
+								} catch(NotFound nf) {
+									throw new RuntimeException(nf);
+								}
+							});
+						} else {
+							config.getViewerUrlPublicPrefix().ifPresent(viewerUrlPrefix -> {
+								try {
+									metadataDocument.addServiceLinkage(viewerUrlPrefix + "/layer/" + serviceName + "/" + scopedName, "website", null);
+								} catch(NotFound nf) {
+									throw new RuntimeException(nf);
+								}
+							});
+						}
 					}
 					
 					// we only automatically generate browseGraphics 
