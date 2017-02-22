@@ -115,6 +115,7 @@ public class ServiceMetadata extends AbstractMetadata {
 					constants.email,
 					service.wmsMetadataFileIdentification,
 					service.wfsMetadataFileIdentification,
+					environment.confidential,
 					environment.url);
 			
 			if(serviceTuple == null) {
@@ -218,13 +219,25 @@ public class ServiceMetadata extends AbstractMetadata {
 			metadataDocument.addServiceEndpoint(ENDPOINT_OPERATION_NAME, ENDPOINT_CODE_LIST, ENDPOINT_CODE_LIST_VALUE, linkage);
 			
 			if(!serviceDatasetTuples.isEmpty()) {
-				config.getViewerUrlPrefix().ifPresent(viewerUrlPrefix -> {
-					try {
-						metadataDocument.addServiceLinkage(viewerUrlPrefix + "?service=" + serviceName, "website", null);
-					} catch(NotFound nf) {
-						throw new RuntimeException(nf);
-					}
-				});
+				Boolean confidential = serviceTuple.get(environment.confidential);
+				
+				if(confidential) {
+					config.getViewerUrlSecurePrefix().ifPresent(viewerUrlPrefix -> {
+						try {
+							metadataDocument.addServiceLinkage(viewerUrlPrefix + "?service=" + serviceName, "website", null);
+						} catch(NotFound nf) {
+							throw new RuntimeException(nf);
+						}
+					});
+				} else {
+					config.getViewerUrlPublicPrefix().ifPresent(viewerUrlPrefix -> {
+						try {
+							metadataDocument.addServiceLinkage(viewerUrlPrefix + "?service=" + serviceName, "website", null);
+						} catch(NotFound nf) {
+							throw new RuntimeException(nf);
+						}
+					});
+				}
 			}
 			
 			for(Tuple serviceDatasetTuple : serviceDatasetTuples) {

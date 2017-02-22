@@ -22,7 +22,9 @@ public class MetadataConfig {
 	
 	private final String downloadUrlPrefix;
 	
-	private final String viewerUrlPrefix;
+	private final String viewerUrlPublicPrefix;
+	
+	private final String viewerUrlSecurePrefix;
 		
 	private final String browseGraphicWmsRequest;
 	
@@ -45,7 +47,9 @@ public class MetadataConfig {
 		
 		downloadUrlPrefix = metadata.getString("download-url-prefix");
 		
-		viewerUrlPrefix = metadata.getString("viewer-url-prefix");
+		viewerUrlPublicPrefix = metadata.getString("viewer-url-prefix-public");
+		
+		viewerUrlSecurePrefix = metadata.getString("viewer-url-prefix-secure");
 		
 		browseGraphicWmsRequest = "?request=GetMap&service=WMS&SRS=EPSG:28992&CRS=EPSG:28992&bbox=" 
 			+ metadata.getString("bbox", "180000,459000,270000,540000")
@@ -86,8 +90,12 @@ public class MetadataConfig {
 		return Optional.ofNullable(downloadUrlPrefix);
 	}
 	
-	public Optional<String> getViewerUrlPrefix() {
-		return Optional.ofNullable(viewerUrlPrefix);
+	public Optional<String> getViewerUrlPublicPrefix() {
+		return Optional.ofNullable(viewerUrlPublicPrefix);
+	}
+	
+	public Optional<String> getViewerUrlSecurePrefix() {
+		return Optional.ofNullable(viewerUrlSecurePrefix);
 	}
 	
 	public String getBrowseGraphicWmsRequest() {
