@@ -368,16 +368,24 @@ public class DatasetMetadata extends AbstractMetadata {
 					});
 				}
 				
+				boolean confidential = true;
+				int serviceTupleIndex = 0;
+				for(int i = 0; i < serviceTuples.size(); i++) {
+					boolean envConfidential = serviceTuples.get(i).get(environment.confidential);
+					
+					if(!envConfidential) {
+						confidential = false;
+						serviceTupleIndex = i;
+						break;
+					}
+				}
+				
 				for(int i = 0; i < serviceTuples.size(); i++) {
 					JsonNode serviceInfo = Json.parse(serviceTuples.get(i).get(publishedService.content));
-					
 					String serviceName = serviceInfo.get("name").asText();
 					String scopedName = serviceTuples.get(i).get(publishedServiceDataset.layerName);
-					String environmentUrl = serviceTuples.get(i).get(environment.url);
 					
-					if(i == 0) {
-						Boolean confidential = serviceTuples.get(i).get(environment.confidential);
-						
+					if(i == serviceTupleIndex) {
 						if(confidential) {
 							config.getViewerUrlSecurePrefix().ifPresent(viewerUrlPrefix -> {
 								try {
@@ -396,6 +404,8 @@ public class DatasetMetadata extends AbstractMetadata {
 							});
 						}
 					}
+					
+					String environmentUrl = serviceTuples.get(i).get(environment.url);
 					
 					// we only automatically generate browseGraphics 
 					// when none where provided by the source. 
