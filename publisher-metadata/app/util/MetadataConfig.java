@@ -20,6 +20,8 @@ public class MetadataConfig {
 	
 	private final String trustedHeader;
 	
+	private final Boolean downloadUrlDisplay;
+	
 	private final String downloadUrlPrefix;
 	
 	private final String viewerUrlPublicPrefix;
@@ -42,6 +44,8 @@ public class MetadataConfig {
 		zooKeeperNamespace = config.getString("zooKeeper.namespace");
 		
 		trustedHeader = metadata.getString("trusted-header");
+		
+		downloadUrlDisplay = metadata.getBoolean("download-url-display");
 		
 		metadataUrlPrefix = "http://" + host + path + (path.endsWith("/") ? "" : "/") + "metadata/";
 		
@@ -86,6 +90,10 @@ public class MetadataConfig {
 		return trustedHeader;
 	}
 	
+	public Boolean getDownloadUrlDisplay() {
+		return downloadUrlDisplay;
+	}
+
 	public Optional<String> getDownloadUrlPrefix() {
 		return Optional.ofNullable(downloadUrlPrefix);
 	}

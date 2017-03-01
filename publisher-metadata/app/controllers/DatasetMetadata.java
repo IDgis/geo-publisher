@@ -360,10 +360,12 @@ public class DatasetMetadata extends AbstractMetadata {
 				
 				if(!serviceTuples.isEmpty()) {
 					config.getDownloadUrlPrefix().ifPresent(downloadUrlPrefix -> {
-						try {
-							metadataDocument.addServiceLinkage(downloadUrlPrefix + fileIdentifier, "download", null);
-						} catch(NotFound nf) {
-							throw new RuntimeException(nf);
+						if(config.getDownloadUrlDisplay()) {
+							try {
+								metadataDocument.addServiceLinkage(downloadUrlPrefix + fileIdentifier, "download", null);
+							} catch(NotFound nf) {
+								throw new RuntimeException(nf);
+							}
 						}
 					});
 				}
