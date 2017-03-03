@@ -30,17 +30,20 @@ public class SDEProvider extends UntypedActor {
 	
 	private final Props rasterFolderProps;
 	
+	private final boolean includeConfidential;
+	
 	private ActorRef database;
 	
 	private ActorRef rasterFolder;
 	
-	public SDEProvider(Props databaseProps, Props rasterFolderProps) {
+	public SDEProvider(Props databaseProps, Props rasterFolderProps, boolean includeConfidential) {
 		this.databaseProps = databaseProps;
 		this.rasterFolderProps = rasterFolderProps;
+		this.includeConfidential = includeConfidential;
 	}
 	
-	public static Props props(Props databaseProps, Props rasterFolderProps) {
-		return Props.create(SDEProvider.class, databaseProps, rasterFolderProps);
+	public static Props props(Props databaseProps, Props rasterFolderProps, boolean includeConfidential) {
+		return Props.create(SDEProvider.class, databaseProps, rasterFolderProps, includeConfidential);
 	}
 	
 	@Override
@@ -102,7 +105,7 @@ public class SDEProvider extends UntypedActor {
 		log.debug("list dataset info");
 		
 		ActorRef handler = getContext().actorOf(
-			SDEListDatasetInfoHandler.props(getSender(), msg, rasterFolder),
+			SDEListDatasetInfoHandler.props(getSender(), msg, rasterFolder, includeConfidential),
 			nameGenerator.getName(SDEListDatasetInfoHandler.class));
 		
 		database.tell(new StartTransaction(), handler);
