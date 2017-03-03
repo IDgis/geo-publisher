@@ -1,5 +1,6 @@
 package nl.idgis.publisher.provider.sde;
 
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import nl.idgis.publisher.database.messages.Commit;
@@ -37,16 +38,19 @@ public class SDEListDatasetInfoHandler extends UntypedActor {
 	
 	private final ActorRef rasterFolder;
 	
+	private final boolean includeConfidential;
+	
 	private ActorRef transaction;
 	
-	public SDEListDatasetInfoHandler(ActorRef originalSender, ListDatasetInfo originalMsg, ActorRef rasterFolder) {
+	public SDEListDatasetInfoHandler(ActorRef originalSender, ListDatasetInfo originalMsg, ActorRef rasterFolder, boolean includeConfidential) {
 		this.originalSender = originalSender;
 		this.originalMsg = originalMsg;
 		this.rasterFolder = rasterFolder;
+		this.includeConfidential = includeConfidential;
 	}
 	
-	public static Props props(ActorRef originalSender, ListDatasetInfo originalMsg, ActorRef rasterFolder) {
-		return Props.create(SDEListDatasetInfoHandler.class, originalSender, originalMsg, rasterFolder);
+	public static Props props(ActorRef originalSender, ListDatasetInfo originalMsg, ActorRef rasterFolder, boolean includeConfidential) {
+		return Props.create(SDEListDatasetInfoHandler.class, originalSender, originalMsg, rasterFolder, includeConfidential);
 	}
 	
 	@Override
@@ -96,23 +100,30 @@ public class SDEListDatasetInfoHandler extends UntypedActor {
 	private Procedure<Object> onReceiveStreaming() {
 		return new Procedure<Object>() {
 			
-			Item<?> item;
-			
 			ActorRef consumer = originalSender, producer;
-
+			
+			long sequenceNumber = 0, filtered = 0; 
+			
 			@Override
 			public void apply(Object msg) throws Exception {
 				if(msg instanceof DatasetInfo) {
 					log.debug("dataset info received");
-					consumer.tell(
-						new Item<DatasetInfo>(
-							item.getSequenceNumber(), 
-							(DatasetInfo)msg), 
-						getSelf());
+					
+					DatasetInfo datasetInfo = (DatasetInfo)msg;
+					if(!includeConfidential && datasetInfo.isConfidential()) {
+						filtered++;
+						producer.tell(new NextItem(), getSelf());
+					} else {
+						consumer.tell(
+							new Item<DatasetInfo>(
+								sequenceNumber++,
+								datasetInfo), 
+							getSelf());
+					}
 				} else if(msg instanceof Item) {
 					log.debug("item received");
 					
-					item = (Item<?>)msg;
+					Item<?> item = (Item<?>)msg;
 					Object content = item.getContent();
 					if(content instanceof Records) {
 						producer = getSender();
@@ -133,7 +144,16 @@ public class SDEListDatasetInfoHandler extends UntypedActor {
 					}
 				} else if(msg instanceof NextItem) {
 					log.debug("next item");
-					producer.tell(msg, getSelf());
+					
+					NextItem nextItem;
+					Optional<Long> nextSequenceNumber = ((NextItem)msg).getSequenceNumber();
+					if(nextSequenceNumber.isPresent()) {
+						nextItem = new NextItem(nextSequenceNumber.get() + filtered);
+					} else {
+						nextItem = new NextItem();
+					}
+					
+					producer.tell(nextItem, getSelf());
 				} else if(msg instanceof End) {
 					log.debug("end");
 					consumer.tell(msg, getSelf());
