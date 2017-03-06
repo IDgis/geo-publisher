@@ -150,7 +150,13 @@ public class DatasetMetadata extends AbstractMetadata {
 				if(optionalDataset.isPresent()) {
 					return optionalDataset;
 				} else {
-					return sourceDatasetResource(id, tx);
+					if(config.getIncludeSourceDatasetMetadata()) {
+						return sourceDatasetResource(id, tx);
+					} else {
+						Optional<Resource> emptyOptional = Optional.empty();
+						
+						return emptyOptional;
+					}
 				}
 		}));
 	}
@@ -437,9 +443,13 @@ public class DatasetMetadata extends AbstractMetadata {
 
 	@Override
 	public Stream<ResourceDescription> descriptions() {
-		return q.withTransaction(tx -> Stream.concat(
-			datasetDescriptions(tx), 
-			sourceDatasetDescriptions(tx)));
+		if(config.getIncludeSourceDatasetMetadata()) {
+			return q.withTransaction(tx -> Stream.concat(
+				datasetDescriptions(tx), 
+				sourceDatasetDescriptions(tx)));
+		} else {
+			return q.withTransaction(this::datasetDescriptions);
+		}
 	}
 	
 	private Stream<ResourceDescription> sourceDatasetDescriptions(Transaction tx) {
@@ -478,7 +488,13 @@ public class DatasetMetadata extends AbstractMetadata {
 				if(optionalProperties.isPresent()) {
 					return optionalProperties;
 				} else {
-					return sourceDatasetProperties(id, tx);
+					if(config.getIncludeSourceDatasetMetadata()) {
+						return sourceDatasetProperties(id, tx);
+					} else {
+						Optional<ResourceProperties> emptyOptional = Optional.empty();
+						
+						return emptyOptional;
+					}
 				}
 		}));
 	}

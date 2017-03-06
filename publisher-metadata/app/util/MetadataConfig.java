@@ -32,6 +32,8 @@ public class MetadataConfig {
 	
 	private final String metadataStylesheetPrefix;
 	
+	private final boolean includeSourceDatasetMetadata;
+	
 	@Inject
 	public MetadataConfig(Configuration config) {
 
@@ -60,6 +62,8 @@ public class MetadataConfig {
 			+ "&width=600&height=662&format=image/png&styles=&layers=";
 		
 		metadataStylesheetPrefix = metadata.getString("stylesheet-url-prefix");
+		
+		includeSourceDatasetMetadata = metadata.getBoolean("include-source-dataset-metadata", true);
 	}
 	
 	public String getHost() {
@@ -108,5 +112,9 @@ public class MetadataConfig {
 	
 	public String getBrowseGraphicWmsRequest() {
 		return browseGraphicWmsRequest;
+	}
+	
+	public boolean getIncludeSourceDatasetMetadata() {
+		return includeSourceDatasetMetadata;
 	}
 }
