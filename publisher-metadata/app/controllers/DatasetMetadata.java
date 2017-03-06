@@ -153,7 +153,9 @@ public class DatasetMetadata extends AbstractMetadata {
 					if(config.getIncludeSourceDatasetMetadata()) {
 						return sourceDatasetResource(id, tx);
 					} else {
-						return Optional.empty();
+						Optional<Resource> emptyOptional = Optional.empty();
+						
+						return emptyOptional;
 					}
 				}
 		}));
@@ -489,7 +491,9 @@ public class DatasetMetadata extends AbstractMetadata {
 					if(config.getIncludeSourceDatasetMetadata()) {
 						return sourceDatasetProperties(id, tx);
 					} else {
-						return Optional.empty();
+						Optional<ResourceProperties> emptyOptional = Optional.empty();
+						
+						return emptyOptional;
 					}
 				}
 		}));
