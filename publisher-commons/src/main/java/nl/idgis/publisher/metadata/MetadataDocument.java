@@ -41,7 +41,7 @@ public class MetadataDocument {
 	protected static final String CREATION = "creation";
 	protected static final String REVISION = "revision";
 	
-	protected static enum Topic {DATASET, SERVICE};
+	public static enum Topic {DATASET, SERVICE};
 	
 	protected static final String [] ROLE_CODES = {"owner","pointOfContact"}; 
 	
@@ -122,7 +122,8 @@ public class MetadataDocument {
 				"/gmd:CI_DateTypeCode" +
 				"/@codeListValue" +
 					"='" + codeListValue + "']" +
-			"/gmd:date";
+			"/gmd:date" +
+			"/gco:Date";
 	}
 		
 	protected Date getDate(Topic topic, String codeListValue) throws NotFound {
@@ -137,7 +138,7 @@ public class MetadataDocument {
 		}
 	}
 
-	protected void setDate(Topic topic, String codeListValue, Date date) throws Exception{
+	public void setDate(Topic topic, String codeListValue, Date date) throws Exception{
 		
 		String datePath = getDatePath(topic, codeListValue);
 		
@@ -146,7 +147,7 @@ public class MetadataDocument {
 		isoMetadata.updateString(namespaces, datePath, dateString);
 	}
 	
-	protected void setDate(Topic topic,String codeListValue, Timestamp ts) throws Exception{
+	public void setDate(Topic topic,String codeListValue, Timestamp ts) throws Exception{
 		Date date = new Date(ts.getTime());
 		setDate(topic, codeListValue, date);
 	}

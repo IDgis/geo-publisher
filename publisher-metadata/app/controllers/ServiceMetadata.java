@@ -32,6 +32,7 @@ import nl.idgis.dav.model.Resource;
 import nl.idgis.dav.model.ResourceDescription;
 import nl.idgis.dav.model.ResourceProperties;
 import nl.idgis.publisher.metadata.MetadataDocument;
+import nl.idgis.publisher.metadata.MetadataDocument.Topic;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.xml.exceptions.NotFound;
 import play.libs.Json;
@@ -97,6 +98,7 @@ public class ServiceMetadata extends AbstractMetadata {
 					.or(service.wfsMetadataFileIdentification.eq(id)))
 				.singleResult(
 					service.id,
+					publishedService.createTime,
 					publishedService.content,
 					publishedService.title,
 					publishedService.alternateTitle,
@@ -159,6 +161,8 @@ public class ServiceMetadata extends AbstractMetadata {
 			metadataDocument.setServiceTitle(serviceTuple.get(publishedService.title));
 			metadataDocument.setServiceAlternateTitle(serviceTuple.get(publishedService.alternateTitle));
 			metadataDocument.setServiceAbstract(serviceTuple.get(publishedService.abstractCol));
+			
+			metadataDocument.setDate(Topic.SERVICE, "publication", serviceTuple.get(publishedService.createTime));
 			
 			metadataDocument.removeServiceKeywords();
 			metadataDocument.addServiceKeywords(
