@@ -61,7 +61,7 @@ public class MetadataDocumentTest {
 	public void testReadDatasetMetadata() throws Exception {
 		MetadataDocument document = getDocument("dataset_metadata.xml");
 		
-		Date date = document.getDatasetRevisionDate();		
+		Date date = document.getDatasetPublicationDate();
 		Calendar calendar = Calendar.getInstance();
 		calendar.setTime(date);
 		assertEquals(2013, calendar.get(Calendar.YEAR));
@@ -310,7 +310,7 @@ public class MetadataDocumentTest {
 		
 		// check new values again
 		result = document.getServiceResponsiblePartyName("pointOfContact");
-		assertEquals("wrong responsibleparty", name, result);		
+		assertEquals("wrong responsibleparty", name, result);
 		result = document.getServiceResponsiblePartyEmail("pointOfContact");
 		assertEquals("wrong email", email, result);
 	}
@@ -330,7 +330,7 @@ public class MetadataDocumentTest {
 		result = document.getServiceAbstract();		
 		assertTrue("wrong abstract", result.startsWith("Deze View service"));
 		
-		Date date = document.getServiceRevisionDate();		
+		Date date = document.getServicePublicationDate();
 		Calendar calendar = Calendar.getInstance();
 		calendar.setTime(date);
 		assertEquals(2011, calendar.get(Calendar.YEAR));
