@@ -163,6 +163,7 @@ public class ServiceMetadata extends AbstractMetadata {
 			metadataDocument.setServiceAbstract(serviceTuple.get(publishedService.abstractCol));
 			
 			metadataDocument.setDate(Topic.SERVICE, "publication", serviceTuple.get(publishedService.createTime));
+			metadataDocument.setMetaDataCreationDate(serviceTuple.get(publishedService.createTime));
 			
 			metadataDocument.removeServiceKeywords();
 			metadataDocument.addServiceKeywords(
