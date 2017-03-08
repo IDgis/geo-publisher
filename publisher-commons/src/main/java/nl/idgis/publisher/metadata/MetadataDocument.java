@@ -40,6 +40,7 @@ public class MetadataDocument {
 	protected static final String METADATA_DATE_PATTERN = "yyyy-MM-dd";
 	protected static final String CREATION = "creation";
 	protected static final String REVISION = "revision";
+	protected static final String PUBLICATION = "publication";
 	
 	public static enum Topic {DATASET, SERVICE};
 	
@@ -122,8 +123,7 @@ public class MetadataDocument {
 				"/gmd:CI_DateTypeCode" +
 				"/@codeListValue" +
 					"='" + codeListValue + "']" +
-			"/gmd:date" +
-			"/gco:Date";
+			"/gmd:date";
 	}
 		
 	protected Date getDate(Topic topic, String codeListValue) throws NotFound {
@@ -144,7 +144,7 @@ public class MetadataDocument {
 		
 		String dateString = dateToString(METADATA_DATE_PATTERN, date);
 		
-		isoMetadata.updateString(namespaces, datePath, dateString);
+		isoMetadata.updateString(namespaces, datePath + "/gco:Date", dateString);
 	}
 	
 	public void setDate(Topic topic,String codeListValue, Timestamp ts) throws Exception{
@@ -164,6 +164,13 @@ public class MetadataDocument {
 		setDate(Topic.SERVICE, REVISION, ts);
 	}
 	
+	public Date getServicePublicationDate() throws NotFound {
+		try { 
+			return getDate(Topic.SERVICE, PUBLICATION);
+		} catch(NotFound nf) {
+			return getDate(Topic.SERVICE, PUBLICATION);
+		}
+	}
 	
 	public Date getDatasetRevisionDate() throws NotFound {
 		try { 
@@ -175,6 +182,14 @@ public class MetadataDocument {
 	
 	public void setDatasetRevisionDate(Timestamp ts) throws Exception {
 		setDate(Topic.DATASET, REVISION, ts);
+	}
+	
+	public Date getDatasetPublicationDate() throws NotFound {
+		try { 
+			return getDate(Topic.DATASET, PUBLICATION);
+		} catch(NotFound nf) {
+			return getDate(Topic.DATASET, PUBLICATION);
+		}
 	}
 	
 	/*
