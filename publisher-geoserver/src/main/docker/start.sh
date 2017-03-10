@@ -1,9 +1,35 @@
 #!/bin/bash
 
-if [ ! -e /var/lib/geo-publisher/geoserver/security ]; then
-	echo "Generating standard geoserver password ..."
-	mkdir -p /var/lib/geo-publisher/geoserver/security/
-	echo "$GEOSERVER_USER=$GEOSERVER_PASSWORD,ROLE_ADMINISTRATOR" > /var/lib/geo-publisher/geoserver/security/users.properties
+if [ "$(ls -A $GEOSERVER_DATA_DIR)" ]; then
+	echo "GeoServer data directory already exists, keep using existing configuration..."
+else
+	echo "Building initial GeoServer data directory..."
+	cp -R /var/lib/tomcat7/webapps/geoserver/data/* $GEOSERVER_DATA_DIR
+	chown -R tomcat7:tomcat7 $GEOSERVER_DATA_DIR
+	
+	echo "Configuring GeoServer password..."
+	mkdir -p $GEOSERVER_DATA_DIR/security/
+	echo "$GEOSERVER_USER=$GEOSERVER_PASSWORD,ROLE_ADMINISTRATOR" > $GEOSERVER_DATA_DIR/security/users.properties
+	
+	# Disable all services
+	for SERVICE_FILE in $(grep -l enabled $GEOSERVER_DATA_DIR/*.xml)
+	do
+		NEW_CONTENT=$(cat $SERVICE_FILE | xml2 | sed -r "s/(w?s\/enabled=).*/\1false/g" | 2xml)
+		echo $NEW_CONTENT > $SERVICE_FILE
+	done
+	
+	# Re-enable some services
+	for ENABLE_SERVICE in $(echo $ENABLE_SERVICES | tr "," "\n")
+	do 
+	 	SERVICE_FILE=$GEOSERVER_DATA_DIR/$(echo $ENABLE_SERVICE | tr '[:upper:]' '[:lower:]').xml
+	 	if [ -f $SERVICE_FILE ]; then
+	 		echo Enabling $ENABLE_SERVICE service...
+	 		NEW_CONTENT=$(cat $SERVICE_FILE | xml2 | sed -r "s/(w?s\/enabled=).*/\1true/g" | 2xml)
+			echo $NEW_CONTENT > $SERVICE_FILE
+		else
+			echo Failed to enable $ENABLE_SERVICE service: no configuration file for service found
+	 	fi
+	done
 fi
 
 if [ "$ZOOKEEPER_HOSTS" != "" ]; then
