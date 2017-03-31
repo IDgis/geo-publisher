@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Type;
@@ -34,9 +35,53 @@ public final class Filter extends Entity {
 	public FilterExpression getExpression () {
 		return expression;
 	}
+	
+	private static class ColumnRef {
+		
+		private final String name;
+		
+		private final Type dataType;
+		
+		ColumnRef(String name, Type dataType) {
+			this.name = name;
+			this.dataType = dataType;
+		}
+
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + ((dataType == null) ? 0 : dataType.hashCode());
+			result = prime * result + ((name == null) ? 0 : name.hashCode());
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			ColumnRef other = (ColumnRef) obj;
+			if (dataType != other.dataType)
+				return false;
+			if (name == null) {
+				if (other.name != null)
+					return false;
+			} else if (!name.equals(other.name))
+				return false;
+			return true;
+		}
+
+		
+	}
 
 	public boolean isValid (final List<Column> columns) {
-		final Set<Column> columnSet = new HashSet<> (columns);
+		final Set<ColumnRef> columnRefSet = columns.stream()
+			.map(column -> new ColumnRef(column.getName(), column.getDataType()))
+			.collect(Collectors.toSet());
 		final LinkedList<Filter.FilterExpression> fringe = new LinkedList<> ();
 		
 		fringe.add (getExpression ());
@@ -45,7 +90,8 @@ public final class Filter extends Entity {
 			final Filter.FilterExpression expression = fringe.poll ();
 			
 			if (expression instanceof Filter.ColumnReferenceExpression) {
-				if (!columnSet.contains (((Filter.ColumnReferenceExpression) expression).getColumn ())) {
+				Column column = ((Filter.ColumnReferenceExpression) expression).getColumn ();
+				if (!columnRefSet.contains (new ColumnRef(column.getName(), column.getDataType()))) {
 					return false;
 				}
 			} else if (expression instanceof Filter.OperatorExpression) {
