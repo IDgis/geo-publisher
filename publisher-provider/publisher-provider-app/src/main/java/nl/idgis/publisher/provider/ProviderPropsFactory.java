@@ -28,16 +28,9 @@ public class ProviderPropsFactory {
 		Props database = Database.props(providerConfig.getConfig("database"), name);
 		Props rasterFolder = Folder.props(providerConfig.getString("raster.folder"));
 		
-		boolean includeConfidential;
-		if(providerConfig.hasPath("include-confidential")) {
-			includeConfidential = providerConfig.getBoolean("include-confidential");
-		} else {
-			includeConfidential = true;
-		}
-		
 		log.info("creating sde provider: {}", name);
 		
-		return new ProviderProps(name, SDEProvider.props(database, rasterFolder, includeConfidential));
+		return new ProviderProps(name, SDEProvider.props(database, rasterFolder));
 	}
 
 	private ProviderProps vector(String name, Config providerConfig) {
