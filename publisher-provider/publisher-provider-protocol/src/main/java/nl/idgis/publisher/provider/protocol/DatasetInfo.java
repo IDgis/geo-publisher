@@ -30,9 +30,7 @@ public abstract class DatasetInfo implements Serializable {
 	
 	protected final Set<Log> logs;
 	
-	protected final boolean confidential;
-			
-	DatasetInfo(String identification, String title, String alternateTitle, String categoryId, Date revisionDate, Set<Attachment> attachments, Set<Log> logs, boolean confidential) {
+	DatasetInfo(String identification, String title, String alternateTitle, String categoryId, Date revisionDate, Set<Attachment> attachments, Set<Log> logs) {
 		this.identification = identification;
 		this.title = title;		
 		this.alternateTitle = alternateTitle;
@@ -40,7 +38,6 @@ public abstract class DatasetInfo implements Serializable {
 		this.revisionDate = revisionDate;
 		this.attachments = attachments;
 		this.logs = logs;
-		this.confidential = confidential;
 	}
 	
 	/**
@@ -97,14 +94,6 @@ public abstract class DatasetInfo implements Serializable {
 	 */
 	public Set<Log> getLogs() {
 		return logs;
-	}
-	
-	/**
-	 * 
-	 * @return whether or not this dataset is confidential
-	 */
-	public boolean isConfidential() {
-		return confidential;
 	}
 	
 }

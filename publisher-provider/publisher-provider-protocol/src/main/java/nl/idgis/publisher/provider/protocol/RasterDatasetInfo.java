@@ -28,14 +28,13 @@ public class RasterDatasetInfo extends DatasetInfo {
 	 * @param revisionDate the revision date of this dataset
 	 * @param attachments the attachments of the datasets.
 	 * @param logs logs for the dataset.
-	 * @param confidential whether or not the dataset is confidential
 	 * @param format file format of the dataset.
 	 * @param size size of the dataset
 	 */
 	public RasterDatasetInfo(String identification, String title, String alternateTitle, String categoryId, Date revisionDate, Set<Attachment> attachments, 
-		Set<Log> logs, boolean confidential, RasterFormat format, long size) {
+		Set<Log> logs, RasterFormat format, long size) {
 		
-		super(identification, title, alternateTitle, categoryId, revisionDate, attachments, logs, confidential);
+		super(identification, title, alternateTitle, categoryId, revisionDate, attachments, logs);
 		
 		this.format = format;
 		this.size = size;
@@ -63,8 +62,7 @@ public class RasterDatasetInfo extends DatasetInfo {
 				+ ", identification=" + identification + ", title=" + title
 				+ ", alternateTitle=" + alternateTitle + ", categoryId="
 				+ categoryId + ", revisionDate=" + revisionDate
-				+ ", attachments=" + attachments + ", logs=" + logs
-				+ ", confidential=" + confidential + "]";
+				+ ", attachments=" + attachments + ", logs=" + logs + "]";
 	}
 	
 }

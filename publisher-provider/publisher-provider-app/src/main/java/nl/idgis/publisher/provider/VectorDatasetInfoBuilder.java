@@ -100,7 +100,7 @@ public class VectorDatasetInfoBuilder extends AbstractDatasetInfoBuilder {
 
 	private void sendResponse() {
 		if(tableInfo != null && numberOfRecords != null) {
-			tellTarget(new VectorDatasetInfo(identification, reportedTitle, alternateTitle, categoryId, revisionDate, attachments, logs, confidential, tableName, tableInfo, numberOfRecords));
+			tellTarget(new VectorDatasetInfo(identification, reportedTitle, alternateTitle, categoryId, revisionDate, attachments, logs, tableName, tableInfo, numberOfRecords));
 		}
 	}
 }

@@ -25,10 +25,9 @@ public class UnavailableDatasetInfo extends DatasetInfo {
 	 * @param revisionDate the revision date of this dataset
 	 * @param attachments attachments of the dataset.
 	 * @param logs logs for this dataset.
-	 * @param confidential whether or not the dataset is confidential
 	 */
-	public UnavailableDatasetInfo(String identification, String title, String alternateTitle, String categoryId, Date revisionDate, Set<Attachment> attachments, Set<Log> logs, boolean confidential) {
-		super(identification, title, alternateTitle, categoryId, revisionDate, attachments, logs, confidential);
+	public UnavailableDatasetInfo(String identification, String title, String alternateTitle, String categoryId, Date revisionDate, Set<Attachment> attachments, Set<Log> logs) {
+		super(identification, title, alternateTitle, categoryId, revisionDate, attachments, logs);
 	}
 
 	@Override
