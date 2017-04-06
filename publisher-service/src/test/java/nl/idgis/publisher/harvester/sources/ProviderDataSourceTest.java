@@ -80,14 +80,14 @@ public class ProviderDataSourceTest {
 		byte[] metadataContent = IOUtils.toByteArray(inputStream);
 		
 		Set<Attachment> attachments = new HashSet<>();
-		attachments.add(new Attachment("metadata", AttachmentType.METADATA, false, metadataContent));
+		attachments.add(new Attachment("metadata", AttachmentType.METADATA, metadataContent));
 		
 		Set<Log> logs = new HashSet<>();
 		
 		ColumnInfo[] columns = {new ColumnInfo("id", Type.NUMERIC, "the id"), new ColumnInfo("title", Type.TEXT, "the title")};
 		TableInfo tableInfo = new TableInfo(columns);
 		
-		vectorDatasetInfo = new VectorDatasetInfo("vectorDataset", "vectorDatasetTitle", "vectorDatasetAlternateTitle", "categoryId", new Date(), attachments, logs, false, "tableName", tableInfo, 42);				
+		vectorDatasetInfo = new VectorDatasetInfo("vectorDataset", "vectorDatasetTitle", "vectorDatasetAlternateTitle", "categoryId", new Date(), attachments, logs, "tableName", tableInfo, 42);
 	}
 	
 	@Before

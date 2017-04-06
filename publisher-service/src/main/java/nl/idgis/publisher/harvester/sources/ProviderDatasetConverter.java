@@ -38,6 +38,10 @@ import nl.idgis.publisher.stream.messages.Start;
 
 public class ProviderDatasetConverter extends StreamConverter {
 	
+	private static final String DATA_NOT_CONFIDENTIAL_CONSTRAINT_VALUE = "Downloadable data";
+	
+	private static final String METADATA_NOT_CONFIDENTIAL_CONSTRAINT_VALUE = "Geoportaal extern";
+	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final Set<AttachmentType> attachmentTypes;
@@ -80,13 +84,13 @@ public class ProviderDatasetConverter extends StreamConverter {
 			String categoryId = datasetInfo.getCategoryId();			
 			Date revisionDate = datasetInfo.getRevisionDate();
 			Set<Log> logs = datasetInfo.getLogs();
-			boolean confidential = datasetInfo.isConfidential();
 			
 			Map<AttachmentType, Attachment> attachments = datasetInfo.getAttachments().stream()
 				.collect(Collectors.toMap(
 					Attachment::getAttachmentType,
 					Function.identity()));
 			
+			boolean confidential = false;
 			boolean metadataConfidential = false;
 			MetadataDocument metadata;
 			if(attachments.containsKey(AttachmentType.METADATA)) {
@@ -95,7 +99,13 @@ public class ProviderDatasetConverter extends StreamConverter {
 				if(content instanceof byte[]) {
 					try {
 						metadata = mdf.parseDocument((byte[])attachment.getContent());
-						metadataConfidential = attachment.isConfidential();
+						List<String> useLimitations = metadata.getUseLimitations();
+						
+						confidential = !useLimitations.contains(DATA_NOT_CONFIDENTIAL_CONSTRAINT_VALUE);
+						metadataConfidential = !useLimitations.contains(METADATA_NOT_CONFIDENTIAL_CONSTRAINT_VALUE);
+						
+						log.debug("data confidential: " + confidential);
+						log.debug("metadata confidential: " + metadataConfidential);
 					} catch(Exception e) {
 						metadata = null;
 					}
