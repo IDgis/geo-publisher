@@ -14,8 +14,8 @@ import nl.idgis.publisher.domain.Log;
  */
 public class UnavailableDatasetInfo extends DatasetInfo {
 	
-	private static final long serialVersionUID = -3897120674015287961L;
-
+	private static final long serialVersionUID = 1406423527757972234L;
+	
 	/**
 	 * 
 	 * @param identification the identifier of the dataset.

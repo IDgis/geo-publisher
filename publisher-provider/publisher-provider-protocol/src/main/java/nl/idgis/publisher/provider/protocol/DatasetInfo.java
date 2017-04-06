@@ -13,8 +13,8 @@ import nl.idgis.publisher.domain.Log;
  *
  */
 public abstract class DatasetInfo implements Serializable {
-
-	private static final long serialVersionUID = 4831203786160127733L;
+	
+	private static final long serialVersionUID = 4218462024969549277L;
 
 	protected final String identification;
 	

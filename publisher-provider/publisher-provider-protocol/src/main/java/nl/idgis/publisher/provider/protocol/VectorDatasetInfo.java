@@ -12,8 +12,8 @@ import nl.idgis.publisher.domain.Log;
  *
  */
 public class VectorDatasetInfo extends DatasetInfo {	
-
-	private static final long serialVersionUID = 3248697521282698956L;
+	
+	private static final long serialVersionUID = -5699805424932689016L;
 
 	private final String tableName;
 

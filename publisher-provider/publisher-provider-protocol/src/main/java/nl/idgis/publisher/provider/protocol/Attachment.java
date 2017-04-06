@@ -9,7 +9,7 @@ import java.io.Serializable;
  *
  */
 public class Attachment implements Serializable {
-
+	
 	private static final long serialVersionUID = 3109003714510086835L;
 
 	private final String identification;

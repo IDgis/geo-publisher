@@ -12,8 +12,8 @@ import nl.idgis.publisher.domain.Log;
  *
  */
 public class RasterDatasetInfo extends DatasetInfo {
-
-	private static final long serialVersionUID = 7889073817616234406L;
+	
+	private static final long serialVersionUID = 485802087301023495L;
 
 	private final RasterFormat format;
 	
