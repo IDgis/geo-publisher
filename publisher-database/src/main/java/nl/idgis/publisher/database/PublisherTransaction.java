@@ -524,6 +524,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				datasetActiveNotification.jobType,
 				new SQLSubQuery ().from (leafLayer).where (leafLayer.datasetId.eq (dataset.id)).count ().as (layerCountPath),
 				sourceDatasetVersion.confidential,
+				sourceDatasetVersion.wmsOnly,
 				dataset.metadataFileIdentification
 			)) {
 			
@@ -581,6 +582,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				t.get (layerCountPath),
 				Long.MAX_VALUE, // dummy value
 				t.get (sourceDatasetVersion.confidential),
+				t.get (sourceDatasetVersion.wmsOnly),
 				t.get (dataset.metadataFileIdentification)
 			);
 	}

@@ -18,5 +18,6 @@ public interface Layer  {
 	boolean isConfidential ();
 	
 	Optional<Timestamp> getImportTime();
-	
+
+	boolean isWmsOnly();
 }

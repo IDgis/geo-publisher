@@ -59,6 +59,7 @@ import com.mysema.query.types.path.PathBuilder;
 public class LayerAdmin extends LayerGroupCommonAdmin {
 	
 	private final static PathBuilder<Boolean> confidentialPath = new PathBuilder<> (Boolean.class, "confidential");
+	private final static PathBuilder<Boolean> wmsOnlyPath = new PathBuilder<> (Boolean.class, "wmsOnly");
 	
 	public LayerAdmin(ActorRef database) {
 		super(database); 
@@ -126,6 +127,17 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 			.as (confidentialPath);
 	}
 	
+	private DslExpression<Boolean> wmsOnlyExpression () {
+		return new SQLSubQuery ()
+			.from (sourceDataset)
+			.join (sourceDatasetVersion).on (sourceDatasetVersion.sourceDatasetId.eq (sourceDataset.id))
+			.where (dataset.sourceDatasetId.eq (sourceDataset.id))
+			.orderBy (sourceDatasetVersion.createTime.desc ())
+			.limit (1)
+			.list (sourceDatasetVersion.wmsOnly)
+			.as (wmsOnlyPath);
+	}
+	
 	private CompletableFuture<Page<Layer>> handleListLayersWithQuery (final ListLayers listLayers) {
 		final AsyncSQLQuery baseQuery = db
 				.query()
@@ -169,7 +181,8 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 							dataset.identification,
 							dataset.name,
 							tiledLayer.genericLayerId,
-							confidentialExpression ()
+							confidentialExpression (),
+							wmsOnlyExpression ()
 							)
 					.thenApply ((layers) -> {
 						for (Tuple layer : layers.list()) {
@@ -194,7 +207,8 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 											null)
 										: null),
 									null, null,
-									layer.get (confidentialPath)
+									layer.get (confidentialPath),
+									layer.get (wmsOnlyPath)
 								));
 						}
 						return builder.build ();
@@ -211,6 +225,7 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 		layerColumns.addAll(Arrays.asList(leafLayer.all()));
 		layerColumns.addAll(Arrays.asList(dataset.all()));
 		layerColumns.add (confidentialExpression ());
+		layerColumns.add (wmsOnlyExpression ());
 
 		return db.transactional(tx -> 
 			tx.query()
@@ -271,7 +286,8 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 												: null)
 										,
 										keywords.list(), styles.list(),
-										layer.get (confidentialPath)
+										layer.get (confidentialPath),
+										layer.get (wmsOnlyPath)
 									))));
 						});
 				} else {
@@ -622,6 +638,7 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 						null,
 						null,
 						null,
+						false,
 						false
 						));
 				}
@@ -663,7 +680,7 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 						null,
 						null, null, null,
 						null, null,
-						false, false
+						false, false, false
 					));
 				}
 				return builder.build();

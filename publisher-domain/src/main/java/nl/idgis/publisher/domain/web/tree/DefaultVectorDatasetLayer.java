@@ -5,20 +5,24 @@ import java.util.List;
 import java.util.Optional;
 
 public class DefaultVectorDatasetLayer extends AbstractDatasetLayer implements VectorDatasetLayer {
-
-	private static final long serialVersionUID = -1773177921425540543L;	
 	
+	private static final long serialVersionUID = -545715957930901516L;
+
 	private final String tableName;
 	
 	private final List<String> columnNames;
 	
+	private final boolean wmsOnly;
+	
 	public DefaultVectorDatasetLayer(String id, String name, String title, String abstr, Tiling tiling, Optional<String> metadataFileIdentification,
-		List<String> keywords, String tableName, List<String> columnNames, List<StyleRef> styleRef, boolean confidential, Timestamp importTime) {
+		List<String> keywords, String tableName, List<String> columnNames, List<StyleRef> styleRef, boolean confidential, boolean wmsOnly, 
+		Timestamp importTime) {
 		
 		super(id, name, title, abstr, tiling, confidential, metadataFileIdentification, importTime, keywords, styleRef);
 		
 		this.tableName = tableName;
 		this.columnNames = columnNames;
+		this.wmsOnly = wmsOnly;
 	}
 
 	@Override
@@ -39,6 +43,11 @@ public class DefaultVectorDatasetLayer extends AbstractDatasetLayer implements V
 	@Override
 	public VectorDatasetLayer asVectorLayer() {
 		return this;
+	}
+	
+	@Override
+	public boolean isWmsOnly() {
+		return wmsOnly;		
 	}
 
 	@Override

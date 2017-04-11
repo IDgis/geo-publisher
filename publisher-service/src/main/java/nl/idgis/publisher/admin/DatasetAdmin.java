@@ -178,6 +178,7 @@ public class DatasetAdmin extends AbstractAdmin {
 				datasetInfo.getLayerCount (),
 				datasetInfo.getPublishedServiceCount(),
 				datasetInfo.isConfidential (),
+				datasetInfo.isWmsOnly(),
 				datasetInfo.getMetadataFileId ()
 		);
 	}
@@ -199,6 +200,7 @@ public class DatasetAdmin extends AbstractAdmin {
 				t.get (layerCountPath),
 				t.get (publishedServiceCountPath),
 				t.get (sourceDatasetVersion.confidential),
+				t.get (sourceDatasetVersion.wmsOnly),
 				t.get (dataset.metadataFileIdentification)
 			);
 	}
@@ -285,7 +287,8 @@ public class DatasetAdmin extends AbstractAdmin {
 			datasetActiveNotification.jobType,
 			new SQLSubQuery ().from (leafLayer).where (leafLayer.datasetId.eq (dataset.id)).count ().as (layerCountPath),
 			new SQLSubQuery ().from (publishedServiceDataset).where (publishedServiceDataset.datasetId.eq (dataset.id)).count ().as (publishedServiceCountPath),
-			sourceDatasetVersion.confidential
+			sourceDatasetVersion.confidential,
+			sourceDatasetVersion.wmsOnly
 		};
 	}
 	
@@ -428,6 +431,7 @@ public class DatasetAdmin extends AbstractAdmin {
 		final long offset = Math.max (0, (page - 1) * limit);
 
 		final CompletableFuture<Object> notifications = f.ask (database, new GetNotifications (Order.DESC, offset, limit, listNotifications.isIncludeRejected (), listNotifications.getSince ()));
+		// TODO: query harvest notifications
 		
 		return notifications.thenApply(msg -> {
 			final Page.Builder<Notification> dashboardNotifications = new Page.Builder<Notification>();
@@ -438,6 +442,8 @@ public class DatasetAdmin extends AbstractAdmin {
 			for (final StoredNotification storedNotification: storedNotifications.getList ()) {
 				dashboardNotifications.add (createNotification (storedNotification));
 			}
+			
+			// TODO: loop over harvest notifications
 			
 			// Paging:
 			long count = storedNotifications.getCount ();

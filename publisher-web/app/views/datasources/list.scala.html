@@ -280,6 +280,9 @@
 										@if(dataset.sourceDataset.confidential) {
 											<span class="label label-warning">@Domain.message("web.application.page.sourcedatasets.list.confidential")</span>
 										}
+										@if(dataset.sourceDataset.wmsOnly) {
+											<span class="label label-warning">@Domain.message("web.application.page.sourcedatasets.list.wmsonly")</span>
+										}
 									</div>
 									<div class="col-md-5">
 										@sourceDatasetDetails(dataset)

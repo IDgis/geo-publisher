@@ -137,7 +137,7 @@ public class Services extends Controller {
 					final ServiceForm serviceForm = form.get ();
 					final Service service = new Service(serviceIdentification, serviceForm.name, serviceForm.title, 
 							serviceForm.alternateTitle, serviceForm.abstractText,
-							serviceForm.metadata, serviceIdentification,serviceForm.constantsId, null, null, false, false);
+							serviceForm.metadata, serviceIdentification,serviceForm.constantsId, null, null, false, false, false);
 					Logger.debug ("Update service: " + service);
 					
 					final List<String> layerIds = (serviceForm.structure == null)?(new ArrayList<String>()):(serviceForm.structure);			
@@ -390,10 +390,10 @@ public class Services extends Controller {
 		final ServiceForm serviceForm = form.get ();
 		final Service service = new Service(ID, serviceForm.name, serviceForm.title, 
 				serviceForm.alternateTitle,serviceForm.abstractText,
-				serviceForm.metadata, serviceForm.rootGroupId,serviceForm.constantsId, null, null, false, false);
+				serviceForm.metadata, serviceForm.rootGroupId,serviceForm.constantsId, null, null, false, false, false);
 		Logger.debug ("Update/create service: " + service);
 		
-		final List<String> layerIds = (serviceForm.structure == null)?(new ArrayList<String>()):(serviceForm.structure);			
+		final List<String> layerIds = (serviceForm.structure == null)?(new ArrayList<String>()):(serviceForm.structure);
 		Logger.debug ("Service rootgroup " + serviceForm.rootGroupId + " structure list: " + layerIds);
 		
 		final List<String> layerStyleIds = serviceForm.styles == null ? new ArrayList<>() : serviceForm.styles;

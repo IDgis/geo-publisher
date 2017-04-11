@@ -156,6 +156,11 @@ public class JsonService implements Service {
 		return jsonNode.path ("confidential").asBoolean ();
 	}
 	
+	@Override
+	public final boolean isWmsOnly () {
+		return jsonNode.path ("wmsOnly").asBoolean ();
+	}
+	
 	// annotation mixins below are required to serialize Mockito objects
 	
 	@JsonSerialize(as=Service.class)

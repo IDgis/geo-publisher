@@ -75,6 +75,7 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 	private final ActorRef serviceManager;
 
 	private final PathBuilder<Boolean> confidentialPath = new PathBuilder<> (Boolean.class, "confidential");
+	private final PathBuilder<Boolean> wmsOnlyPath = new PathBuilder<> (Boolean.class, "wmsOnly");
 	
 	public LayerGroupAdmin(ActorRef database, ActorRef serviceManager) {
 		super(database); 
@@ -171,6 +172,19 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 			.exists ();
 	}
 	
+	private BooleanExpression isWmsOnly () {
+		final QLeafLayer leafLayer = new QLeafLayer ("leaf_layer2");
+		
+		return new SQLSubQuery ()
+			.from (groupStructure)
+			.join (leafLayer).on (groupStructure.childLayerId.eq (leafLayer.genericLayerId))
+			.join (dataset).on (leafLayer.datasetId.eq (dataset.id))
+			.join (sourceDataset).on (dataset.sourceDatasetId.eq (sourceDataset.id))
+			.where (groupStructure.groupLayerIdentification.eq (genericLayer.identification))
+			.where (Expressions.booleanOperation (Ops.EQ, Expressions.constant (true), new SQLSubQuery ().from (sourceDatasetVersion).where (sourceDatasetVersion.sourceDatasetId.eq (sourceDataset.id)).orderBy (sourceDatasetVersion.createTime.desc ()).limit (1).list (sourceDatasetVersion.wmsOnly)))
+			.exists ();
+	}
+	
 	private CompletableFuture<Page<LayerGroup>> handleListLayerGroupsWithQuery (final ListLayerGroups listLayerGroups) {
 		final AsyncSQLQuery baseQuery = db
 			.query()
@@ -209,7 +223,8 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 							genericLayer.title,
 							genericLayer.abstractCol,
 							tiledLayer.genericLayerId,
-							isConfidential ().as (confidentialPath)
+							isConfidential ().as (confidentialPath),
+							isWmsOnly ().as (wmsOnlyPath)
 						)
 						.thenApply ((groups) -> {
 							for (Tuple group : groups.list()) {
@@ -231,7 +246,8 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 												group.get(null),
 												null)
 											: null),
-										group.get (confidentialPath)
+										group.get (confidentialPath),
+										group.get (wmsOnlyPath)
 									));
 							}
 							return builder.build ();
@@ -246,7 +262,8 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 		groupColumns.addAll(Arrays.asList(genericLayer.all()));
 		groupColumns.addAll(Arrays.asList(tiledLayer.all()));
 		groupColumns.add (isConfidential ().as (confidentialPath));
-
+		groupColumns.add (isWmsOnly ().as (wmsOnlyPath));
+		
 		return db.transactional(tx -> 
 			withGroupStructure (tx.query(), parent, child)
 			.from(genericLayer)
@@ -254,7 +271,7 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 			.where(genericLayer.identification.eq(layergroupId))
 			.singleResult(groupColumns.toArray (new Expression<?>[groupColumns.size ()])).<Optional<LayerGroup>>thenCompose(optionalGroup -> {
 				if(optionalGroup.isPresent()) {
-					Tuple group = optionalGroup.get();					
+					Tuple group = optionalGroup.get();
 					log.debug("generic layer id: " + group.get(genericLayer.id));
 						log.debug("tiled layer   id: " + group.get(tiledLayer.id));
 						boolean hasTiledLayer = group.get(tiledLayer.genericLayerId) != null;
@@ -287,7 +304,8 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 											group.get(tiledLayer.gutter),
 											mimeFormats.list())
 										: null),
-								group.get (confidentialPath)
+								group.get (confidentialPath),
+								group.get (wmsOnlyPath)
 							)));
 				} else {
 					return f.successful(Optional.empty());
@@ -593,6 +611,7 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 							null,
 							null,
 							null,
+							false,
 							false
 						));
 				}
@@ -633,7 +652,7 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 						null,
 						null, null, null,
 						null, null,
-						false, false
+						false, false, false
 						));
 				}
 				return builder.build();

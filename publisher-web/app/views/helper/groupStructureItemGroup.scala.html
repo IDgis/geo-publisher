@@ -7,6 +7,9 @@
 @if(groupLayer.isConfidential) {
 	<span class="label label-warning">@Domain.message("web.application.page.layers.list.confidential")</span>
 }
+@if(groupLayer.isWmsOnly) {
+	<span class="label label-warning">@Domain.message("web.application.page.layers.list.wmsonly")</span>
+}
 <ul>
 	@for(layerRef <- groupLayer.getLayers()){
 		@helper.groupStructureItemRef(layerRef)

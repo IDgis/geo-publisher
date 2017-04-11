@@ -116,6 +116,7 @@ public class MissingColumnTest extends AbstractServiceTest {
 			Collections.<Log>emptySet(), 
 			false, // confidential
 			false, // metadataConfidential
+			false, // wmsOnly
 			null, // metadata
 			new Table(columns));
 		
@@ -228,6 +229,7 @@ public class MissingColumnTest extends AbstractServiceTest {
 			testDataset.getLogs(), 
 			testDataset.isConfidential(),
 			testDataset.isMetadataConfidential(),
+			testDataset.isWmsOnly(),
 			testDataset.getMetadata().orElse(null),
 			new Table(Collections.singletonList(columns.get(0)))); 
 		
@@ -369,6 +371,7 @@ public class MissingColumnTest extends AbstractServiceTest {
 				Collections.<Log>emptySet(), 
 				false, // confidential
 				false, // metadataConfidential
+				false, // wmsOnly
 				null, // metadata
 				new Table(columns));
 			

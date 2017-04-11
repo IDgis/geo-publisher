@@ -17,8 +17,9 @@ import com.mysema.query.annotations.QueryProjection;
  *
  */
 public class LayerGroup extends Identifiable implements Selectable {
-	private static final long serialVersionUID = 6882751274387765408L;
-
+	
+	private static final long serialVersionUID = 6920182039810981370L;
+	
 	private final String name;
 	private final String title;
 	private final String abstractText;
@@ -26,6 +27,8 @@ public class LayerGroup extends Identifiable implements Selectable {
 	private final TiledLayer tiledLayer;
 	
 	private final boolean confidential;
+	
+	private final boolean wmsOnly;
 	
 
 	@JsonCreator
@@ -36,13 +39,15 @@ public class LayerGroup extends Identifiable implements Selectable {
 			final @JsonProperty("") String title, 
 			final @JsonProperty("") String abstractText,
 			final @JsonProperty("") TiledLayer tiledLayer,
-			final @JsonProperty("confidential") boolean confidential) {
+			final @JsonProperty("confidential") boolean confidential,
+			final @JsonProperty("wmsOnly") boolean wmsOnly) {
 		super(id);
 		this.name = name;
 		this.title = title;
 		this.abstractText = abstractText;
 		this.tiledLayer = tiledLayer;
 		this.confidential = confidential;
+		this.wmsOnly = wmsOnly;
 	}
 
 	@JsonGetter
@@ -68,5 +73,11 @@ public class LayerGroup extends Identifiable implements Selectable {
 	@JsonGetter
 	public boolean confidential () {
 		return this.confidential;
+	}
+	
+	@Override
+	@JsonGetter
+	public boolean wmsOnly () {
+		return this.wmsOnly;
 	}
 }

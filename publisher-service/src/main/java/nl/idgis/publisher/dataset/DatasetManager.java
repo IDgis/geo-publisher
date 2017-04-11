@@ -322,6 +322,7 @@ public class DatasetManager extends UntypedActor {
 						category.identification,
 						sourceDatasetVersion.revision,
 						sourceDatasetVersion.confidential,
+						sourceDatasetVersion.wmsOnly,
 						sourceDatasetVersion.metadataConfidential))
 			.collect(
 				tx.query().from(sourceDatasetVersionLog)
@@ -348,6 +349,7 @@ public class DatasetManager extends UntypedActor {
 						Date revisionDate = baseInfo.get(sourceDatasetVersion.revision);
 						boolean confidential = baseInfo.get(sourceDatasetVersion.confidential);
 						boolean metadataConfidential = baseInfo.get(sourceDatasetVersion.metadataConfidential);
+						boolean wmsOnly = baseInfo.get(sourceDatasetVersion.wmsOnly);
 						byte[] metadataContent = baseInfo.get(sourceDatasetMetadata.document);
 						
 						MetadataDocument metadata;
@@ -406,6 +408,7 @@ public class DatasetManager extends UntypedActor {
 									logs, 
 									confidential,
 									metadataConfidential,
+									wmsOnly,
 									metadata,
 									new Table(columnInfo.list()));
 								break;
@@ -419,6 +422,7 @@ public class DatasetManager extends UntypedActor {
 									logs,
 									confidential,
 									metadataConfidential,
+									wmsOnly,
 									metadata);
 								break;
 							default:
@@ -431,6 +435,7 @@ public class DatasetManager extends UntypedActor {
 									logs,
 									confidential,
 									metadataConfidential,
+									wmsOnly,
 									metadata);
 								break;
 						}
@@ -514,6 +519,7 @@ public class DatasetManager extends UntypedActor {
 			String alternateTitle = dataset.getAlternateTitle();
 			boolean confidential = dataset.isConfidential();
 			boolean metadataConfidential = dataset.isMetadataConfidential();
+			boolean wmsOnly = dataset.isWmsOnly();
 			
 			return tx.insert(sourceDatasetVersion)
 				.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
@@ -524,6 +530,7 @@ public class DatasetManager extends UntypedActor {
 				.set(sourceDatasetVersion.revision, revision)
 				.set(sourceDatasetVersion.confidential, confidential)
 				.set(sourceDatasetVersion.metadataConfidential, metadataConfidential)
+				.set(sourceDatasetVersion.wmsOnly, wmsOnly)
 				.executeWithKey(sourceDatasetVersion.id);
 			}).thenCompose(sourceDatasetVersionId -> {
 				log.debug("sourceDatasetVersionId: {}", sourceDatasetVersionId);

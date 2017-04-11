@@ -192,7 +192,7 @@ public abstract class AbstractDatabaseTest {
 		
 		MetadataDocument metadata = MetadataDocumentTest.getDocument("dataset_metadata.xml");
 		
-		return new VectorDataset(id, "My Test Table", "alternate title", "testCategory", revision, Collections.<Log>emptySet(), false, false, metadata, table);		
+		return new VectorDataset(id, "My Test Table", "alternate title", "testCategory", revision, Collections.<Log>emptySet(), false, false, false, metadata, table);		
 	}
 	
 	protected UnavailableDataset createUnavailableDataset() {
@@ -205,7 +205,7 @@ public abstract class AbstractDatabaseTest {
 		
 		Timestamp revision = new Timestamp(new Date().getTime());
 		
-		return new UnavailableDataset(id, "My Test Table", "alternate title", "testCategory", revision, logs, false, false, null);		
+		return new UnavailableDataset(id, "My Test Table", "alternate title", "testCategory", revision, logs, false, false, false, null);
 	}
 	
 	protected ExecutionContext dispatcher() {

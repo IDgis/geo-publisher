@@ -4,8 +4,8 @@ import java.io.Serializable;
 import java.util.List;
 
 public class DefaultService implements Service, Serializable {	
-
-	private static final long serialVersionUID = -4657847579083869249L;
+	
+	private static final long serialVersionUID = -4257668190760648632L;
 
 	private final String id, name, title, abstr, contact, organization, position, addressType,
 		address, city, state, zipcode, country, telephone, fax, email;
@@ -138,5 +138,10 @@ public class DefaultService implements Service, Serializable {
 	@Override
 	public boolean isConfidential () {
 		return root.isConfidential ();
+	}
+	
+	@Override
+	public boolean isWmsOnly() {
+		return root.isWmsOnly();
 	}
 }

@@ -43,4 +43,6 @@ public interface Service {
 	List<LayerRef<? extends Layer>> getLayers();
 	
 	boolean isConfidential ();
+	
+	boolean isWmsOnly();
 }
