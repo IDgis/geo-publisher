@@ -1,6 +1,7 @@
 package nl.idgis.publisher.domain.job.load;
 
 import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
+import nl.idgis.publisher.domain.job.NotificationProperties;
 import nl.idgis.publisher.domain.job.NotificationResult;
 import nl.idgis.publisher.domain.job.NotificationType;
 

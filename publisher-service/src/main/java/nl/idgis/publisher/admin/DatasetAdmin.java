@@ -45,7 +45,7 @@ import nl.idgis.publisher.domain.EntityType;
 import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.JobType;
-import nl.idgis.publisher.domain.job.load.NotificationProperties;
+import nl.idgis.publisher.domain.job.NotificationProperties;
 import nl.idgis.publisher.domain.job.load.ImportNotificationType;
 import nl.idgis.publisher.domain.query.GetDatasetByName;
 import nl.idgis.publisher.domain.query.ListActiveNotifications;

@@ -1,11 +1,9 @@
-package nl.idgis.publisher.domain.job.load;
+package nl.idgis.publisher.domain.job;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import nl.idgis.publisher.domain.EntityType;
-import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
-import nl.idgis.publisher.domain.job.JobMessageProperties;
 
 public final class NotificationProperties extends JobMessageProperties {
 
