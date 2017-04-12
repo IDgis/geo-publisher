@@ -36,6 +36,7 @@ POST	/datasets/:datasetId/notification/:notificationId	controllers.Datasets.setN
 GET		/sourcedatasets/download						controllers.DataSources.download(searchString: String ?= "", withErrors: java.lang.Boolean ?= null, separator: String ?= ",", quote: String ?= "'", encoding: String ?= "iso-8859-1")
 POST	/sourcedatasets/refresh							controllers.DataSources.refreshDatasources()
 GET		/sourcedatasets									controllers.DataSources.list(q: String ?="", withErrors: java.lang.Boolean ?= null, page: Long ?= 1)
+GET		/sourcedatasets/:sourceDatasetId				controllers.DataSources.get(sourceDatasetId: String)
 GET		/sourcedatasets/-/category/:categoryId 			controllers.DataSources.listByCategory(categoryId: String, q: String ?="", withErrors: java.lang.Boolean ?= null, page: Long ?= 1)
 GET		/sourcedatasets/-/datasource/:dataSourceId						controllers.DataSources.listByDataSource(dataSourceId: String, q: String ?="", withErrors: java.lang.Boolean ?= null, page: Long ?= 1)
 POST	/sourcedatasets/-/datasource/:datasourceId/refresh				controllers.DataSources.refreshDatasource(datasourceId: String)

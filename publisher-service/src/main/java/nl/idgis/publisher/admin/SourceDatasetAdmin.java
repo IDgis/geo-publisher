@@ -7,10 +7,12 @@ import com.mysema.query.types.QTuple;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-
+import nl.idgis.publisher.domain.EntityType;
+import nl.idgis.publisher.domain.SourceDatasetType;
 import nl.idgis.publisher.domain.query.GetMetadata;
+import nl.idgis.publisher.domain.web.EntityRef;
 import nl.idgis.publisher.domain.web.Metadata;
-
+import nl.idgis.publisher.domain.web.SourceDataset;
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 
@@ -34,6 +36,22 @@ public class SourceDatasetAdmin extends AbstractAdmin {
 	@Override
 	protected void preStartAdmin() {
 		doQueryOptional(GetMetadata.class, this::handleGetMetadata);
+		doGet(SourceDataset.class, this::handleGetSourceDataset);
+	}
+	
+	private CompletableFuture<Optional<SourceDataset>> handleGetSourceDataset(String sourceDatasetId) {
+		return f.successful(
+			Optional.of(
+				new SourceDataset(
+					sourceDatasetId,
+					"source-dataset-name",
+					"source-dataset-alternative-title",
+					new EntityRef(EntityType.CATEGORY, "category-id", "category-name"),
+					new EntityRef(EntityType.DATA_SOURCE, "data-source-id", "data-source-name"),
+					SourceDatasetType.VECTOR,
+					false,
+					false,
+					"source-dataset-external-id")));
 	}
 	
 	private CompletableFuture<Optional<Metadata>> handleGetMetadata(GetMetadata query) {

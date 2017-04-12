@@ -56,6 +56,21 @@ import views.html.datasources.list;
 public class DataSources extends Controller {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");	
 
+	public static Promise<Result> get(final String sourceDatasetId) {
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		
+		return from(database)
+			.get(SourceDataset.class, sourceDatasetId)
+			.execute(new Function<SourceDataset, Result>() {
+
+				@Override
+				public Result apply(SourceDataset sourceDataset) throws Throwable {
+					return ok("Hello world!\n" + sourceDataset.name());
+				}
+				
+			});
+	}
+	
 	public static Promise<Result> list (final String search, final Boolean withErrors, final long page) {
 		return listByDataSourceAndCategory (null, null, search, withErrors, page);
 	}

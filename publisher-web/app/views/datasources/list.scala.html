@@ -267,7 +267,11 @@
 							<div class="list-group-item@if(dataset.sourceDataset.`type` == SourceDatasetType.UNAVAILABLE || dataset.sourceDataset.deleted){ list-group-item-warning}">
 								<div class="row">
 									<div class="col-md-5">
-										<h4 class="list-group-item-heading">@dataset.sourceDataset.name</h4>
+										<h4 class="list-group-item-heading">
+											<a href="@routes.DataSources.get(dataset.sourceDataset.id)">
+												@dataset.sourceDataset.name
+											</a>
+										</h4>
 										@if(dataset.sourceDataset.alternateTitle != null) {
 											<h6>@dataset.sourceDataset.alternateTitle</h6>
 										}
