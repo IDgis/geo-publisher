@@ -20,6 +20,8 @@ nl.idgis.publisher.domain.job.load.ImportLogType.MISSING_FILTER_COLUMNS=filter b
 
 nl.idgis.publisher.domain.job.load.ImportNotificationType.SOURCE_COLUMNS_CHANGED=Structuurwijziging in de brontabel
 
+nl.idgis.publisher.domain.job.harvest.HarvestNotificationType.NEW_SOURCE_DATASET=Nieuw brondataset
+
 nl.idgis.publisher.domain.job.harvest.MetadataField.REVISION_DATE=revisiedatum
 nl.idgis.publisher.domain.job.harvest.MetadataField.TITLE=titel
 nl.idgis.publisher.domain.job.harvest.MetadataField.ALTERNATE_TITLE=alternatieve titel
