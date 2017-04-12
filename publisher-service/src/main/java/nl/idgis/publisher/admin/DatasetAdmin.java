@@ -46,6 +46,7 @@ import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.JobType;
 import nl.idgis.publisher.domain.job.NotificationProperties;
+import nl.idgis.publisher.domain.job.harvest.HarvestNotificationType;
 import nl.idgis.publisher.domain.job.load.ImportNotificationType;
 import nl.idgis.publisher.domain.query.GetDatasetByName;
 import nl.idgis.publisher.domain.query.ListActiveNotifications;
@@ -449,6 +450,33 @@ public class DatasetAdmin extends AbstractAdmin {
 		// TODO: fetch harvest notifications
 		final CompletableFuture<List<Notification>> harvestNotificationsFuture = f.successful(Collections.emptyList());
 		// TODO: query harvest notifications
+		final CompletableFuture<List<Notification>> importNotificationsFuture = 
+			f.ask(
+				database, 
+				new GetNotifications(
+					Order.DESC,
+					offset,
+					limit,
+					listNotifications.isIncludeRejected(),
+					listNotifications.getSince()),
+				InfoList.class)
+					.thenApply(storedNotifications ->
+						((InfoList<StoredNotification>)storedNotifications).getList().stream()
+							.map(this::createNotification)
+							.collect(Collectors.toList()));
+		
+		// TODO: fetch harvest notifications
+		Notification demoNotification = new Notification(
+			"id",
+			new Message(
+				HarvestNotificationType.NEW_SOURCE_DATASET,
+				new NotificationProperties(
+					EntityType.SOURCE_DATASET,
+					"source_dataset_id",
+					"source_dataset_name",
+					null)));
+		
+		final CompletableFuture<List<Notification>> harvestNotificationsFuture = f.successful(Collections.singletonList(demoNotification));
 		
 		return 
 			importNotificationsFuture.thenCompose(importNotifications -> 
