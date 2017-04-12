@@ -31,7 +31,7 @@
 	</div>
 	<div class="list-group">
 		@for(notification <- notifications.values) {
-			<a class="list-group-item notification" href="@routes.Datasets.show(notification.message.properties.getIdentification())">
+			<a class="list-group-item notification" href="@if(notification.message.properties.getEntityType() != null) {@helper.notificationUrl(notification.message.properties.getEntityType(), notification.message.properties.getIdentification())}">
 				 <h4 class="list-group-item-heading">@helper.entityReference(notification.message.properties)</h4>
 				 <p class="list-group-item-text">
 				 	@Domain.message(notification.message)
@@ -39,6 +39,18 @@
 			</a>
 		}
 	</div>
+	<a href="@routes.DataSources.list("", null, true)">
+		<div class="panel-footer">
+			<div class="row">
+				<div class="col-xs-10">
+					@Domain.message("web.application.page.dashboard.allsourcedatasetswitherrors")
+				</div>
+				<div class="col-xs-2 text-right">
+					<span class="glyphicon glyphicon-circle-arrow-right"></span>
+				</div>
+			</div>
+		</div>
+	</a>
 	<a href="@routes.Datasets.listByStatus(DatasetStatus.bind(DatasetStatusType.WITH_MESSAGES))">
 		<div class="panel-footer">
 			<div class="row">

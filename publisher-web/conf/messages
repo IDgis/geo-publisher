@@ -21,6 +21,12 @@ nl.idgis.publisher.domain.job.load.ImportLogType.MISSING_FILTER_COLUMNS=filter b
 nl.idgis.publisher.domain.job.load.ImportNotificationType.SOURCE_COLUMNS_CHANGED=Structuurwijziging in de brontabel
 
 nl.idgis.publisher.domain.job.harvest.HarvestNotificationType.NEW_SOURCE_DATASET=Nieuw brondataset
+nl.idgis.publisher.domain.job.harvest.HarvestNotificationType.SOURCE_DATASET_DELETED=Brondataset verwijderd
+nl.idgis.publisher.domain.job.harvest.HarvestNotificationType.SOURCE_DATASET_UNAVAILABLE=Brondataset niet beschikbaar
+nl.idgis.publisher.domain.job.harvest.HarvestNotificationType.CONFIDENTIAL_CHANGED=Vertrouwelijk waarde veranderd
+nl.idgis.publisher.domain.job.harvest.HarvestNotificationType.WMS_ONLY_CHANGED=Alleen WMS extern waarde veranderd
+nl.idgis.publisher.domain.job.harvest.HarvestNotificationType.UNKNOWN=Onbekend
+# TODO: additional types
 
 nl.idgis.publisher.domain.job.harvest.MetadataField.REVISION_DATE=revisiedatum
 nl.idgis.publisher.domain.job.harvest.MetadataField.TITLE=titel
@@ -230,6 +236,7 @@ web.application.page.dashboard.showlog=Bekijk logboek
 web.application.page.dashboard.showtasklog=Bekijk alle systeemtaken
 web.application.page.dashboard.showerrorlog=Bekijk foutlogboek
 web.application.page.dashboard.alldatasetswitherrors=Alle datatasets met meldingen
+web.application.page.dashboard.allsourcedatasetswitherrors=Alle brongegevens met meldingen
 web.application.page.dashboard.nodatasetswitherrors=Geen datatasets met meldingen
 web.application.page.dashboard.datasetwithstructuralchange=dataset met structuurwijziging
 web.application.page.dashboard.datasetswithstructuralchange=datasets met structuurwijziging
@@ -460,6 +467,10 @@ web.application.page.sourcedatasets.list.errorsTitle=Fouten
 web.application.page.sourcedatasets.list.errorsBoth=Met en zonder fouten
 web.application.page.sourcedatasets.list.errorsWith=Met fouten
 web.application.page.sourcedatasets.list.errorsWithout=Zonder fouten
+web.application.page.sourcedatasets.list.notificationsTitle=Notificaties
+web.application.page.sourcedatasets.list.notificationsBoth=Met en zonder notificaties
+web.application.page.sourcedatasets.list.notificationsWith=Met notificaties
+web.application.page.sourcedatasets.list.notificationsWithout=Zonder notificaties
 web.application.page.sourcedatasets.list.button.refresh=Brongegevens verversen
 web.application.page.sourcedatasets.list.button.refresh.success=Verversen van brongegevens is ingepland
 web.application.page.sourcedatasets.list.button.refresh.failure=Verversen van brongegevens kon niet worden ingepland
@@ -470,6 +481,22 @@ web.application.page.datasources.title=Gegevensbronnen
 web.application.page.datasources.ref=Gegevensbron
 web.application.page.datasources.all=Alle gegevensbronnen
 
+web.application.page.datasources.show.title=Brondataset
+web.application.page.datasources.show.heading=Overzicht
+web.application.page.datasources.show.field.datasourcename=Naam
+web.application.page.datasources.show.field.alternatetitle=Alternatieve titel
+web.application.page.datasources.show.field.category=Categorie
+web.application.page.datasources.show.field.type=Type
+web.application.page.datasources.show.field.type.vector=Vector
+web.application.page.datasources.show.field.type.raster=Raster
+web.application.page.datasources.show.field.type.unavailable=Niet beschikbaar
+web.application.page.datasources.show.field.confidential=Vertrouwelijk
+web.application.page.datasources.show.field.wmsonly=Alleen WMS extern
+
+web.application.page.datasources.show.notification.heading=Wijziging
+web.application.page.datasources.show.button.done=Gedaan
+web.application.page.datasources.show.notifications.heading.none=Wijzigingen
+web.application.page.datasources.show.notifications.none=Er zijn momenteel geen wijzigingen op deze brondataset.
 
 #
 # Service beheer
