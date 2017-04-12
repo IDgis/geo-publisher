@@ -21,6 +21,7 @@ import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServ
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -430,23 +431,38 @@ public class DatasetAdmin extends AbstractAdmin {
 		final long limit = listNotifications.getLimit () != null ? Math.max (1, listNotifications.getLimit ()) : DEFAULT_ITEMS_PER_PAGE;
 		final long offset = Math.max (0, (page - 1) * limit);
 
-		final CompletableFuture<Object> notifications = f.ask (database, new GetNotifications (Order.DESC, offset, limit, listNotifications.isIncludeRejected (), listNotifications.getSince ()));
+		final CompletableFuture<List<Notification>> importNotificationsFuture = 
+			f.ask(
+				database, 
+				new GetNotifications(
+					Order.DESC,
+					offset,
+					limit,
+					listNotifications.isIncludeRejected(),
+					listNotifications.getSince()),
+				InfoList.class)
+					.thenApply(storedNotifications ->
+						((InfoList<StoredNotification>)storedNotifications).getList().stream()
+							.map(this::createNotification)
+							.collect(Collectors.toList()));
+		
+		// TODO: fetch harvest notifications
+		final CompletableFuture<List<Notification>> harvestNotificationsFuture = f.successful(Collections.emptyList());
 		// TODO: query harvest notifications
 		
-		return notifications.thenApply(msg -> {
+		return 
+			importNotificationsFuture.thenCompose(importNotifications -> 
+			harvestNotificationsFuture.thenApply(harvestNotifications -> {
+			
 			final Page.Builder<Notification> dashboardNotifications = new Page.Builder<Notification>();
 			
-			@SuppressWarnings("unchecked")
-			final InfoList<StoredNotification> storedNotifications = (InfoList<StoredNotification>)msg;
-			
-			for (final StoredNotification storedNotification: storedNotifications.getList ()) {
-				dashboardNotifications.add (createNotification (storedNotification));
-			}
+			dashboardNotifications.addAll(importNotifications);
+			dashboardNotifications.addAll(harvestNotifications);
 			
 			// TODO: loop over harvest notifications
 			
 			// Paging:
-			long count = storedNotifications.getCount ();
+			long count = importNotifications.size() + harvestNotifications.size();
 			long pages = count / limit + Math.min(1, count % limit);
 			
 			if(pages > 1) {
@@ -457,7 +473,7 @@ public class DatasetAdmin extends AbstractAdmin {
 			}
 			
 			return dashboardNotifications.build();
-		});		
+		}));
 	}
 	
 	private CompletableFuture<Response<?>> deleteHelper (final String key, final AsyncSQLDeleteClause ... deleteClauses) {
