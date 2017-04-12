@@ -7,14 +7,14 @@ import nl.idgis.publisher.domain.EntityType;
 import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
 import nl.idgis.publisher.domain.job.JobMessageProperties;
 
-public final class ImportNotificationProperties extends JobMessageProperties {
+public final class NotificationProperties extends JobMessageProperties {
 
 	private static final long serialVersionUID = 4482059888625110486L;
 
 	private final ConfirmNotificationResult result;
 	
 	@JsonCreator
-	public ImportNotificationProperties (
+	public NotificationProperties (
 			final @JsonProperty("entityType") EntityType entityType, 
 			final @JsonProperty("identification") String identification,
 			final @JsonProperty("title") String title,

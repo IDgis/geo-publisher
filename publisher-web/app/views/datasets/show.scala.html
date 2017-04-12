@@ -4,7 +4,7 @@
 
 @import nl.idgis.publisher.domain.web._
 @import nl.idgis.publisher.domain.job.ConfirmNotificationResult
-@import nl.idgis.publisher.domain.job.load.ImportNotificationProperties
+@import nl.idgis.publisher.domain.job.load.NotificationProperties
 @import nl.idgis.publisher.domain.service.ColumnDiffOperation
 
 @categoryRefLink(cat: Category, cls: String = null) = {
@@ -68,9 +68,9 @@
 			<div class="col-lg-6">
 				@if(!dataset.activeNotifications.isEmpty) {
 					@for(notification <- dataset.activeNotifications) {
-					<form method="POST" action="@routes.Datasets.setNotificationResult(dataset.id, notification.id)" class="panel @if(notification.message.properties.asInstanceOf[ImportNotificationProperties].getResult().equals(ConfirmNotificationResult.NOT_OK)){panel-default}else{panel-info}">
+					<form method="POST" action="@routes.Datasets.setNotificationResult(dataset.id, notification.id)" class="panel @if(notification.message.properties.asInstanceOf[NotificationProperties].getResult().equals(ConfirmNotificationResult.NOT_OK)){panel-default}else{panel-info}">
 						<div class="panel-heading">
-							@if(notification.message.properties.asInstanceOf[ImportNotificationProperties].getResult().equals(ConfirmNotificationResult.NOT_OK)) {
+							@if(notification.message.properties.asInstanceOf[NotificationProperties].getResult().equals(ConfirmNotificationResult.NOT_OK)) {
 								@Domain.message("web.application.page.datasets.show.form.headingnotaccepted")
 							}else{
 								@Domain.message("web.application.page.datasets.show.form.heading")
@@ -97,7 +97,7 @@
 							</tbody>
 						</table>
 						<div class="panel-footer">
-							@if(!notification.message.properties.asInstanceOf[ImportNotificationProperties].getResult().equals(ConfirmNotificationResult.NOT_OK)) {
+							@if(!notification.message.properties.asInstanceOf[NotificationProperties].getResult().equals(ConfirmNotificationResult.NOT_OK)) {
 								<button type="submit" class="btn btn-default" name="result" value="@ConfirmNotificationResult.NOT_OK.name">@Domain.message("web.application.page.datasets.show.button.NOK")</button>
 							}
 							<button type="submit" class="btn btn-primary" name="result" value="@ConfirmNotificationResult.OK.name">@Domain.message("web.application.page.datasets.show.button.OK")</button>

@@ -44,7 +44,7 @@ import nl.idgis.publisher.domain.EntityType;
 import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.JobType;
-import nl.idgis.publisher.domain.job.load.ImportNotificationProperties;
+import nl.idgis.publisher.domain.job.load.NotificationProperties;
 import nl.idgis.publisher.domain.job.load.ImportNotificationType;
 import nl.idgis.publisher.domain.query.GetDatasetByName;
 import nl.idgis.publisher.domain.query.ListActiveNotifications;
@@ -131,7 +131,7 @@ public class DatasetAdmin extends AbstractAdmin {
 				"" + storedNotification.getId (), 
 				new Message (
 					storedNotification.getType (), 
-					new ImportNotificationProperties (
+					new NotificationProperties (
 							EntityType.DATASET, 
 							storedNotification.getDataset ().getId (), 
 							storedNotification.getDataset ().getName (),
