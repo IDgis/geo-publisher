@@ -9,12 +9,15 @@ RUN apt-get update \
 		openjdk-8-jre-headless \
 		tomcat7 \
 		unzip \
-		wget
+		wget \
+		xml2
 
 ENV SERVICE_IDENTIFICATION="geoserver"
 ENV SERVICE_AJP_PORT="8009"
 ENV SERVICE_HTTP_PORT="8080"
 ENV SERVICE_FORCE_HTTPS="false"		
+
+ENV ENABLE_SERVICES="WMS,WFS"
 
 ENV GEOSERVER_DATA_DIR="/var/lib/geo-publisher/geoserver"
 ENV CATALINA_BASE="/var/lib/tomcat7"
@@ -29,14 +32,12 @@ COPY /lib/* /usr/share/tomcat7/lib
 COPY /start.sh /opt/start.sh
 COPY /server.xml /var/lib/tomcat7/conf/server.xml
 
-# Set permissions, create data directory
+# Set permissions, create data directory:
 RUN chmod +x /opt/start.sh && \
 	mkdir -p $CATALINA_TMPDIR && \
 	chown tomcat7:tomcat7 $CATALINA_TMPDIR && \ 
 	mkdir -p $GEOSERVER_DATA_DIR && \
 	chown tomcat7:tomcat7 $GEOSERVER_DATA_DIR && \
-	mkdir -p $GEOSERVER_DATA_DIR/styles && \
-	chown tomcat7:tomcat7 $GEOSERVER_DATA_DIR/styles && \
 	chown -R tomcat7:tomcat7 /var/lib/tomcat7/webapps/
 	
 # Download and install the core fonts:
@@ -59,7 +60,7 @@ RUN wget -q -O /tmp/andale32.exe "${MSCOREFONTS_BASE}andale32.exe" && \
 	fc-cache -fv && \
 	fc-list
 	
-# Run the command as the geoserver user:
+# Run the command as the tomcat7 user:
 USER tomcat7
 
 # Expose network ports:
