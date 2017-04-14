@@ -118,7 +118,8 @@ public class ServiceMetadata extends AbstractMetadata {
 					service.wmsMetadataFileIdentification,
 					service.wfsMetadataFileIdentification,
 					environment.confidential,
-					environment.url);
+					environment.url,
+					environment.wmsOnly);
 			
 			if(serviceTuple == null) {
 				return Optional.<Resource>empty();
@@ -231,9 +232,18 @@ public class ServiceMetadata extends AbstractMetadata {
 			
 			if(!serviceDatasetTuples.isEmpty()) {
 				Boolean confidential = serviceTuple.get(environment.confidential);
+				Boolean environmentWmsOnly = serviceTuple.get(environment.wmsOnly);
 				
 				if(confidential) {
 					config.getViewerUrlSecurePrefix().ifPresent(viewerUrlPrefix -> {
+						try {
+							metadataDocument.addServiceLinkage(viewerUrlPrefix + "?service=" + serviceName, "website", null);
+						} catch(NotFound nf) {
+							throw new RuntimeException(nf);
+						}
+					});
+				} else if(environmentWmsOnly) {
+					config.getViewerUrlWmsOnlyPrefix().ifPresent(viewerUrlPrefix -> {
 						try {
 							metadataDocument.addServiceLinkage(viewerUrlPrefix + "?service=" + serviceName, "website", null);
 						} catch(NotFound nf) {
