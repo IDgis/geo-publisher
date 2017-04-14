@@ -124,6 +124,13 @@ public class ServiceMetadata extends AbstractMetadata {
 				return Optional.<Resource>empty();
 			}
 			
+			JsonNode serviceInfo = Json.parse(serviceTuple.get(publishedService.content));
+			boolean wmsOnly = serviceInfo.get("wmsOnly").asBoolean();
+			
+			if(id.equals(serviceTuple.get(service.wfsMetadataFileIdentification)) && wmsOnly) {
+				return Optional.<Resource>empty();
+			}
+			
 			int serviceId = serviceTuple.get(service.id);
 			
 			List<String> keywords = tx.query().from(publishedServiceKeyword)
@@ -213,7 +220,6 @@ public class ServiceMetadata extends AbstractMetadata {
 			
 			// we obtain the serviceName from the published service content
 			// because we don't store it anywhere else at the moment.
-			JsonNode serviceInfo = Json.parse(serviceTuple.get(publishedService.content));
 			String serviceName = serviceInfo.get("name").asText();
 			
 			String environmentUrl = serviceTuple.get(environment.url);
