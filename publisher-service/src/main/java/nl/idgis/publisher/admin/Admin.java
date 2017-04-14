@@ -531,6 +531,7 @@ private String getEnumName(Enum e){
 						selectLastLog ("time", sourceDatasetVersion, l -> l.createTime),
 						sourceDataset.deleteTime,
 						sourceDatasetVersion.confidential,
+						sourceDatasetVersion.wmsOnly,
 						sourceDataset.externalIdentification
 					)).thenApply(sourceDatasetInfoOptional -> 
 						sourceDatasetInfoOptional.map(sourceDatasetInfo -> 
@@ -549,6 +550,7 @@ private String getEnumName(Enum e){
 								sourceDatasetInfo.getType (),
 								sourceDatasetInfo.getDeleteTime () != null,
 								sourceDatasetInfo.isConfidential (),
+								sourceDatasetInfo.isWmsOnly (),
 								sourceDatasetInfo.externalId()
 							)));	
 	}
@@ -712,6 +714,7 @@ private String getEnumName(Enum e){
 						selectLastLog ("time", sourceDatasetVersion, l -> l.createTime),
 						sourceDataset.deleteTime,
 						sourceDatasetVersion.confidential,
+						sourceDatasetVersion.wmsOnly,
 						sourceDataset.externalIdentification
 					)))
 				.collect(baseQuery.count()).thenApply((list, count) -> {
@@ -727,6 +730,7 @@ private String getEnumName(Enum e){
 							sourceDatasetInfo.getType (),
 							sourceDatasetInfo.getDeleteTime () != null,
 							sourceDatasetInfo.isConfidential (),
+							sourceDatasetInfo.isWmsOnly(),
 							sourceDatasetInfo.externalId()
 						);
 						

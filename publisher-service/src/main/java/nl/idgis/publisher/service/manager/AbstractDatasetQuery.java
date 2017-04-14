@@ -49,6 +49,7 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 	protected final AsyncSQLQuery query;
 	
 	private PathBuilder<Boolean> confidentialPath = new PathBuilder<> (Boolean.class, "confidential");
+	private PathBuilder<Boolean> wmsOnlyPath = new PathBuilder<> (Boolean.class, "wmsOnly");
 	
 	AbstractDatasetQuery(LoggingAdapter log, AsyncSQLQuery query) {
 		super(log);
@@ -143,7 +144,7 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 				dataset.metadataIdentification,
 				dataset.metadataFileIdentification,
 				tiledLayer.genericLayerId,
-				tiledLayer.metaWidth,					
+				tiledLayer.metaWidth,
 				tiledLayer.metaHeight,
 				tiledLayer.expireCache,
 				tiledLayer.expireClients,
@@ -157,7 +158,15 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 					.orderBy (sourceDatasetVersion.createTime.desc ())
 					.limit (1)
 					.list (sourceDatasetVersion.confidential)
-					.as (confidentialPath)
+					.as (confidentialPath),
+				new SQLSubQuery ()
+					.from (sourceDataset)
+					.join (sourceDatasetVersion).on (sourceDatasetVersion.sourceDatasetId.eq (sourceDataset.id))
+					.where (dataset.sourceDatasetId.eq (sourceDataset.id))
+					.orderBy (sourceDatasetVersion.createTime.desc ())
+					.limit (1)
+					.list (sourceDatasetVersion.wmsOnly)
+					.as (wmsOnlyPath)
 			);
 	}
 	
@@ -199,11 +208,12 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 							String type = t.get(sourceDatasetVersion.type);
 							
 							String id = t.get(genericLayer.identification);
-							String name = t.get(genericLayer.name);							
+							String name = t.get(genericLayer.name);	
 							String title = t.get(genericLayer.title);
-							String abstr = t.get(genericLayer.abstractCol);							
+							String abstr = t.get(genericLayer.abstractCol);	
 							Tiling tiling = getTiling(tilingMimeFormats, t);
 							boolean confidential = t.get (confidentialPath);
+							boolean wmsOnly = t.get (wmsOnlyPath);
 							Timestamp importTime = t.get(jobState.createTime);
 							
 							log.debug("importTime: {}", importTime);
@@ -240,6 +250,7 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 										getList(columns, t),
 										getStyleRefs(styles, t),
 										confidential,
+										wmsOnly,
 										importTime);
 								default:
 									throw new IllegalStateException("unknown dataset type: " + type);

@@ -7,11 +7,11 @@ import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.metadata.MetadataDocument;
 
 public class RasterDataset extends Dataset {
+	
+	private static final long serialVersionUID = 8784862102637034350L;
 
-	private static final long serialVersionUID = -4983546558192495562L;
-
-	public RasterDataset(String id, String name, String alternateTitle, String categoryId, Date revisionDate, Set<Log> logs, boolean confidential, boolean metadataConfidential, MetadataDocument metadata) {
-		super(id, name, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, metadata);		
+	public RasterDataset(String id, String name, String alternateTitle, String categoryId, Date revisionDate, Set<Log> logs, boolean confidential, boolean metadataConfidential, boolean wmsOnly, MetadataDocument metadata) {
+		super(id, name, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata);		
 	}
 
 	@Override

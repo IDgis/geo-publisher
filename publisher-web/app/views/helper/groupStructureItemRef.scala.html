@@ -10,5 +10,8 @@
 			@if(layerRef.getLayer().isConfidential) {
 				<span class="label label-warning">@Domain.message("web.application.page.layers.list.confidential")</span>
 			}
+			@if(layerRef.getLayer().isWmsOnly) {
+				<span class="label label-warning">@Domain.message("web.application.page.layers.list.wmsonly")</span>
+			}
 		</li>
 	}

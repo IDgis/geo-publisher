@@ -75,14 +75,11 @@ public class VectorDatasetInfoBuilderTest {
 		f.ask(recorder, new Wait(1), Waited.class).get();
 		f.ask(recorder, new GetRecording(), Recording.class).get()
 			.assertNext(UnavailableDatasetInfo.class, (datasetInfo, sender) -> {
-				assertFalse(datasetInfo.isConfidential());
-				
 				Map<AttachmentType, Attachment> attachments = datasetInfo.getAttachments().stream()
 						.collect(Collectors.toMap(
 							Attachment::getAttachmentType,
 							Function.identity()));
 				assertTrue(attachments.containsKey(AttachmentType.METADATA));
-				assertTrue(attachments.get(AttachmentType.METADATA).isConfidential());
 			})
 			.assertNotHasNext();
 	}
@@ -98,14 +95,11 @@ public class VectorDatasetInfoBuilderTest {
 		f.ask(recorder, new Wait(1), Waited.class).get();
 		f.ask(recorder, new GetRecording(), Recording.class).get()
 			.assertNext(UnavailableDatasetInfo.class, (datasetInfo, sender) -> {
-				assertTrue(datasetInfo.isConfidential());
-				
 				Map<AttachmentType, Attachment> attachments = datasetInfo.getAttachments().stream()
 						.collect(Collectors.toMap(
 							Attachment::getAttachmentType,
 							Function.identity()));
 				assertTrue(attachments.containsKey(AttachmentType.METADATA));
-				assertFalse(attachments.get(AttachmentType.METADATA).isConfidential());
 			})
 			.assertNotHasNext();
 	}

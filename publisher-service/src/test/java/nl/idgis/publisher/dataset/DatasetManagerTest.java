@@ -119,6 +119,7 @@ public class DatasetManagerTest extends AbstractServiceTest {
 			logs,
 			dataset.isConfidential(),
 			dataset.isMetadataConfidential(),
+			dataset.isWmsOnly(),
 			dataset.getMetadata().orElse(null));
 		
 		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), AlreadyRegistered.class).get();
@@ -134,6 +135,7 @@ public class DatasetManagerTest extends AbstractServiceTest {
 			logs,
 			dataset.isConfidential(),
 			dataset.isMetadataConfidential(),
+			dataset.isWmsOnly(),
 			dataset.getMetadata().orElse(null));
 		
 		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), Updated.class).get();
@@ -318,6 +320,7 @@ public class DatasetManagerTest extends AbstractServiceTest {
 				dataset.getLogs(),
 				dataset.isConfidential(),
 				dataset.isMetadataConfidential(),
+				dataset.isWmsOnly(),
 				dataset.getMetadata().orElse(null));
 		
 		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), Registered.class).get();
@@ -341,10 +344,10 @@ public class DatasetManagerTest extends AbstractServiceTest {
 		final Table table = new Table(columns);
 		final Timestamp revision = new Timestamp(new Date().getTime());
 		final VectorDataset[] datasets = {
-			new VectorDataset ("table1", "My Test Table", "alternate title", "category1", revision, Collections.<Log>emptySet(), false, false, null, table),
-			new VectorDataset ("table2", "My Test Table 2", "alternate title", "category2", revision, Collections.<Log>emptySet(), true, false, null, table),
-			new VectorDataset ("table3", "My Test Table 3", "alternate title", "category1", revision, Collections.<Log>emptySet(), false, false, null, table),
-			new VectorDataset ("table4", "My Test Table 4", "alternate title", "category2", revision, Collections.<Log>emptySet(), true, false, null, table)
+			new VectorDataset ("table1", "My Test Table", "alternate title", "category1", revision, Collections.<Log>emptySet(), false, false, false, null, table),
+			new VectorDataset ("table2", "My Test Table 2", "alternate title", "category2", revision, Collections.<Log>emptySet(), true, false, false, null, table),
+			new VectorDataset ("table3", "My Test Table 3", "alternate title", "category1", revision, Collections.<Log>emptySet(), false, false, false, null, table),
+			new VectorDataset ("table4", "My Test Table 4", "alternate title", "category2", revision, Collections.<Log>emptySet(), true, false, false, null, table)
 		};
 		
 		for (final VectorDataset ds: datasets) {

@@ -292,6 +292,7 @@ public class LoaderTest extends AbstractServiceTest {
 				Collections.<Log>emptySet(),
 				false,
 				false,
+				false,
 				null,
 				updatedTable);
 		

@@ -85,12 +85,20 @@ public class PublishServiceQuery extends AbstractServiceQuery<Ack, SQLSubQuery> 
 		return  
 			tx.query().from(environment)
 			.where(environment.identification.eq(environmentId))
-			.singleResult(environment.confidential, environment.id).thenApply(optionalEnvironmentInfo -> {
+			.singleResult(environment.confidential, environment.wmsOnly, environment.id).thenApply(optionalEnvironmentInfo -> {
 				Tuple environmentInfo = optionalEnvironmentInfo.orElseThrow(() -> 
 					new IllegalArgumentException("environment doesn't exist: " + environmentId));
 				
-				if(stagingService.isConfidential() && !environmentInfo.get(environment.confidential)) {
-					throw new IllegalArgumentException("environment is not confidential: " + environmentId);
+				if(!environmentInfo.get(environment.confidential) 
+						&& !environmentInfo.get(environment.wmsOnly) && stagingService.isWmsOnly()) {
+					throw new IllegalArgumentException("wmsonly error: environment is not confidential or "
+							+ "wms only: " + environmentId);
+				}
+				
+				if(!environmentInfo.get(environment.confidential) && stagingService.isConfidential() 
+						&& (!environmentInfo.get(environment.wmsOnly) || !stagingService.isWmsOnly())) {
+					throw new IllegalArgumentException("confidential error: environment is not "
+							+ "confidential or wms only: " + environmentId);
 				}
 				
 				return Optional.of(environmentInfo.get(environment.id));

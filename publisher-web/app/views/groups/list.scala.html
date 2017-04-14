@@ -72,6 +72,9 @@
 							@if(group.confidential) {
 								<span class="label label-warning">@Domain.message("web.application.page.layers.list.confidential")</span>
 							}
+							@if(group.wmsOnly) {
+								<span class="label label-warning">@Domain.message("web.application.page.layers.list.wmsonly")</span>
+							}
 						</div>
 						<div class="col-md-4">
 							@if(group.tiledLayer.isPresent()){

@@ -3,10 +3,10 @@ package nl.idgis.publisher.domain.web.tree;
 import java.io.Serializable;
 import java.util.Optional;
 
-public abstract class AbstractLayer implements Layer, Serializable {		
-
-	private static final long serialVersionUID = 5072400426320074451L;
-
+public abstract class AbstractLayer implements Layer, Serializable {
+	
+	private static final long serialVersionUID = -6919582427234370708L;
+	
 	protected final String id, name, title, abstr;
 	
 	protected final Tiling tiling;
@@ -50,5 +50,10 @@ public abstract class AbstractLayer implements Layer, Serializable {
 	@Override
 	public boolean isConfidential () {
 		return confidential;
+	}
+	
+	@Override
+	public boolean isWmsOnly() {
+		return false;
 	}
 }

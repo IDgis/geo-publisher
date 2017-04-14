@@ -111,7 +111,8 @@ public class ServiceAdmin extends AbstractAdmin {
 					environment.identification,
 					environment.name,
 					inUse,
-					environment.confidential
+					environment.confidential,
+					environment.wmsOnly
 					).thenApply(publish -> {
 						for (Tuple service : publish.list()) {
 							builder.add(new ServicePublish(
@@ -119,7 +120,8 @@ public class ServiceAdmin extends AbstractAdmin {
 									service.get(environment.identification),
 									service.get(environment.name),
 									service.get(inUse),
-									service.get (environment.confidential)
+									service.get(environment.confidential),
+									service.get(environment.wmsOnly)
 								));
 						}
 						return builder.build();
@@ -134,6 +136,17 @@ public class ServiceAdmin extends AbstractAdmin {
 			.join (sourceDataset).on (dataset.sourceDatasetId.eq (sourceDataset.id))
 			.where (serviceStructure.serviceIdentification.eq (genericLayer.identification))
 			.where (Expressions.booleanOperation (Ops.EQ, Expressions.constant (true), new SQLSubQuery ().from (sourceDatasetVersion).where (sourceDatasetVersion.sourceDatasetId.eq (sourceDataset.id)).orderBy (sourceDatasetVersion.createTime.desc ()).limit (1).list (sourceDatasetVersion.confidential)))
+			.exists ();
+	}
+	
+	private BooleanExpression isWmsOnly () {
+		return new SQLSubQuery ()
+			.from (serviceStructure)
+			.join (leafLayer).on (serviceStructure.childLayerId.eq (leafLayer.genericLayerId))
+			.join (dataset).on (leafLayer.datasetId.eq (dataset.id))
+			.join (sourceDataset).on (dataset.sourceDatasetId.eq (sourceDataset.id))
+			.where (serviceStructure.serviceIdentification.eq (genericLayer.identification))
+			.where (Expressions.booleanOperation (Ops.EQ, Expressions.constant (true), new SQLSubQuery ().from (sourceDatasetVersion).where (sourceDatasetVersion.sourceDatasetId.eq (sourceDataset.id)).orderBy (sourceDatasetVersion.createTime.desc ()).limit (1).list (sourceDatasetVersion.wmsOnly)))
 			.exists ();
 	}
 	
@@ -192,6 +205,7 @@ public class ServiceAdmin extends AbstractAdmin {
 								service.wfsMetadataFileIdentification,
 								service.wmsMetadataFileIdentification,
 								isConfidential (),
+								isWmsOnly (),
 								isPublished ()
 							))
 						.thenApply ((styles) -> {
@@ -222,6 +236,7 @@ public class ServiceAdmin extends AbstractAdmin {
 					service.wmsMetadataFileIdentification,
 					constants.identification,
 					isConfidential (),
+					isWmsOnly (),
 					isPublished ()
 			));		
 	}

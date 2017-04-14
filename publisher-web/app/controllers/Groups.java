@@ -91,7 +91,7 @@ public class Groups extends GroupsLayersCommon {
 		Logger.debug ("Group layer style list: " + layerStyleIds);
 		
 		final LayerGroup group = new LayerGroup(groupForm.id, groupForm.name.trim (), groupForm.title, 
-				groupForm.abstractText,(groupForm.enabled ? groupForm.getTiledLayer() : null), false);
+				groupForm.abstractText,(groupForm.enabled ? groupForm.getTiledLayer() : null), false, false);
 		
 		return from (database)
 			.put(group)

@@ -9,8 +9,8 @@ import java.util.List;
 import nl.idgis.publisher.domain.job.JobState;
 
 public class DatasetInfo extends BaseDatasetInfo implements Serializable {
-
-	private static final long serialVersionUID = -1020659628294826046L;
+	
+	private static final long serialVersionUID = -6871554571865111299L;
 	
 	private String sourceDatasetId, sourceDatasetName;
 	private String categoryId, categoryName;
@@ -23,6 +23,7 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 	private final long layerCount;
 	private final long publishedServiceCount;
 	private final boolean confidential;
+	private final boolean wmsOnly;
 
 	public DatasetInfo(String id, String name, String sourceDatasetId,
 			String sourceDatasetName, String categoryId, String categoryName, 
@@ -35,6 +36,7 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 			final long layerCount,
 			final long publishedServiceCount,
 			final boolean confidential,
+			final boolean wmsOnly,
 			final String metadataFileId) {
 		super(id, name);
 		
@@ -51,6 +53,7 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 		this.layerCount = layerCount;
 		this.publishedServiceCount = publishedServiceCount;
 		this.confidential = confidential;
+		this.wmsOnly = wmsOnly;
 		this.metadataFileId = metadataFileId;
 	}
 	
@@ -114,6 +117,10 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 		return confidential;
 	}
 	
+	public boolean isWmsOnly () {
+		return wmsOnly;
+	}
+	
 	public String getMetadataFileId () {
 		return metadataFileId;
 	}
@@ -125,6 +132,6 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 				+ filterConditions + ", metadataFileId=" + metadataFileId + ", imported=" + imported
 				+ ", sourceDatasetColumnsChanged=" + sourceDatasetColumnsChanged + ", lastImportTime=" + lastImportTime
 				+ ", lastImportJobState=" + lastImportJobState + ", notifications=" + notifications + ", layerCount="
-				+ layerCount + ", confidential=" + confidential + "]";
+				+ layerCount + ", confidential=" + confidential + ", wmsOnly=" + wmsOnly + "]";
 	}
 }

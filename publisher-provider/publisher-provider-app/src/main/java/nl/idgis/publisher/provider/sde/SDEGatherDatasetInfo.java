@@ -72,8 +72,6 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 	
 	private Set<Attachment> attachments;
 	
-	private boolean confidential;
-	
 	private Date revisionDate;
 	
 	private Map<String, String> attributeAliases;
@@ -92,7 +90,6 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 	@Override
 	public void preStart() {
 		 attachments = new HashSet<>();
-		 confidential = true;
 		 attributeAliases = Collections.emptyMap();
 	}
 
@@ -115,8 +112,7 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 					categoryId,
 					revisionDate,
 					attachments,
-					logs,
-					confidential),
+					logs),
 				getSelf());
 			getContext().stop(getSelf());
 		} else if(msg instanceof FileSize) {
@@ -131,7 +127,6 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 					revisionDate, 
 					attachments,
 					Collections.emptySet(), // logs
-					confidential,
 					RasterFormat.TIFF,
 					((FileSize)msg).getSize()),
 				getSelf());
@@ -150,7 +145,6 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 					MetadataDocumentFactory mdf = new MetadataDocumentFactory();
 					MetadataDocument md = mdf.parseDocument(documentation.getBytes("utf-8"));
 					
-					confidential = !md.getOtherConstraints().contains("http://creativecommons.org/publicdomain/mark/1.0/deed.nl");
 					attributeAliases = md.getAttributeAliases();
 					revisionDate = md.getDatasetRevisionDate();
 					
@@ -158,7 +152,6 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 						attachments.add(new Attachment(
 							"sde.gdb_items_vw.documentation", 
 							AttachmentType.METADATA,
-							confidential, // confidential
 							md.getContent()));
 					}
 				
@@ -218,7 +211,6 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 					revisionDate, 
 					attachments,
 					Collections.emptySet(), // logs
-					confidential,
 					physicalname, // tableName
 					tableInfo,
 					numberOfRecords),
@@ -244,8 +236,7 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 					categoryId,
 					revisionDate,
 					attachments,
-					logs,
-					confidential),
+					logs),
 				getSelf());
 			
 			getContext().stop(getSelf());

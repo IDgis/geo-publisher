@@ -128,6 +128,9 @@
 							@if(service.confidential) {
 								<span class="label label-warning">@Domain.message("web.application.page.services.list.confidential")</span>
 							}
+							@if(service.wmsOnly) {
+								<span class="label label-warning">@Domain.message("web.application.page.services.list.wmsonly")</span>
+							}
 						</div>
 						<div class="col-md-2">
 							@if(service.isPublished) {

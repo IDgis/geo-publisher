@@ -31,13 +31,13 @@ public class DefaultServiceTest {
 		List<AbstractDatasetLayer> datasets = Arrays.asList(
 			new DefaultVectorDatasetLayer("leaf0", "name0", "title0", "abstract0",
 				null, Optional.of ("metadataFileIdentification"), Collections.emptyList(), "myTable0", Arrays.asList("id", "geom"), 
-				Collections.emptyList(), false, new Timestamp(0)),
+				Collections.emptyList(), false, false, new Timestamp(0)),
 			new DefaultVectorDatasetLayer("leaf1", "name1", "title1", "abstract1",
 				null, Optional.of ("metadataFileIdentification"), Collections.emptyList(), "myTable1", Arrays.asList("id", "geom"), 
-				Collections.emptyList(), false, new Timestamp(0)),
+				Collections.emptyList(), false, false, new Timestamp(0)),
 			new DefaultVectorDatasetLayer("leaf2", "name2", "title2", "abstract2",
 				null, Optional.of ("metadataFileIdentification"), Collections.emptyList(), "myTable2", Arrays.asList("id", "geom"), 
-				Collections.emptyList(), false, new Timestamp(0)));
+				Collections.emptyList(), false, false, new Timestamp(0)));
 			
 		List<StructureItem> structure = new ArrayList<>();
 		structure.add(new StructureItem("leaf0", "group0", Optional.empty()));
@@ -96,13 +96,13 @@ public class DefaultServiceTest {
 		List<AbstractDatasetLayer> datasets = Arrays.asList(
 				new DefaultVectorDatasetLayer("leaf0", "name0", "title0", "abstract0", 
 					null, Optional.of ("metadataFileIdentification"), Collections.emptyList(), "myTable0", Arrays.asList("id", "geom"), 
-					Collections.emptyList(), false, new Timestamp(0)),
+					Collections.emptyList(), false, false, new Timestamp(0)),
 				new DefaultVectorDatasetLayer("leaf1", "name1", "title1", "abstract1", 
 					null, Optional.of ("metadataFileIdentification"), Collections.emptyList(), "myTable1", Arrays.asList("id", "geom"), 
-					Collections.emptyList(), false, new Timestamp(0)),
+					Collections.emptyList(), false, false, new Timestamp(0)),
 				new DefaultVectorDatasetLayer("leaf2", "name2", "title2", "abstract2", 
 					null, Optional.of ("metadataFileIdentification"), Collections.emptyList(), "myTable2", Arrays.asList("id", "geom"), 
-					Collections.emptyList(), false, new Timestamp(0)));
+					Collections.emptyList(), false, false, new Timestamp(0)));
 				
 		List<StructureItem> structure = new ArrayList<>();
 		structure.add(new StructureItem("leaf0", "group0", Optional.empty()));
@@ -166,13 +166,13 @@ public class DefaultServiceTest {
 		List<AbstractDatasetLayer> datasets = Arrays.asList(
 				new DefaultVectorDatasetLayer("leaf0", "name0", "title0", "abstract0", 
 					null, Optional.of ("metadataFileIdentification"), Collections.emptyList(), "myTable0", Arrays.asList("id", "geom"), 
-					Collections.emptyList(), true, new Timestamp(0)),
+					Collections.emptyList(), true, false, new Timestamp(0)),
 				new DefaultVectorDatasetLayer("leaf1", "name1", "title1", "abstract1", 
 					null, Optional.of ("metadataFileIdentification"), Collections.emptyList(), "myTable1", Arrays.asList("id", "geom"), 
-					Collections.emptyList(), false, new Timestamp(0)),
+					Collections.emptyList(), false, false, new Timestamp(0)),
 				new DefaultVectorDatasetLayer("leaf2", "name2", "title2", "abstract2", 
 					null, Optional.of ("metadataFileIdentification"), Collections.emptyList(), "myTable2", Arrays.asList("id", "geom"), 
-					Collections.emptyList(), false, new Timestamp(0)));
+					Collections.emptyList(), false, false, new Timestamp(0)));
 				
 		List<StructureItem> structure = new ArrayList<>();
 		structure.add(new StructureItem("leaf0", "group0", Optional.empty()));

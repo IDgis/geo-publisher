@@ -52,6 +52,11 @@ public abstract class AbstractJsonLayer implements Layer {
 	}
 	
 	@Override
+	public final boolean isWmsOnly () {
+		return jsonNode.path ("wmsOnly").asBoolean ();
+	}
+	
+	@Override
 	public final Optional<Timestamp> getImportTime() {
 		return
 			getOptional(jsonNode, "importTime")

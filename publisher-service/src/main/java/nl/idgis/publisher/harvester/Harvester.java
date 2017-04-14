@@ -154,12 +154,19 @@ public class Harvester extends UntypedActor {
 		}
 	}
 
-	private void handleStartHarvesting(StartHarvesting msg) {		
+	private void handleStartHarvesting(StartHarvesting msg) {
 		HarvestJobInfo harvestJob = msg.getJobInfo();
+		
+		boolean includeConfidential;
+		if(config.hasPath("includeConfidential")) {
+			includeConfidential = config.getBoolean("includeConfidential");
+		} else {
+			includeConfidential = true;
+		}
 		
 		ActorRef session = getContext().actorOf(
 				HarvestSession.props(msg.getJobContext(), datasetManager, 
-					harvestJob, msg.getDatasetIds()), 
+					harvestJob, msg.getDatasetIds(), includeConfidential), 
 				nameGenerator.getName(HarvestSession.class));
 		
 		getContext().watch(session);

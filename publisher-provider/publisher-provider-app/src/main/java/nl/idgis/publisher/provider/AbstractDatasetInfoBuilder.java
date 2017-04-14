@@ -33,10 +33,6 @@ import akka.event.LoggingAdapter;
 
 public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 
-	protected static final String DATA_NOT_CONFIDENTIAL_CONSTRAINT_VALUE = "Downloadable data";
-	
-	protected static final String METADATA_NOT_CONFIDENTIAL_CONSTRAINT_VALUE = "Geoportaal extern";
-
 	protected final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	protected final Set<AttachmentType> requestedAttachmentTypes;
@@ -52,10 +48,6 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 	protected String identification, title, alternateTitle, reportedTitle, categoryId;
 	
 	protected Date revisionDate;
-	
-	protected boolean confidential = true;
-	
-	protected boolean metadataConfidential = true;
 	
 	protected String spatialRepresentationType;
 	
@@ -108,7 +100,7 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 	}
 	
 	protected void sendUnavailable() {
-		tellTarget(new UnavailableDatasetInfo(identification, reportedTitle, alternateTitle, categoryId, revisionDate, attachments, logs, confidential));		
+		tellTarget(new UnavailableDatasetInfo(identification, reportedTitle, alternateTitle, categoryId, revisionDate, attachments, logs));		
 	}
 	
 	protected abstract void processMetadata();
@@ -160,22 +152,12 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 			try {
 				Set<String> useLimitations = new HashSet<>(metadataDocument.getUseLimitations());
 				log.debug("use limitations: {}", useLimitations);
-				
-				if(useLimitations.contains(DATA_NOT_CONFIDENTIAL_CONSTRAINT_VALUE)) {
-					confidential = false;
-				}
-				log.debug("confidential: {}", confidential);
-				
-				if(useLimitations.contains(METADATA_NOT_CONFIDENTIAL_CONSTRAINT_VALUE)) {
-					metadataConfidential = false;
-				}
-				log.debug("metadataConfidential: {}", metadataConfidential);
 			} catch(NotFound nf) {
 				log.debug("use limitations not found");
 			}
 			
 			if(requestedAttachmentTypes.contains(AttachmentType.METADATA)) {
-				attachments.add(new Attachment(identification, AttachmentType.METADATA, metadataConfidential, content));
+				attachments.add(new Attachment(identification, AttachmentType.METADATA, content));
 			}
 			
 			processMetadata();

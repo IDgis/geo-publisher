@@ -391,6 +391,7 @@ public class DatasetMetadata extends AbstractMetadata {
 				for(int i = 0; i < serviceTuples.size(); i++) {
 					JsonNode serviceInfo = Json.parse(serviceTuples.get(i).get(publishedService.content));
 					String serviceName = serviceInfo.get("name").asText();
+					boolean wmsOnly = serviceInfo.get("wmsOnly").asBoolean();
 					String scopedName = serviceTuples.get(i).get(publishedServiceDataset.layerName);
 					
 					if(i == serviceTupleIndex) {
@@ -427,7 +428,7 @@ public class DatasetMetadata extends AbstractMetadata {
 						String protocol = serviceType.getProtocol();
 						
 						for(String spatialSchema : metadataDocument.getSpatialSchema()) {
-							if(spatialSchema.equals("vector") || protocol.equals("OGC:WMS")) {
+							if((!wmsOnly && spatialSchema.equals("vector")) || protocol.equals("OGC:WMS")) {
 								metadataDocument.addServiceLinkage(linkage, protocol, scopedName);
 							}
 						}

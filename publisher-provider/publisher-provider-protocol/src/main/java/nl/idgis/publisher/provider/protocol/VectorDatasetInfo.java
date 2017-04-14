@@ -12,8 +12,8 @@ import nl.idgis.publisher.domain.Log;
  *
  */
 public class VectorDatasetInfo extends DatasetInfo {	
-
-	private static final long serialVersionUID = 3248697521282698956L;
+	
+	private static final long serialVersionUID = -5699805424932689016L;
 
 	private final String tableName;
 
@@ -30,14 +30,13 @@ public class VectorDatasetInfo extends DatasetInfo {
 	 * @param revisionDate the revision date of this dataset
 	 * @param attachments the attachments of the datasets.
 	 * @param logs logs for the dataset.
-	 * @param confidential whether or not the dataset is confidential
 	 * @param tableName name of the table.
 	 * @param tableInfo table description of the dataset.
 	 * @param numberOfRecords the number of records.
 	 */
 	public VectorDatasetInfo(String identification, String title, String alternateTitle, String categoryId, Date revisionDate, Set<Attachment> attachments, 
-		Set<Log> logs, boolean confidential, String tableName, TableInfo tableInfo, long numberOfRecords) {		
-		super(identification, title, alternateTitle, categoryId, revisionDate, attachments, logs, confidential);
+		Set<Log> logs, String tableName, TableInfo tableInfo, long numberOfRecords) {		
+		super(identification, title, alternateTitle, categoryId, revisionDate, attachments, logs);
 		
 		this.tableName = tableName;
 		this.tableInfo = tableInfo;
@@ -75,8 +74,7 @@ public class VectorDatasetInfo extends DatasetInfo {
 				+ ", identification=" + identification + ", title=" + title
 				+ ", alternateTitle=" + alternateTitle + ", categoryId="
 				+ categoryId + ", revisionDate=" + revisionDate
-				+ ", attachments=" + attachments + ", logs=" + logs
-				+ ", confidential=" + confidential + "]";
+				+ ", attachments=" + attachments + ", logs=" + logs + "]";
 	}
 		
 }

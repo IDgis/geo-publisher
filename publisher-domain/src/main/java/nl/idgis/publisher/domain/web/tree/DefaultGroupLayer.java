@@ -13,10 +13,10 @@ import nl.idgis.publisher.utils.GZIPSerializer;
 
 public class DefaultGroupLayer extends AbstractGroupLayer {
 	
-	private static final long serialVersionUID = 5042564217527692364L;
+	private static final long serialVersionUID = -8006116069339954358L;
 	
 	private static final GZIPSerializer<DefaultGroupLayer> serializer = new GZIPSerializer<>(DefaultGroupLayer.class);
-
+	
 	private final PartialGroupLayer partialGroupLayer;
 	
 	/**
@@ -143,6 +143,14 @@ public class DefaultGroupLayer extends AbstractGroupLayer {
 	
 	private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
 		serializer.read(stream, this);
+	}
+	
+	@Override
+	public boolean isWmsOnly() {
+		return getLayers().stream()
+			.filter(layer -> layer.getLayer().isWmsOnly())
+			.findAny()
+			.isPresent();
 	}
 
 	@Override

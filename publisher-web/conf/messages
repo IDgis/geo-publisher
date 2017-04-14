@@ -266,6 +266,7 @@ web.application.page.datasets.list.button.edit=Bewerken
 web.application.page.datasets.list.button.refresh=Verversen uit brondata
 web.application.page.datasets.list.button.remove=Verwijderen 
 web.application.page.datasets.list.confidential=Vertrouwelijk
+web.application.page.datasets.list.wmsonly=Alleen WMS extern
 web.application.page.datasets.list.nocategory=Geen categorie
 
 web.application.page.datasets.list.button.metadata=Download de metadata van deze dataset
@@ -433,6 +434,7 @@ web.application.page.constants.form.field.email.help=Vul het e-mailadres in
 # SourceDatasets
 web.application.page.sourcedatasets.title=Brongegevens
 web.application.page.sourcedatasets.list.confidential=Vertrouwelijk
+web.application.page.sourcedatasets.list.wmsonly=Alleen WMS extern
 web.application.page.sourcedatasets.list.search.placeholder=Zoek op naam ...
 web.application.page.sourcedatasets.list.alert.nosourcedatasets=Er zijn geen brongegevens gevonden die voldoen aan de criteria.
 web.application.page.sourcedatasets.list.alert.adapt=Pas de criteria aan of toon 
@@ -476,6 +478,7 @@ web.application.page.services.name=Service
 web.application.page.services.publish=Service publiceren
 web.application.page.services.publish.environments=Omgevingen
 web.application.page.services.publish.environmentNotConfidential=Kan niet publiceren naar deze omgeving omdat de brongegevens vertrouwelijk zijn en de omgeving niet beveiligd is.
+web.application.page.services.publish.environmentNotWmsOnly=Kan niet publiceren naar deze omgeving omdat de brongegevens alleen WMS aangeven en de omgeving ook WFS bevat.
 web.application.page.services.publish.cantPublish=De service kan niet worden gepubliceerd
 web.application.page.services.publish.missingRequiredFields=Deze service kan niet worden gepubliceerd omdat niet alle (voor publicatie) verplichte velden zijn ingevuld:
 web.application.page.services.publish.cantPublishHelp=Vul de ontbrekende gegevens eerst aan door de service te <a href="{0}">bewerken</a> of door de <a href="{1}">organisatiekenmerken</a> aan te vullen.
@@ -488,6 +491,7 @@ web.application.page.services.list.button.create=Maak een nieuwe service ...
 web.application.page.layers.services.search.placeholder=Zoek een service ...
 web.application.page.services.list.search.showAll=Hef filter op servicenaam op
 web.application.page.services.list.confidential=Vertrouwelijk
+web.application.page.services.list.wmsonly=Alleen WMS extern
 web.application.page.services.list.publish=Publiceren
 
 web.application.page.services.list.environments.success=Het publiceren is gestart.
@@ -573,6 +577,7 @@ web.application.page.layers.list.search.showAll=Hef filter op laagnaam op ...
 web.application.page.layers.list.filterpublished.title=Publicatiestatus
 web.application.page.layers.list.search.placeholder=Zoek een laag ...
 web.application.page.layers.list.confidential=Vertrouwelijk
+web.application.page.layers.list.wmsonly=Alleen WMS extern
 
 web.application.page.layers.form.title=Laag formulier
 web.application.page.layers.form.header.new=Nieuwe laag toevoegen

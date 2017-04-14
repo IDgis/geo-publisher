@@ -12,8 +12,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mysema.query.annotations.QueryProjection;
 
 public class SourceDatasetInfo implements Serializable {
-
-	private static final long serialVersionUID = 1483600283295264723L;
+	
+	private static final long serialVersionUID = -8079681605728563688L;
 	
 	private String dataSourceId, dataSourceName;
 	private final String id, name, alternateTitle;
@@ -29,6 +29,8 @@ public class SourceDatasetInfo implements Serializable {
 	
 	private final boolean confidential;
 	
+	private final boolean wmsOnly;
+	
 	private final String externalId;
 
 	@QueryProjection
@@ -40,6 +42,7 @@ public class SourceDatasetInfo implements Serializable {
 			final Timestamp lastLogTime,
 			final Timestamp deleteTime,
 			final boolean confidential,
+			final boolean wmsOnly,
 			final String externalId) {
 		super();
 		
@@ -61,6 +64,7 @@ public class SourceDatasetInfo implements Serializable {
 		this.lastLogTime = lastLogTime;
 		this.deleteTime = deleteTime;
 		this.confidential = confidential;
+		this.wmsOnly = wmsOnly;
 		this.externalId = externalId;
 	}
 
@@ -131,6 +135,10 @@ public class SourceDatasetInfo implements Serializable {
 	
 	public boolean isConfidential () {
 		return confidential;
+	}
+	
+	public boolean isWmsOnly () {
+		return wmsOnly;
 	}
 	
 	public String externalId() {

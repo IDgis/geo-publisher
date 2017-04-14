@@ -8,12 +8,12 @@ import nl.idgis.publisher.metadata.MetadataDocument;
 
 public final class VectorDataset extends Dataset {	
 	
-	private static final long serialVersionUID = -1371616824844706623L;
+	private static final long serialVersionUID = -1783947496840278816L;
 	
 	private final Table table;
 	
-	public VectorDataset(String id, String name, String alternateTitle, String categoryId, Date revisionDate, Set<Log> logs, boolean confidential, boolean metadataConfidential, MetadataDocument metadata, Table table) {
-		super(id, name, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, metadata);
+	public VectorDataset(String id, String name, String alternateTitle, String categoryId, Date revisionDate, Set<Log> logs, boolean confidential, boolean metadataConfidential, boolean wmsOnly, MetadataDocument metadata, Table table) {
+		super(id, name, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata);
 		
 		this.table = table;
 	}

@@ -13,13 +13,15 @@ import com.mysema.query.annotations.QueryProjection;
  *
  */
 public class ServicePublish extends Identifiable {
-	private static final long serialVersionUID = 3470435136806376628L;
+	
+	private static final long serialVersionUID = 6096502661515317000L;
 	
 	private final String identification;
 	private final String name;
 	private final Boolean inUse;
 	private final boolean confidential;
-
+	private final boolean wmsOnly;
+	
 	
 	@JsonCreator
 	@QueryProjection
@@ -28,13 +30,15 @@ public class ServicePublish extends Identifiable {
 			final @JsonProperty("") String identification,
 			final @JsonProperty("") String name,
 			final @JsonProperty("") Boolean inUse,
-			final @JsonProperty("confidential") boolean confidential
+			final @JsonProperty("confidential") boolean confidential,
+			final @JsonProperty("wmsOnly") boolean wmsOnly
 			) {
 		super(id);
 		this.identification = identification;
 		this.name = name;
 		this.inUse = inUse;
 		this.confidential = confidential;
+		this.wmsOnly = wmsOnly;
 	}
 
 
@@ -58,10 +62,16 @@ public class ServicePublish extends Identifiable {
 		return confidential;
 	}
 
+	@JsonGetter
+	public boolean wmsOnly () {
+		return wmsOnly;
+	}
+
 	@Override
 	public String toString() {
 		return "ServicePublish [identification=" + identification + ", name="
-				+ name + ", inUse=" + inUse + ", confidential=" + confidential + "]";
+				+ name + ", inUse=" + inUse + ", confidential=" + confidential
+				+ ", wmsOnly=" + wmsOnly + "]";
 	}
 
 

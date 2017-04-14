@@ -16,7 +16,7 @@ import com.mysema.query.annotations.QueryProjection;
  */
 public class Service extends Identifiable implements Nameable{
 	
-	private static final long serialVersionUID = -4397411018242037619L;
+	private static final long serialVersionUID = 5037615909325257005L;
 	
 	private final String name;
 	private final String title;
@@ -28,6 +28,7 @@ public class Service extends Identifiable implements Nameable{
 	private final String wfsMetadataFileId;
 	private final String wmsMetadataFileId;
 	private final boolean confidential;
+	private final boolean wmsOnly;
 	private final boolean isPublished;
 
 	
@@ -45,6 +46,7 @@ public class Service extends Identifiable implements Nameable{
 			final @JsonProperty("") String wfsMetadataFileId,
 			final @JsonProperty("") String wmsMetadataFileId,
 			final @JsonProperty("confidential") boolean confidential,
+			final @JsonProperty("wmsOnly") boolean wmsOnly,
 			final @JsonProperty("") boolean isPublished
 		) {
 		super(id);
@@ -58,6 +60,7 @@ public class Service extends Identifiable implements Nameable{
 		this.wfsMetadataFileId = wfsMetadataFileId;
 		this.wmsMetadataFileId = wmsMetadataFileId;
 		this.confidential = confidential;
+		this.wmsOnly = wmsOnly;
 		this.isPublished = isPublished;
 	}
 
@@ -105,6 +108,11 @@ public class Service extends Identifiable implements Nameable{
 	@JsonGetter
 	public boolean confidential () {
 		return this.confidential;
+	}
+	
+	@JsonGetter
+	public boolean wmsOnly () {
+		return this.wmsOnly;
 	}
 	
 	@JsonGetter
