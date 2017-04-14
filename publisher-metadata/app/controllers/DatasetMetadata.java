@@ -362,6 +362,7 @@ public class DatasetMetadata extends AbstractMetadata {
 						environment.identification,
 						environment.confidential,
 						environment.url,
+						environment.wmsOnly,
 						publishedServiceDataset.layerName);
 				
 				if(!serviceTuples.isEmpty()) {
@@ -377,9 +378,11 @@ public class DatasetMetadata extends AbstractMetadata {
 				}
 				
 				boolean confidential = true;
+				boolean environmentWmsOnly = false;
 				int serviceTupleIndex = 0;
 				for(int i = 0; i < serviceTuples.size(); i++) {
 					boolean envConfidential = serviceTuples.get(i).get(environment.confidential);
+					environmentWmsOnly = serviceTuples.get(i).get(environment.wmsOnly);
 					
 					if(!envConfidential) {
 						confidential = false;
@@ -397,6 +400,14 @@ public class DatasetMetadata extends AbstractMetadata {
 					if(i == serviceTupleIndex) {
 						if(confidential) {
 							config.getViewerUrlSecurePrefix().ifPresent(viewerUrlPrefix -> {
+								try {
+									metadataDocument.addServiceLinkage(viewerUrlPrefix + "/layer/" + serviceName + "/" + scopedName, "website", null);
+								} catch(NotFound nf) {
+									throw new RuntimeException(nf);
+								}
+							});
+						} else if(environmentWmsOnly) {
+							config.getViewerUrlWmsOnlyPrefix().ifPresent(viewerUrlPrefix -> {
 								try {
 									metadataDocument.addServiceLinkage(viewerUrlPrefix + "/layer/" + serviceName + "/" + scopedName, "website", null);
 								} catch(NotFound nf) {

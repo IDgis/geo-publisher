@@ -26,6 +26,8 @@ public class MetadataConfig {
 	
 	private final String viewerUrlPublicPrefix;
 	
+	private final String viewerUrlWmsOnlyPrefix;
+	
 	private final String viewerUrlSecurePrefix;
 		
 	private final String browseGraphicWmsRequest;
@@ -54,6 +56,8 @@ public class MetadataConfig {
 		downloadUrlPrefix = metadata.getString("download-url-prefix");
 		
 		viewerUrlPublicPrefix = metadata.getString("viewer-url-prefix-public");
+		
+		viewerUrlWmsOnlyPrefix = metadata.getString("viewer-url-prefix-wmsonly");
 		
 		viewerUrlSecurePrefix = metadata.getString("viewer-url-prefix-secure");
 		
@@ -100,6 +104,10 @@ public class MetadataConfig {
 
 	public Optional<String> getDownloadUrlPrefix() {
 		return Optional.ofNullable(downloadUrlPrefix);
+	}
+	
+	public Optional<String> getViewerUrlWmsOnlyPrefix() {
+		return Optional.ofNullable(viewerUrlWmsOnlyPrefix);
 	}
 	
 	public Optional<String> getViewerUrlPublicPrefix() {
