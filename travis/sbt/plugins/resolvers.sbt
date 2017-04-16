@@ -1,0 +1,1 @@
+resolvers += "Local Maven" at Path.userHome.asFile.toURI.toURL + ".m2/repository"
