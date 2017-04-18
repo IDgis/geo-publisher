@@ -126,9 +126,9 @@ public class ServiceMetadata extends AbstractMetadata {
 			}
 			
 			JsonNode serviceInfo = Json.parse(serviceTuple.get(publishedService.content));
-			boolean wmsOnly = serviceInfo.get("wmsOnly").asBoolean();
+			boolean environmentWmsOnly = serviceTuple.get(environment.wmsOnly);
 			
-			if(id.equals(serviceTuple.get(service.wfsMetadataFileIdentification)) && wmsOnly) {
+			if(id.equals(serviceTuple.get(service.wfsMetadataFileIdentification)) && environmentWmsOnly) {
 				return Optional.<Resource>empty();
 			}
 			
@@ -232,7 +232,6 @@ public class ServiceMetadata extends AbstractMetadata {
 			
 			if(!serviceDatasetTuples.isEmpty()) {
 				Boolean confidential = serviceTuple.get(environment.confidential);
-				Boolean environmentWmsOnly = serviceTuple.get(environment.wmsOnly);
 				
 				if(confidential) {
 					config.getViewerUrlSecurePrefix().ifPresent(viewerUrlPrefix -> {
