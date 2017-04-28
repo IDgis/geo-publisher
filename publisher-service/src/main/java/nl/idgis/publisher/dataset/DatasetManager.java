@@ -514,7 +514,7 @@ public class DatasetManager extends UntypedActor {
 					Integer sourceDatasetId = sourceDatasetIdOptional.orElseThrow(() -> new IllegalStateException("source dataset id missing"));
 					
 					return getCurrentSourceDatasetVersion(tx, dataSourceIdentification, dataset.getId())
-						.thenApply(optionalDataset -> {
+						.thenCompose(optionalDataset -> {
 							if(optionalDataset.isPresent()) {
 								return insertSourceDatasetVersion(tx, sourceDatasetId, dataset, optionalDataset).thenApply(v -> new Updated());
 							} else {
