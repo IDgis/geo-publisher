@@ -474,7 +474,7 @@ web.application.page.sourcedatasets.list.notificationsWithout=Zonder notificatie
 web.application.page.sourcedatasets.list.button.refresh=Brongegevens verversen
 web.application.page.sourcedatasets.list.button.refresh.success=Verversen van brongegevens is ingepland
 web.application.page.sourcedatasets.list.button.refresh.failure=Verversen van brongegevens kon niet worden ingepland
-web.application.page.sourcedatasets.list.deleted=Gegevens verwijderd in de bron. Als alle gekoppelde datasets verwijderd zijn verdwijnt deze uit het overzicht. 
+web.application.page.sourcedatasets.list.deleted=Gegevens verwijderd in de bron. Als alle gekoppelde datasets verwijderd en alle notificaties afgevlagd zijn verdwijnt deze uit het overzicht. 
 
 # DataSources
 web.application.page.datasources.title=Gegevensbronnen
