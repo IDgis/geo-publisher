@@ -6,6 +6,7 @@ import static nl.idgis.publisher.database.QDatasetActiveNotification.datasetActi
 import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
 import static nl.idgis.publisher.database.QDatasetStatus.datasetStatus;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
+import static nl.idgis.publisher.database.QHarvestNotification.harvestNotification;
 import static nl.idgis.publisher.database.QImportJob.importJob;
 import static nl.idgis.publisher.database.QJob.job;
 import static nl.idgis.publisher.database.QJobLog.jobLog;
@@ -44,8 +45,10 @@ import nl.idgis.publisher.domain.EntityType;
 import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.JobType;
-import nl.idgis.publisher.domain.job.load.ImportNotificationProperties;
+import nl.idgis.publisher.domain.job.NotificationProperties;
+import nl.idgis.publisher.domain.job.harvest.HarvestNotificationType;
 import nl.idgis.publisher.domain.job.load.ImportNotificationType;
+import nl.idgis.publisher.domain.query.DiscardHarvestNotification;
 import nl.idgis.publisher.domain.query.GetDatasetByName;
 import nl.idgis.publisher.domain.query.ListActiveNotifications;
 import nl.idgis.publisher.domain.query.ListDatasets;
@@ -111,6 +114,7 @@ public class DatasetAdmin extends AbstractAdmin {
 			}
 		});
 		doQueryOptional (GetDatasetByName.class, this::handleGetDatasetByName);
+		doQuery(DiscardHarvestNotification.class, this::handleDiscardHarvestNotification);
 	}
 	
 	private static DatasetImportStatusType jobStateToDatasetStatus (final JobState jobState) {
@@ -131,10 +135,11 @@ public class DatasetAdmin extends AbstractAdmin {
 				"" + storedNotification.getId (), 
 				new Message (
 					storedNotification.getType (), 
-					new ImportNotificationProperties (
+					new NotificationProperties (
 							EntityType.DATASET, 
 							storedNotification.getDataset ().getId (), 
 							storedNotification.getDataset ().getName (),
+							null,
 							(ConfirmNotificationResult)storedNotification.getResult ()
 						)
 				)
@@ -422,31 +427,90 @@ public class DatasetAdmin extends AbstractAdmin {
 			} catch(Throwable t) {
 				throw new RuntimeException(t);
 			}
-		});				
+		});	
+	}
+	
+	private CompletableFuture<Boolean> handleDiscardHarvestNotification(DiscardHarvestNotification discardHarvestNotification) {
+		final String sourceDatasetId = discardHarvestNotification.sourceDatasetId();
+		final int notificationId = Integer.parseInt(discardHarvestNotification.notificationId());
+		
+		CompletableFuture<Long> rowsCount = db.query().from(harvestNotification)
+			.join(sourceDataset).on(sourceDataset.identification.eq(sourceDatasetId))
+			.where(harvestNotification.id.eq(notificationId)
+					.and(sourceDataset.identification.eq(sourceDatasetId)))
+			.count();
+		
+		return rowsCount.thenCompose(rows -> {
+			if(rows.intValue() > 0) {
+				db.update(harvestNotification)
+					.set(harvestNotification.done, true)
+					.where(harvestNotification.id.eq(notificationId))
+					.execute();
+				
+				return f.successful(true);
+			} else {
+				return f.successful(false);
+			}
+		});
 	}
 	
 	private CompletableFuture<Page<Notification>> handleListActiveNotifications (final ListActiveNotifications listNotifications) {
 		final long page = listNotifications.getPage () != null ? Math.max (1, listNotifications.getPage ()) : 1;
 		final long limit = listNotifications.getLimit () != null ? Math.max (1, listNotifications.getLimit ()) : DEFAULT_ITEMS_PER_PAGE;
 		final long offset = Math.max (0, (page - 1) * limit);
-
-		final CompletableFuture<Object> notifications = f.ask (database, new GetNotifications (Order.DESC, offset, limit, listNotifications.isIncludeRejected (), listNotifications.getSince ()));
-		// TODO: query harvest notifications
 		
-		return notifications.thenApply(msg -> {
+		final CompletableFuture<List<Notification>> importNotificationsFuture = 
+			f.ask(
+				database, 
+				new GetNotifications(
+					Order.DESC,
+					offset,
+					limit,
+					listNotifications.isIncludeRejected(),
+					listNotifications.getSince()),
+				InfoList.class)
+					.thenApply(storedNotifications ->
+						((InfoList<StoredNotification>)storedNotifications).getList().stream()
+							.map(this::createNotification)
+							.collect(Collectors.toList()));
+		
+		final CompletableFuture<List<Notification>> harvestNotificationsFuture = db.query().from(harvestNotification)
+			.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(harvestNotification.sourceDatasetVersionId))
+			.join(sourceDataset).on(sourceDataset.id.eq(harvestNotification.sourceDatasetId))
+			.where(harvestNotification.done.eq(false))
+			.orderBy(harvestNotification.createTime.desc())
+			.list(harvestNotification.id, harvestNotification.notificationType, 
+					harvestNotification.sourceDatasetId, sourceDataset.identification, sourceDatasetVersion.name)
+			.thenApply(typedList -> {
+				List<Tuple> listTuple = typedList.list().stream().collect(Collectors.toList());
+				
+				return listTuple.stream()
+					.limit(limit)
+					.map(t ->
+						new Notification("" + t.get(harvestNotification.id),
+							new Message(
+									HarvestNotificationType.getHarvestNotificationType
+										(t.get(harvestNotification.notificationType)),
+								new NotificationProperties(
+									EntityType.SOURCE_DATASET,
+									t.get(sourceDataset.identification),
+									t.get(sourceDatasetVersion.name),
+									null,
+									null))))
+				.collect(Collectors.toList());
+			});
+		
+		return 
+			importNotificationsFuture.thenCompose(importNotifications -> 
+			harvestNotificationsFuture.thenApply(harvestNotifications -> {
+			
 			final Page.Builder<Notification> dashboardNotifications = new Page.Builder<Notification>();
 			
-			@SuppressWarnings("unchecked")
-			final InfoList<StoredNotification> storedNotifications = (InfoList<StoredNotification>)msg;
-			
-			for (final StoredNotification storedNotification: storedNotifications.getList ()) {
-				dashboardNotifications.add (createNotification (storedNotification));
-			}
-			
-			// TODO: loop over harvest notifications
+			dashboardNotifications.addAll(harvestNotifications);
+			dashboardNotifications.addAll(importNotifications);
 			
 			// Paging:
-			long count = storedNotifications.getCount ();
+			long count = importNotifications.size() + harvestNotifications.size();
 			long pages = count / limit + Math.min(1, count % limit);
 			
 			if(pages > 1) {
@@ -457,7 +521,7 @@ public class DatasetAdmin extends AbstractAdmin {
 			}
 			
 			return dashboardNotifications.build();
-		});		
+		}));
 	}
 	
 	private CompletableFuture<Response<?>> deleteHelper (final String key, final AsyncSQLDeleteClause ... deleteClauses) {

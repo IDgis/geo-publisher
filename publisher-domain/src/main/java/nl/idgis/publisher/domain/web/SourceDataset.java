@@ -2,13 +2,15 @@ package nl.idgis.publisher.domain.web;
 
 import nl.idgis.publisher.domain.SourceDatasetType;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public final class SourceDataset extends Identifiable {
 	
-	private static final long serialVersionUID = -1456553405086131435L;
+	private static final long serialVersionUID = 4618332818034060153L;
 	
 	private final String name, alternateTitle;
 	private final EntityRef category;
@@ -17,6 +19,7 @@ public final class SourceDataset extends Identifiable {
 	private final boolean deleted;
 	private final boolean confidential;
 	private final boolean wmsOnly;
+	private final List<Notification> notifications;
 	private final String externalId;
 	
 	@JsonCreator
@@ -30,6 +33,7 @@ public final class SourceDataset extends Identifiable {
 			final @JsonProperty("deleted") boolean deleted,
 			final @JsonProperty("confidential") boolean confidential,
 			final @JsonProperty("wmsOnly") boolean wmsOnly,
+			final @JsonProperty("notifications") List<Notification> notifications,
 			final @JsonProperty("externalId") String externalId) {
 		super(id);
 		
@@ -45,6 +49,7 @@ public final class SourceDataset extends Identifiable {
 		this.deleted = deleted;
 		this.confidential = confidential;
 		this.wmsOnly = wmsOnly;
+		this.notifications = notifications;
 		this.externalId = externalId;
 	}
 
@@ -86,6 +91,11 @@ public final class SourceDataset extends Identifiable {
 	@JsonGetter
 	public boolean wmsOnly () {
 		return this.wmsOnly;
+	}
+	
+	@JsonGetter
+	public List<Notification> notifications () {
+		return this.notifications;
 	}
 	
 	@JsonGetter

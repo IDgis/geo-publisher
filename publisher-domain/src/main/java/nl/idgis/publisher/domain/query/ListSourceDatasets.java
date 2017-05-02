@@ -8,35 +8,37 @@ import nl.idgis.publisher.domain.web.DataSource;
 import nl.idgis.publisher.domain.web.SourceDatasetStats;
 
 public class ListSourceDatasets implements DomainQuery<Page<SourceDatasetStats>>{
-
-	private static final long serialVersionUID = -5582949253434171325L;
+	
+	private static final long serialVersionUID = 1934855378827205547L;
 	
 	private final String dataSourceId;
 	private final String categoryId;
 	private final String searchString;
 	private final Boolean withErrors;
+	private final Boolean withNotifications;
 	private final Long page;
 	private final Long itemsPerPage;
 	
-	public ListSourceDatasets (final DataSource dataSource, final Category category, String searchString, final Boolean withErrors, final Long page) {
-		this(dataSource, category, searchString, withErrors, page, null);
+	public ListSourceDatasets (final DataSource dataSource, final Category category, String searchString, final Boolean withErrors, final Boolean withNotifications, final Long page) {
+		this(dataSource, category, searchString, withErrors, withNotifications, page, null);
 	}
 	
-	public ListSourceDatasets (final DataSource dataSource, final Category category, String searchString, final Boolean withErrors, final Long page, final Long itemsPerPage) {
+	public ListSourceDatasets (final DataSource dataSource, final Category category, String searchString, final Boolean withErrors, final Boolean withNotifications, final Long page, final Long itemsPerPage) {
 		this(dataSource == null ? null : dataSource.id (), 
-			category == null ? null : category.id (), searchString, withErrors, page, itemsPerPage);
+			category == null ? null : category.id (), searchString, withErrors, withNotifications, page, itemsPerPage);
 	}
 	
-	public ListSourceDatasets (String dataSourceId, String categoryId, String searchString, final Boolean withErrors, final Long page) {
-		this(dataSourceId, categoryId, searchString, withErrors, page, null);
+	public ListSourceDatasets (String dataSourceId, String categoryId, String searchString, final Boolean withErrors, final Boolean withNotifications, final Long page) {
+		this(dataSourceId, categoryId, searchString, withErrors, withNotifications, page, null);
 	}
 	
-	public ListSourceDatasets (String dataSourceId, String categoryId, String searchString, final Boolean withErrors, final Long page, final Long itemsPerPage) {
+	public ListSourceDatasets (String dataSourceId, String categoryId, String searchString, final Boolean withErrors, final Boolean withNotifications, final Long page, final Long itemsPerPage) {
 		this.dataSourceId = dataSourceId;
 		this.categoryId = categoryId;
 		this.searchString = searchString;
 		this.page = page;
 		this.withErrors = withErrors;
+		this.withNotifications = withNotifications;
 		this.itemsPerPage = itemsPerPage;
 	}
 	
@@ -60,6 +62,10 @@ public class ListSourceDatasets implements DomainQuery<Page<SourceDatasetStats>>
 		return withErrors;
 	}
 	
+	public Boolean getWithNotifications() {
+		return withNotifications;
+	}
+
 	public Optional<Long> itemsPerPage() {
 		return Optional.ofNullable(itemsPerPage);
 	}

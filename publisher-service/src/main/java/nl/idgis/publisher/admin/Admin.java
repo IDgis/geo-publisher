@@ -5,6 +5,7 @@ import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
+import static nl.idgis.publisher.database.QHarvestNotification.harvestNotification;
 import static nl.idgis.publisher.database.QHarvestJob.harvestJob;
 import static nl.idgis.publisher.database.QImportJob.importJob;
 import static nl.idgis.publisher.database.QJob.job;
@@ -16,6 +17,7 @@ import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceData
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -551,6 +553,7 @@ private String getEnumName(Enum e){
 								sourceDatasetInfo.getDeleteTime () != null,
 								sourceDatasetInfo.isConfidential (),
 								sourceDatasetInfo.isWmsOnly (),
+								Collections.<Notification>emptyList(),
 								sourceDatasetInfo.externalId()
 							)));	
 	}
@@ -664,7 +667,7 @@ private String getEnumName(Enum e){
 			
 			String searchStr = msg.getSearchString();
 			if (!(searchStr == null || searchStr.isEmpty())){
-				baseQuery.where(sourceDatasetVersion.name.containsIgnoreCase(searchStr)); 				
+				baseQuery.where(sourceDatasetVersion.name.containsIgnoreCase(searchStr));
 			}
 			
 			if (msg.getWithErrors () != null) {
@@ -678,15 +681,29 @@ private String getEnumName(Enum e){
 							"UNAVAILABLE"));
 				}
 			}
+			
+			if (msg.getWithNotifications () != null) {
+				if(msg.getWithNotifications ()) {
+					baseQuery.where(new SQLSubQuery()
+							.from(harvestNotification)
+							.where(harvestNotification.sourceDatasetId.eq(sourceDataset.id)
+									.and(harvestNotification.done.eq(false)))
+								.exists());
+				} else {
+					baseQuery.where(new SQLSubQuery()
+							.from(harvestNotification)
+							.where(harvestNotification.sourceDatasetId.eq(sourceDataset.id)
+									.and(harvestNotification.done.eq(false)))
+								.notExists());
+				}
+			}
 				
-			AsyncSQLQuery listQuery = baseQuery.clone()					
+			AsyncSQLQuery listQuery = baseQuery.clone()	
 				.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id));
 			
-			
-			
 			Long page = msg.getPage();
-			Optional<Long> itemsPerPage = msg.itemsPerPage();			
-			singlePage(listQuery, page, itemsPerPage);			
+			Optional<Long> itemsPerPage = msg.itemsPerPage();
+			singlePage(listQuery, page, itemsPerPage);
 			
 			return f
 				.collect(listQuery					
@@ -731,6 +748,7 @@ private String getEnumName(Enum e){
 							sourceDatasetInfo.getDeleteTime () != null,
 							sourceDatasetInfo.isConfidential (),
 							sourceDatasetInfo.isWmsOnly(),
+							Collections.<Notification>emptyList(),
 							sourceDatasetInfo.externalId()
 						);
 						

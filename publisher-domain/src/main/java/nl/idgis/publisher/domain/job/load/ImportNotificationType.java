@@ -1,10 +1,11 @@
 package nl.idgis.publisher.domain.job.load;
 
 import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
+import nl.idgis.publisher.domain.job.NotificationProperties;
 import nl.idgis.publisher.domain.job.NotificationResult;
 import nl.idgis.publisher.domain.job.NotificationType;
 
-public enum ImportNotificationType implements NotificationType<ImportNotificationProperties> {
+public enum ImportNotificationType implements NotificationType<NotificationProperties> {
 
 	SOURCE_COLUMNS_CHANGED;
 	
@@ -20,7 +21,7 @@ public enum ImportNotificationType implements NotificationType<ImportNotificatio
 	}
 
 	@Override
-	public Class<? extends ImportNotificationProperties> getContentClass () {
-		return ImportNotificationProperties.class;
+	public Class<? extends NotificationProperties> getContentClass () {
+		return NotificationProperties.class;
 	}
 }

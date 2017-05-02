@@ -1,0 +1,6 @@
+@(entityType: nl.idgis.publisher.domain.EntityType, identification: String)@{
+	entityType match {
+	case nl.idgis.publisher.domain.EntityType.SOURCE_DATASET => routes.DataSources.get(identification)
+	case nl.idgis.publisher.domain.EntityType.DATASET => routes.Datasets.show(identification)
+	}
+}

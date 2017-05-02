@@ -104,7 +104,7 @@ public class Datasets extends Controller {
 			.execute (new Function<Dataset, Result> () {
 
 				@Override
-				public Result apply (final Dataset dataset) throws Throwable {					
+				public Result apply (final Dataset dataset) throws Throwable {
 					return ok (status.render (dataset));
 				}
 			});
@@ -187,7 +187,7 @@ public class Datasets extends Controller {
 			return new Constant<Page<SourceDatasetStats>> (new Page.Builder<SourceDatasetStats> ().build ());
 		}
 		
-		return new ListSourceDatasets (dataSourceId, categoryId, null, null, null); 
+		return new ListSourceDatasets (dataSourceId, categoryId, null, null, null, null); 
 	}
 	
 	private static DomainQuery<List<Column>> listSourceDatasetColumns (final String dataSourceId, final String sourceDatasetId) {

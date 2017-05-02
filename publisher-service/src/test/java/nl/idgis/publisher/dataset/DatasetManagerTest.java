@@ -361,25 +361,27 @@ public class DatasetManagerTest extends AbstractServiceTest {
 		deleteSourceDataset ("table1");
 		f.ask (datasetManager, new Cleanup ()).get ();
 		
-		assertEquals (3, query ().from (sourceDataset).count ());
+		// Everything stays the same since implementation of harvest notifications, because it only will 
+		// be deleted when there are no open notification:
+		assertEquals (4, query ().from (sourceDataset).count ());
 		assertEquals (2, query ().from (category).count ());
 		
 		deleteSourceDataset ("table3");
 		f.ask (datasetManager, new Cleanup ()).get ();
 		
-		assertEquals (2, query ().from (sourceDataset).count ());
-		assertEquals (1, query ().from (category).count ());
+		assertEquals (4, query ().from (sourceDataset).count ());
+		assertEquals (2, query ().from (category).count ());
 		
 		deleteSourceDataset ("table2");
 		f.ask (datasetManager, new Cleanup ()).get ();
 		
-		assertEquals (1, query ().from (sourceDataset).count ());
-		assertEquals (1, query ().from (category).count ());
+		assertEquals (4, query ().from (sourceDataset).count ());
+		assertEquals (2, query ().from (category).count ());
 		
 		deleteSourceDataset ("table4");
 		f.ask (datasetManager, new Cleanup ()).get ();
 		
-		assertEquals (0, query ().from (sourceDataset).count ());
-		assertEquals (0, query ().from (category).count ());
+		assertEquals (4, query ().from (sourceDataset).count ());
+		assertEquals (2, query ().from (category).count ());
 	}
 }

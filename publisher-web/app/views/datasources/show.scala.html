@@ -1,0 +1,97 @@
+@(sourceDataset: nl.idgis.publisher.domain.web.SourceDataset)
+
+@import nl.idgis.publisher.domain.web._
+@import nl.idgis.publisher.domain.SourceDatasetType
+@import nl.idgis.publisher.domain.job.NotificationProperties
+
+@categoryRefLink(cat: EntityRef, cls: String = null) = {
+	@if(cat == null) {
+		-
+	} else {
+		<a href="@routes.Datasets.listByCategory(cat.id)"@if(cls != null){ class="@cls"}>@cat.name</a>
+	}
+}
+
+@layout.application(
+	title = Domain.message("web.application.page.datasources.show.title") + " - " + sourceDataset.name,
+	docPath = "datasources/show",
+	jsMain = routes.Assets.at("js/datasources/show.js").url
+) {
+	<div class="page-content">
+		<h1 class="page-header">@Domain.message("web.application.page.datasources.show.title") @sourceDataset.name</h1>
+		
+		<div class="row">
+			<div class="col-lg-6">
+				<div class="panel panel-default">
+					<div class="panel-heading">
+						@Domain.message("web.application.page.datasources.show.heading")
+					</div>
+					<table class="table">
+						<tbody>
+							<tr>
+								<th>@Domain.message("web.application.page.datasources.show.field.datasourcename")</th>
+								<td>@sourceDataset.name</td>
+							</tr>
+							<tr>
+								<th>@Domain.message("web.application.page.datasources.show.field.alternatetitle")</th>
+								<td>@sourceDataset.alternateTitle</td>
+							</tr>
+							<tr>
+								<th>@Domain.message("web.application.page.datasources.show.field.category")</th>
+								<td>@categoryRefLink(sourceDataset.category, "")</td>
+							</tr>
+							<tr>
+								<th>@Domain.message("web.application.page.datasources.show.field.type")</th>
+								
+								@if(sourceDataset.`type` == SourceDatasetType.VECTOR) {
+									<td>@Domain.message("web.application.page.datasources.show.field.type.vector")</td>
+								}
+								@if(sourceDataset.`type` == SourceDatasetType.RASTER) {
+									<td>@Domain.message("web.application.page.datasources.show.field.type.raster")</td>
+								}
+								@if(sourceDataset.`type` == SourceDatasetType.UNAVAILABLE) {
+									<td>@Domain.message("web.application.page.datasources.show.field.type.unavailable")</td>
+								}
+								
+							</tr>
+							<tr>
+								<th>@Domain.message("web.application.page.datasources.show.field.confidential")</th>
+								<td>@if(sourceDataset.confidential){ @Domain.message("web.application.yes") } else { @Domain.message("web.application.no") }</td>
+							</tr>
+							<tr>
+								<th>@Domain.message("web.application.page.datasources.show.field.wmsonly")</th>
+								<td>@if(sourceDataset.wmsOnly){ @Domain.message("web.application.yes") } else { @Domain.message("web.application.no") }</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+			<div class="col-lg-6">
+				@if(!sourceDataset.notifications.isEmpty) {
+					@for(notification <- sourceDataset.notifications) {
+					<form method="POST" action="@routes.DataSources.discardHarvestNotification(sourceDataset.id, notification.id)" class="panel panel-info">
+						<div class="panel-heading">
+							@Domain.message("web.application.page.datasources.show.notification.heading")
+						</div>
+						<div class="panel-body">
+							@notification.message.properties.asInstanceOf[NotificationProperties].getCreateTime() - @Domain.message(notification.message)
+						</div>
+						<div class="panel-footer">
+							<button type="submit" class="btn btn-primary">@Domain.message("web.application.page.datasources.show.button.done")</button>
+						</div>
+					</form>
+					}
+				} else {
+					<div class="panel panel-info">
+						<div class="panel-heading">
+							@Domain.message("web.application.page.datasources.show.notifications.heading.none")
+						</div>
+						<div class="panel-body">
+							<strong class="text-info">@Domain.message("web.application.page.datasources.show.notifications.none")</strong>
+						</div>
+					</div>
+				}
+			</div>
+		</div>
+	</div>
+}

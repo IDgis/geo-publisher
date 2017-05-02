@@ -8,6 +8,7 @@ import static nl.idgis.publisher.database.QDatasetCopy.datasetCopy;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
+import static nl.idgis.publisher.database.QHarvestNotification.harvestNotification;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetMetadata.sourceDatasetMetadata;
 import static nl.idgis.publisher.database.QSourceDatasetMetadataAttachment.sourceDatasetMetadataAttachment;
@@ -276,8 +277,37 @@ public class DatasetManager extends UntypedActor {
 		return
 			db.update(sourceDataset)
 			.set(sourceDataset.deleteTime, DateTimeExpression.currentTimestamp(Timestamp.class))
-			.where(sourceDataset.externalIdentification.in(msg.getDatasetIds()))
-			.execute();
+			.where(sourceDataset.externalIdentification.in(msg.getDatasetIds())
+					.and(sourceDataset.dataSourceId.eq(
+							new SQLSubQuery()
+								.from(dataSource)
+								.where(dataSource.identification.eq(msg.getDataSourceId()))
+								.unique(dataSource.id)
+							)))
+			.execute().thenCompose(count -> {
+				return 
+					db.insert(harvestNotification)
+					.columns(harvestNotification.notificationType,
+						harvestNotification.sourceDatasetId,
+						harvestNotification.sourceDatasetVersionId,
+						harvestNotification.done)
+					.select(
+							new SQLSubQuery()
+							.from(sourceDatasetVersion)
+							.join(sourceDataset).on(sourceDataset.id.eq(sourceDatasetVersion.sourceDatasetId))
+							.where(sourceDataset.externalIdentification.in(msg.getDatasetIds())
+									.and(sourceDatasetVersion.id.in(
+											new SQLSubQuery().from(sourceDatasetVersion)
+												.join(sourceDataset).on(sourceDataset.id
+														.eq(sourceDatasetVersion.sourceDatasetId))
+												.where(sourceDataset.externalIdentification.in(msg.getDatasetIds()))
+												.list(sourceDatasetVersion.id.max()))))
+					.list("SOURCE_DATASET_DELETED",
+							sourceDataset.id,
+							sourceDatasetVersion.id,
+							false))
+					.execute();
+			});
 	}
 
 	private CompletableFuture<Optional<Integer>> getCategoryId(final AsyncHelper tx, final String identification) {
@@ -413,7 +443,7 @@ public class DatasetManager extends UntypedActor {
 									new Table(columnInfo.list()));
 								break;
 							case "RASTER":
-								dataset = new RasterDataset(	
+								dataset = new RasterDataset(
 									id,
 									name,
 									alternateTitle,
@@ -426,7 +456,7 @@ public class DatasetManager extends UntypedActor {
 									metadata);
 								break;
 							default:
-								dataset = new UnavailableDataset(	
+								dataset = new UnavailableDataset(
 									id,
 									name,
 									alternateTitle,
@@ -457,20 +487,19 @@ public class DatasetManager extends UntypedActor {
 						.and(sourceDataset.externalIdentification.eq(identification)))
 				.singleResult(sourceDatasetVersion.id.max()).thenCompose(maxVersionId -> {
 					if(maxVersionId.isPresent()) {
-						return getSourceDatasetVersion(tx, maxVersionId.get()).thenApply(Optional::of);						
+						return getSourceDatasetVersion(tx, maxVersionId.get()).thenApply(Optional::of);
 					} else {
 						return f.<Optional<Dataset>>successful(Optional.empty());
-					}					
-
+					}
+					
 				}).thenCompose(optionalDataset -> {
 					if(optionalDataset.isPresent()) {
 						return ensureNotDeleted(tx, identification)
 							.thenApply(ensured -> optionalDataset);
-					} else {					
+					} else {
 						return f.successful(optionalDataset);
 					}
 				});
-						
 	}
 	
 	private CompletableFuture<Object> insertSourceDatasetVersion(AsyncHelper tx, String dataSourceIdentification, Dataset dataset) {
@@ -484,21 +513,28 @@ public class DatasetManager extends UntypedActor {
 				.singleResult(sourceDataset.id).thenCompose(sourceDatasetIdOptional -> {
 					Integer sourceDatasetId = sourceDatasetIdOptional.orElseThrow(() -> new IllegalStateException("source dataset id missing"));
 					
-					return insertSourceDatasetVersion(tx, sourceDatasetId, dataset).thenApply(v -> new Updated());
+					return getCurrentSourceDatasetVersion(tx, dataSourceIdentification, dataset.getId())
+						.thenCompose(optionalDataset -> {
+							if(optionalDataset.isPresent()) {
+								return insertSourceDatasetVersion(tx, sourceDatasetId, dataset, optionalDataset).thenApply(v -> new Updated());
+							} else {
+								return insertSourceDatasetVersion(tx, sourceDatasetId, dataset, Optional.empty()).thenApply(v -> new Updated());
+							}
+						});
 				});
 	}
 	
-	private CompletableFuture<Void> insertSourceDatasetVersion(AsyncHelper tx, Integer sourceDatasetId, Dataset dataset) {
+	private CompletableFuture<Void> insertSourceDatasetVersion(AsyncHelper tx, Integer sourceDatasetId, Dataset dataset, Optional<Dataset> previousDatasetOptional) {
 		log.debug("inserting source dataset (by id)");
 		
 		final String type;
-		if(dataset instanceof VectorDataset) {			
+		if(dataset instanceof VectorDataset) {
 			type = "VECTOR";
 		} else if(dataset instanceof RasterDataset) {
 			type = "RASTER";
-		} else if(dataset instanceof UnavailableDataset) {			
+		} else if(dataset instanceof UnavailableDataset) {
 			type = "UNAVAILABLE";
-		} else {			
+		} else {
 			type = "UNKNOWN";
 		}
 		
@@ -535,6 +571,55 @@ public class DatasetManager extends UntypedActor {
 			}).thenCompose(sourceDatasetVersionId -> {
 				log.debug("sourceDatasetVersionId: {}", sourceDatasetVersionId);
 				
+				if(!previousDatasetOptional.isPresent()) {
+					tx.insert(harvestNotification)
+						.set(harvestNotification.notificationType, "NEW_SOURCE_DATASET")
+						.set(harvestNotification.sourceDatasetId, sourceDatasetId)
+						.set(harvestNotification.sourceDatasetVersionId, sourceDatasetVersionId.get())
+						.set(harvestNotification.done, false)
+						.execute();
+				} else {
+					Dataset previousDataset = previousDatasetOptional.get();
+					
+					if(previousDataset.isConfidential() != dataset.isConfidential()) {
+						tx.insert(harvestNotification)
+							.set(harvestNotification.notificationType, "CONFIDENTIAL_CHANGED")
+							.set(harvestNotification.sourceDatasetId, sourceDatasetId)
+							.set(harvestNotification.sourceDatasetVersionId, sourceDatasetVersionId.get())
+							.set(harvestNotification.done, false)
+							.execute();
+					}
+					
+					if(previousDataset.isWmsOnly() != dataset.isWmsOnly()) {
+						tx.insert(harvestNotification)
+							.set(harvestNotification.notificationType, "WMS_ONLY_CHANGED")
+							.set(harvestNotification.sourceDatasetId, sourceDatasetId)
+							.set(harvestNotification.sourceDatasetVersionId, sourceDatasetVersionId.get())
+							.set(harvestNotification.done, false)
+							.execute();
+					}
+					
+					final String previousDatasetType;
+					if(previousDataset instanceof VectorDataset) {
+						previousDatasetType = "VECTOR";
+					} else if(previousDataset instanceof RasterDataset) {
+						previousDatasetType = "RASTER";
+					} else if(previousDataset instanceof UnavailableDataset) {
+						previousDatasetType = "UNAVAILABLE";
+					} else {
+						previousDatasetType = "UNKNOWN";
+					}
+					
+					if(!"UNAVAILABLE".equals(previousDatasetType) && "UNAVAILABLE".equals(type)) {
+						tx.insert(harvestNotification)
+							.set(harvestNotification.notificationType, "SOURCE_DATASET_UNAVAILABLE")
+							.set(harvestNotification.sourceDatasetId, sourceDatasetId)
+							.set(harvestNotification.sourceDatasetVersionId, sourceDatasetVersionId.get())
+							.set(harvestNotification.done, false)
+							.execute();
+					}
+				}
+				
 				return insertSourceDatasetVersionLogs(tx, sourceDatasetVersionId.get(), dataset).thenCompose(v -> {					
 					if(dataset instanceof VectorDataset) {
 						return insertSourceDatasetVersionColumns(tx, sourceDatasetVersionId.get(), (VectorDataset)dataset);
@@ -555,10 +640,10 @@ public class DatasetManager extends UntypedActor {
 				String contentValue = null;
 				
 				MessageProperties content = logLine.getContent();
-				if(content != null) {					
+				if(content != null) {
 					try {
 						contentValue = JsonUtils.toJson(content);
-					} catch(Exception e) {						
+					} catch(Exception e) {
 						log.error("storing log content failed: {}", e);
 					}
 				}
@@ -628,7 +713,7 @@ public class DatasetManager extends UntypedActor {
 						UUID.randomUUID().toString(),
 						UUID.randomUUID().toString()))
 				.executeWithKey(sourceDataset.id).thenCompose(sourceDatasetId -> 
-					insertSourceDatasetVersion(tx, sourceDatasetId.get(), dataset)).thenApply(v -> new Registered());
+					insertSourceDatasetVersion(tx, sourceDatasetId.get(), dataset, Optional.empty())).thenApply(v -> new Registered());
 	}
 	
 	private CompletableFuture<Long> ensureNotDeleted(AsyncHelper tx, String datasetId) {
@@ -864,7 +949,11 @@ public class DatasetManager extends UntypedActor {
 							.where(
 								sourceDatasetVersion.id.eq(sourceDatasetVersionLog.sourceDatasetVersionId)
 								.and(sourceDataset.deleteTime.isNotNull())
-								.and(dataset.id.isNull()))
+								.and(dataset.id.isNull())
+								.and(new SQLSubQuery().from(harvestNotification)
+										.where(harvestNotification.sourceDatasetId.eq(sourceDataset.id)
+											.and(harvestNotification.done.eq(false)))
+										.notExists()))
 							.exists())
 						.execute(),
 						
@@ -875,24 +964,36 @@ public class DatasetManager extends UntypedActor {
 							.where(
 								sourceDatasetVersion.id.eq(sourceDatasetVersionColumn.sourceDatasetVersionId)
 								.and(sourceDataset.deleteTime.isNotNull())
-								.and(dataset.id.isNull()))
+								.and(dataset.id.isNull())
+								.and(new SQLSubQuery().from(harvestNotification)
+										.where(harvestNotification.sourceDatasetId.eq(sourceDataset.id)
+											.and(harvestNotification.done.eq(false)))
+										.notExists()))
 							.exists())
 						.execute(),
 						
 						tx.delete(sourceDatasetVersion)
-						.where(new SQLSubQuery().from(sourceDataset)							
+						.where(new SQLSubQuery().from(sourceDataset)
 							.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
 							.where(
 								sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id)
 								.and(sourceDataset.deleteTime.isNotNull())
-								.and(dataset.id.isNull()))
+								.and(dataset.id.isNull())
+								.and(new SQLSubQuery().from(harvestNotification)
+									.where(harvestNotification.sourceDatasetId.eq(sourceDataset.id)
+											.and(harvestNotification.done.eq(false)))
+										.notExists()))
 							.exists())
 						.execute(),
 						
 						tx.delete(sourceDataset)
 						.where(new SQLSubQuery().from(dataset)
-							.where(dataset.sourceDatasetId.eq(sourceDataset.id))
-							.notExists().and(sourceDataset.deleteTime.isNotNull()))
+							.where(dataset.sourceDatasetId.eq(sourceDataset.id)).notExists()
+								.and(sourceDataset.deleteTime.isNotNull())
+								.and(new SQLSubQuery().from(harvestNotification)
+										.where(harvestNotification.sourceDatasetId.eq(sourceDataset.id)
+											.and(harvestNotification.done.eq(false)))
+										.notExists()))
 						.execute(),
 						
 						tx.delete (category)
