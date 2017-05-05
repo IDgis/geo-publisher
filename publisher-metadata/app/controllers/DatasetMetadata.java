@@ -38,6 +38,7 @@ import play.mvc.Result;
 
 import util.MetadataConfig;
 import util.QueryDSL;
+import util.Security;
 import util.QueryDSL.Transaction;
 
 import static nl.idgis.publisher.database.QDataset.dataset;
@@ -77,12 +78,12 @@ public class DatasetMetadata extends AbstractMetadata {
 	private final Pattern urlPattern;
 	
 	@Inject
-	public DatasetMetadata(MetadataConfig config, QueryDSL q) throws Exception {
-		this(config, q, new MetadataDocumentFactory(), "/");
+	public DatasetMetadata(MetadataConfig config, QueryDSL q, Security s) throws Exception {
+		this(config, q, s, new MetadataDocumentFactory(), "/");
 	}
 	
-	public DatasetMetadata(MetadataConfig config, QueryDSL q, MetadataDocumentFactory mdf, String prefix) {
-		super(config, q, prefix);
+	public DatasetMetadata(MetadataConfig config, QueryDSL q, Security s, MetadataDocumentFactory mdf, String prefix) {
+		super(config, q, s, prefix);
 		
 		this.mdf = mdf;
 		urlPattern = Pattern.compile(".*/(.*)(\\?.*)?$");
@@ -90,7 +91,7 @@ public class DatasetMetadata extends AbstractMetadata {
 	
 	@Override
 	public DatasetMetadata withPrefix(String prefix) {
-		return new DatasetMetadata(config, q, mdf, prefix);
+		return new DatasetMetadata(config, q, s, mdf, prefix);
 	}
 	
 	private SQLQuery fromNonPublishedSourceDataset(Transaction tx) {
@@ -116,7 +117,7 @@ public class DatasetMetadata extends AbstractMetadata {
 				.where(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
 				.list(sourceDatasetVersion.id.max())));
 		
-		if(isTrusted()) {
+		if(s.isTrusted()) {
 			return query;
 		} else {
 			return query.where(sourceDatasetVersion.metadataConfidential.isFalse());
@@ -225,7 +226,7 @@ public class DatasetMetadata extends AbstractMetadata {
 			metadataDocument.setDatasetIdentifier(datasetIdentifier);
 			metadataDocument.setFileIdentifier(fileIdentifier);
 			
-			if(!isTrusted()) {
+			if(!s.isTrusted()) {
 				metadataDocument.removeAdditionalPointOfContacts();
 			}
 			
@@ -350,7 +351,7 @@ public class DatasetMetadata extends AbstractMetadata {
 						.join(publishedServiceDataset).on(publishedServiceDataset.serviceId.eq(publishedService.serviceId))
 						.join(environment).on(environment.id.eq(publishedService.environmentId));
 					
-				if(!isTrusted()) {
+				if(!s.isTrusted()) {
 					// do not generate links to services with confidential content as these are inaccessible.
 					
 					serviceQuery.where(environment.confidential.isFalse());
