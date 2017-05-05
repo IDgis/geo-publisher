@@ -7,6 +7,7 @@ import java.util.Optional;
 import nl.idgis.dav.router.SimpleWebDAV;
 import util.MetadataConfig;
 import util.QueryDSL;
+import util.Security;
 
 public abstract class AbstractMetadata extends SimpleWebDAV {
 	
@@ -14,10 +15,13 @@ public abstract class AbstractMetadata extends SimpleWebDAV {
 	
 	protected final QueryDSL q;
 	
-	protected AbstractMetadata(MetadataConfig config, QueryDSL q, String prefix) {
+	protected final Security s;
+	
+	protected AbstractMetadata(MetadataConfig config, QueryDSL q, Security s, String prefix) {
 		super(prefix);
 		
 		this.config = config;
+		this.s = s;
 		this.q = q;
 	}
 	
@@ -63,13 +67,6 @@ public abstract class AbstractMetadata extends SimpleWebDAV {
 		return environmentUrl + serviceName + "/" + serviceType.name().toLowerCase();
 	}
 	
-	protected boolean isTrusted() {
-		String trustedHeaderName = config.getTrustedHeader();
-		String trustedHeader = request().getHeader(trustedHeaderName);
-		
-		return "1".equals(trustedHeader);
-	}
-	
 	protected boolean displayWithoutStylesheet() {
 		return Boolean.parseBoolean(request().getQueryString("noStyle"));
 	}
@@ -80,7 +77,7 @@ public abstract class AbstractMetadata extends SimpleWebDAV {
 		}
 		
 		return config.getMetadataStylesheetPrefix().map(prefix -> {
-			if(isTrusted()) {
+			if(s.isTrusted()) {
 				return prefix + type + "/intern/metadata.xsl";
 			} else {
 				return prefix + type + "/extern/metadata.xsl";
