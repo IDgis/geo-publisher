@@ -77,70 +77,24 @@ public class DatasetMetadata extends AbstractMetadata {
 	
 	private final Pattern urlPattern;
 	
+	private final DatasetQueryBuilder dqb;
+	
 	@Inject
-	public DatasetMetadata(MetadataConfig config, QueryDSL q, Security s) throws Exception {
-		this(config, q, s, new MetadataDocumentFactory(), "/");
+	public DatasetMetadata(MetadataConfig config, QueryDSL q, DatasetQueryBuilder dqb, Security s) throws Exception {
+		this(config, q, dqb, s, new MetadataDocumentFactory(), "/");
 	}
 	
-	public DatasetMetadata(MetadataConfig config, QueryDSL q, Security s, MetadataDocumentFactory mdf, String prefix) {
+	public DatasetMetadata(MetadataConfig config, QueryDSL q, DatasetQueryBuilder dqb, Security s, MetadataDocumentFactory mdf, String prefix) {
 		super(config, q, s, prefix);
 		
 		this.mdf = mdf;
+		this.dqb = dqb;
 		urlPattern = Pattern.compile(".*/(.*)(\\?.*)?$");
 	}
 	
 	@Override
 	public DatasetMetadata withPrefix(String prefix) {
-		return new DatasetMetadata(config, q, s, mdf, prefix);
-	}
-	
-	private SQLQuery fromNonPublishedSourceDataset(Transaction tx) {
-		return joinSourceDatasetVersion(
-			tx.query().from(sourceDataset)
-				.join(sourceDatasetMetadata).on(sourceDatasetMetadata.sourceDatasetId.eq(sourceDataset.id))
-				.where(new SQLSubQuery().from(dataset)
-					.where(dataset.sourceDatasetId.eq(sourceDataset.id))
-					.where(isPublishedDataset())
-					.notExists()));
-	}
-	
-	private SQLQuery fromSourceDataset(Transaction tx) {
-		return joinSourceDatasetVersion(
-			tx.query().from(sourceDataset)
-				.join(sourceDatasetMetadata).on(sourceDatasetMetadata.sourceDatasetId.eq(sourceDataset.id)));
-	}
-
-	private SQLQuery joinSourceDatasetVersion(SQLQuery query) {
-		query
-			.join(sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
-			.where(sourceDatasetVersion.id.in(new SQLSubQuery().from(sourceDatasetVersion)
-				.where(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
-				.list(sourceDatasetVersion.id.max())));
-		
-		if(s.isTrusted()) {
-			return query;
-		} else {
-			return query.where(sourceDatasetVersion.metadataConfidential.isFalse());
-		}
-	}
-	
-	private SQLQuery fromPublishedDataset(Transaction tx) {
-		return joinSourceDatasetVersion(tx.query().from(dataset)
-			.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
-			.join(sourceDatasetMetadata).on(sourceDatasetMetadata.sourceDatasetId.eq(sourceDataset.id))
-			.where(isPublishedDataset()));
-	}
-	
-	private SQLQuery fromDataset(Transaction tx) {
-		return joinSourceDatasetVersion(tx.query().from(dataset)
-			.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
-			.join(sourceDatasetMetadata).on(sourceDatasetMetadata.sourceDatasetId.eq(sourceDataset.id)));
-	}
-
-	private BooleanExpression isPublishedDataset() {
-		return new SQLSubQuery().from(publishedServiceDataset)
-			.where(publishedServiceDataset.datasetId.eq(dataset.id))
-			.exists();
+		return new DatasetMetadata(config, q, dqb, s, mdf, prefix);
 	}
 	
 	@Override
@@ -163,7 +117,7 @@ public class DatasetMetadata extends AbstractMetadata {
 	}
 	
 	private Optional<Resource> sourceDatasetResource(String id, Transaction tx) {
-		return Optional.ofNullable(fromSourceDataset(tx)
+		return Optional.ofNullable(dqb.fromSourceDataset(tx)
 			.where(sourceDataset.metadataFileIdentification.eq(id))
 			.singleResult(
 				sourceDataset.metadataIdentification,
@@ -179,7 +133,7 @@ public class DatasetMetadata extends AbstractMetadata {
 	}
 
 	private Optional<Resource> datasetResource(String id, Transaction tx) throws Exception {
-		return Optional.ofNullable(fromDataset(tx)
+		return Optional.ofNullable(dqb.fromDataset(tx)
 			.where(dataset.metadataFileIdentification.eq(id))
 			.singleResult(
 				dataset.id,
@@ -555,7 +509,7 @@ public class DatasetMetadata extends AbstractMetadata {
 	}
 	
 	private Stream<ResourceDescription> sourceDatasetDescriptions(Transaction tx) {
-		return fromNonPublishedSourceDataset(tx).list(
+		return dqb.fromNonPublishedSourceDataset(tx).list(
 			sourceDataset.metadataFileIdentification,
 			sourceDatasetVersion.metadataConfidential,
 			sourceDatasetVersion.revision).stream()
@@ -563,7 +517,7 @@ public class DatasetMetadata extends AbstractMetadata {
 	}
 	
 	private Stream<ResourceDescription> datasetDescriptions(Transaction tx) {
-		return fromPublishedDataset(tx).list(
+		return dqb.fromPublishedDataset(tx).list(
 			dataset.metadataFileIdentification, 
 			sourceDatasetVersion.metadataConfidential,
 			sourceDatasetVersion.revision).stream()
@@ -603,14 +557,14 @@ public class DatasetMetadata extends AbstractMetadata {
 	
 	private Optional<ResourceProperties> sourceDatasetProperties(String id, Transaction tx) {
 		return tupleToDatasetProperties(
-			fromSourceDataset(tx).where(sourceDataset.metadataFileIdentification.eq(id)),
+			dqb.fromSourceDataset(tx).where(sourceDataset.metadataFileIdentification.eq(id)),
 			BooleanTemplate.FALSE);
 	}
 
 	private Optional<ResourceProperties> datasetProperties(String id, Transaction tx) {
 		return tupleToDatasetProperties(
-			fromDataset(tx).where(dataset.metadataFileIdentification.eq(id)),
-			isPublishedDataset());
+			dqb.fromDataset(tx).where(dataset.metadataFileIdentification.eq(id)),
+			dqb.isPublishedDataset());
 	}
 	
 	private Optional<ResourceProperties> tupleToDatasetProperties(SQLQuery query, BooleanExpression isPublished) {
