@@ -377,28 +377,30 @@ public class DatasetMetadata extends AbstractMetadata {
 					});
 				}
 				
-				boolean confidential = true;
+				boolean environmentConfidential = true;
 				boolean environmentWmsOnly = false;
 				int serviceTupleIndex = 0;
 				for(int i = 0; i < serviceTuples.size(); i++) {
-					boolean envConfidential = serviceTuples.get(i).get(environment.confidential);
-					environmentWmsOnly = serviceTuples.get(i).get(environment.wmsOnly);
+					boolean confidential = serviceTuples.get(i).get(environment.confidential);
 					
-					if(!envConfidential) {
-						confidential = false;
+					if(!confidential) {
+						environmentConfidential = false;
+						environmentWmsOnly = serviceTuples.get(i).get(environment.wmsOnly);
 						serviceTupleIndex = i;
-						break;
+						
+						if(!environmentWmsOnly) {
+							break;
+						}
 					}
 				}
 				
 				for(int i = 0; i < serviceTuples.size(); i++) {
 					JsonNode serviceInfo = Json.parse(serviceTuples.get(i).get(publishedService.content));
 					String serviceName = serviceInfo.get("name").asText();
-					boolean wmsOnly = serviceInfo.get("wmsOnly").asBoolean();
 					String scopedName = serviceTuples.get(i).get(publishedServiceDataset.layerName);
 					
 					if(i == serviceTupleIndex) {
-						if(confidential) {
+						if(environmentConfidential) {
 							config.getViewerUrlSecurePrefix().ifPresent(viewerUrlPrefix -> {
 								try {
 									metadataDocument.addServiceLinkage(viewerUrlPrefix + "/layer/" + serviceName + "/" + scopedName, "website", null);
@@ -434,12 +436,13 @@ public class DatasetMetadata extends AbstractMetadata {
 						metadataDocument.addDatasetBrowseGraphic(linkage + config.getBrowseGraphicWmsRequest() + scopedName);
 					}
 					
+					boolean wmsOnly = serviceInfo.get("wmsOnly").asBoolean();
 					for(ServiceType serviceType : ServiceType.values()) {
 						String linkage = getServiceLinkage(environmentUrl, serviceName, serviceType);
 						String protocol = serviceType.getProtocol();
 						
 						for(String spatialSchema : metadataDocument.getSpatialSchema()) {
-							if((!wmsOnly && spatialSchema.equals("vector")) || protocol.equals("OGC:WMS")) {
+							if((!wmsOnly && "vector".equals(spatialSchema)) || "OGC:WMS".equals(protocol)) {
 								metadataDocument.addServiceLinkage(linkage, protocol, scopedName);
 							}
 						}
