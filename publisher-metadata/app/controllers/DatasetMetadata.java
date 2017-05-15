@@ -436,7 +436,9 @@ public class DatasetMetadata extends AbstractMetadata {
 						metadataDocument.addDatasetBrowseGraphic(linkage + config.getBrowseGraphicWmsRequest() + scopedName);
 					}
 					
-					boolean wmsOnly = serviceInfo.get("wmsOnly").asBoolean();
+					boolean wmsOnly = serviceInfo.get("wmsOnly") != null ? 
+							serviceInfo.get("wmsOnly").asBoolean() : false;
+					
 					for(ServiceType serviceType : ServiceType.values()) {
 						String linkage = getServiceLinkage(environmentUrl, serviceName, serviceType);
 						String protocol = serviceType.getProtocol();
