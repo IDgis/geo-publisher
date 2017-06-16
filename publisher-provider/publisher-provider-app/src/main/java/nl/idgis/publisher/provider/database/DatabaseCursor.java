@@ -23,9 +23,16 @@ import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
+import oracle.sql.STRUCT;
+
+import org.deegree.geometry.io.WKBWriter;
+import org.deegree.sqldialect.oracle.sdo.SDOGeometryConverter;
+
 public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+	
+	private final SDOGeometryConverter converter = new SDOGeometryConverter();
 		
 	private final FetchTable fetchTable;
 	
@@ -50,20 +57,34 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 		}
 		
 		if(columnInfo.getType() == Type.GEOMETRY) {
-			if(value instanceof Blob) {
-				Blob blob = (Blob)value;
-				long blobLength = blob.length();
-				if(blobLength > Integer.MAX_VALUE) {
-					log.error("blob value too large: {}", blobLength);
-					return null;
-				} if(blobLength == 0) { // known to be returned by SDE.ST_ASBINARY on empty geometries
-					log.error("empty blob");
-					return null;
+			String typeName = columnInfo.getTypeName();
+			if("SDO_GEOMETRY".equals(typeName)) {
+				if(value instanceof STRUCT) {
+					STRUCT struct = (STRUCT)value;
+					return new WKBGeometry(WKBWriter.write(converter.toGeometry(struct, null)));
 				} else {
-					return new WKBGeometry(blob.getBytes(1l, (int)blobLength));
+					log.error("unsupported value class: {}", value.getClass().getCanonicalName());
+					return null;
+				}
+			} else if("ST_GEOMETRY".equals(typeName)) {
+				if(value instanceof Blob) {
+					Blob blob = (Blob)value;
+					long blobLength = blob.length();
+					if(blobLength > Integer.MAX_VALUE) {
+						log.error("blob value too large: {}", blobLength);
+						return null;
+					} if(blobLength == 0) { // known to be returned by SDE.ST_ASBINARY on empty geometries
+						log.error("empty blob");
+						return null;
+					} else {
+						return new WKBGeometry(blob.getBytes(1l, (int)blobLength));
+					}
+				} else {
+					log.error("unsupported value class: {}", value.getClass().getCanonicalName());
+					return null;
 				}
 			} else {
-				log.error("unsupported value: {}", value.getClass().getCanonicalName());
+				log.error("unsupported geometry type: {}", typeName);
 				return null;
 			}
 		} else {
