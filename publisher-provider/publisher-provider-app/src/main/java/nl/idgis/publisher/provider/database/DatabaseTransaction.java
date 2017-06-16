@@ -176,7 +176,6 @@ public class DatabaseTransaction extends JdbcTransaction {
 			String columnName = columnInfo.getName();
 			if("SDO_GEOMETRY".equals(typeName)) {
 				sb
-					.append("SDO_UTIL.TO_WKBGEOMETRY(")
 					.append("CASE ") 
 						.append("WHEN T.\"").append(columnName).append("\".GET_LRS_DIM() = 0 THEN ")
 							.append("CASE ")
@@ -188,7 +187,7 @@ public class DatabaseTransaction extends JdbcTransaction {
 								.append("WHEN T.\"").append(columnName).append("\".GET_DIMS() = 3 THEN SDO_LRS.CONVERT_TO_STD_GEOM(T.\"").append(columnName).append("\") ")
 								.append("WHEN T.\"").append(columnName).append("\".GET_DIMS() = 4 THEN SDO_LRS.CONVERT_TO_STD_GEOM(SDO_CS.MAKE_2D(T.\"").append(columnName).append("\")) ")
 							.append("END ")
-					.append("END)");
+					.append("END");
 			} else if("ST_GEOMETRY".equals(typeName)) {
 				sb
 					.append("SDE.ST_ASBINARY")
