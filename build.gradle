@@ -290,6 +290,10 @@ project(':publisher-web') {
 project(':publisher-provider:publisher-provider-app') {
 	apply plugin: 'com.github.johnrengelman.shadow'
 	apply plugin: 'maven-publish'
+	apply plugin: 'application'
+	apply plugin: DockerRemoteConfig
+	
+	mainClassName = 'nl.idgis.publisher.provider.App'
 	
 	jar {
 		manifest {
@@ -309,7 +313,7 @@ project(':publisher-provider:publisher-provider-app') {
 
 	dependencies {
 		testCompile project(':publisher-test')
-		testCompile "junit:junit:${junitVersion}"		
+		testCompile "junit:junit:${junitVersion}"
 		
 		compile project(':publisher-commons')
 		compile project(':publisher-provider:publisher-provider-protocol')
@@ -352,6 +356,40 @@ project(':publisher-provider:publisher-provider-app') {
 		compile "com.typesafe.akka:akka-slf4j_${scalaAbiVersion}:${akkaVersion}"
 		
 		runtime 'org.aspectj:aspectjweaver:1.8.0'
+	}
+	
+	task copyConf(type: Copy) {
+		from 'src/main/resources/conf'
+		into "${project.buildDir}/docker/conf"
+	}
+	
+	task unpackTar(type: Copy) {
+		dependsOn distTar
+		
+		from tarTree(distTar.archivePath)
+		into "${project.buildDir}/docker"
+	}
+	
+	task copyContext(type: Copy) {
+		from 'src/main/docker'
+		into "${project.buildDir}/docker"
+	}
+	
+	task createDockerfile(type: Dockerfile) {
+		destFile = file("${project.buildDir}/docker/Dockerfile")
+		from 'azul/zulu-openjdk'
+		workingDir '/etc/geo-publisher/provider/'
+		copyFile "publisher-provider-app-${project.version}", '/opt'
+		copyFile 'conf', '/etc/geo-publisher/provider'
+		runCommand 'chmod +x /opt/bin/publisher-provider-app'
+		defaultCommand "/opt/bin/publisher-provider-app"
+	}
+	
+	task buildImage(type: DockerBuildImage) {
+		dependsOn rootProject.pullJavaImage, createDockerfile, unpackTar, copyContext, copyConf
+		
+		inputDir = file("${project.buildDir}/docker")
+		tag = "idgis/geopublisher_provider:${project.version}"
 	}
 }
 
