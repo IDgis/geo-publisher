@@ -150,7 +150,7 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 					
 					if(attachmentTypes.contains(AttachmentType.METADATA)) {
 						attachments.add(new Attachment(
-							"sde.gdb_items_vw.documentation", 
+							"gdb_items_vw.documentation", 
 							AttachmentType.METADATA,
 							md.getContent()));
 					}

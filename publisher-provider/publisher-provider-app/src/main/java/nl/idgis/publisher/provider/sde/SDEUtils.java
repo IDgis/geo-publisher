@@ -60,7 +60,7 @@ final class SDEUtils {
 		columns.add(new DatabaseColumnInfo("DOCUMENTATION", "CLOB"));
 		
 		return new FetchTable(
-			"SDE.GDB_ITEMS_VW", 
+			"GDB_ITEMS_VW", 
 			columns, 
 			1 /* messageSize */, 
 			Objects.requireNonNull(filter, "filter should not be null"));
