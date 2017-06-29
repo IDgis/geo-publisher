@@ -25,6 +25,7 @@ import akka.event.LoggingAdapter;
 
 import oracle.sql.STRUCT;
 
+import org.deegree.geometry.Geometry;
 import org.deegree.geometry.io.WKBWriter;
 import org.deegree.sqldialect.oracle.sdo.SDOGeometryConverter;
 
@@ -56,17 +57,30 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 			return null;
 		}
 		
+		log.debug("database column value: " + value);
+		
 		if(columnInfo.getType() == Type.GEOMETRY) {
 			String typeName = columnInfo.getTypeName();
 			if("SDO_GEOMETRY".equals(typeName)) {
+				log.debug("database column value is of type sdo_geometry");
+				
 				if(value instanceof STRUCT) {
+					log.debug("database column value is of type struct");
+					
 					STRUCT struct = (STRUCT)value;
-					return new WKBGeometry(WKBWriter.write(converter.toGeometry(struct, null)));
+					log.debug("struct object: " + struct);
+					
+					Geometry geom = converter.toGeometry(struct, null);
+					log.debug("geom object: " + geom);
+					
+					return new WKBGeometry(WKBWriter.write(geom));
 				} else {
 					log.error("unsupported value class: {}", value.getClass().getCanonicalName());
 					return null;
 				}
 			} else if("ST_GEOMETRY".equals(typeName)) {
+				log.debug("database column value is of type st_geometry");
+				
 				if(value instanceof Blob) {
 					Blob blob = (Blob)value;
 					long blobLength = blob.length();
@@ -159,5 +173,7 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 	public void postStop() throws SQLException {
 		t.getStatement().close();
 		t.close();
+		
+		log.debug("resultset is closed");
 	}
 }
