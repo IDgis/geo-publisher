@@ -80,7 +80,7 @@ POST 	/styles/-/createupdate							controllers.Styles.submitCreateUpdate()
 GET		/styles/-/upload-file							controllers.Styles.uploadFileForm()
 POST	/styles/-/upload-file							controllers.Styles.handleFileUploadForm()
 POST	/styles/-/upload-file-raw						controllers.Styles.handleFileUploadRaw()
-POST	/styles/-/validate								controllers.Styles.validateSld()
+POST	/styles/-/validate								controllers.Styles.validateSld(sldScheme : String)
 GET		/styles/:styleId/edit							controllers.Styles.edit(styleId: String)
 POST 	/styles/:styleId/delete							controllers.Styles.delete(styleId : String)
 
