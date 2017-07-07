@@ -72,8 +72,11 @@ public class Styles extends Controller {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
 	private final static String ID="#CREATE_STYLE#";
 	
-	private final static Promise<Schema> schemaPromise = Promise.promise (() ->
-		SchemaUtils.getSchema(SchemaRef.GEOSERVER_SLD));
+	private final static Promise<Schema> schemaPromise_1_0_0 = Promise.promise (() ->
+		SchemaUtils.getSchema(SchemaRef.GEOSERVER_SLD_1_0_0));
+	
+	private final static Promise<Schema> schemaPromise_1_1_0 = Promise.promise (() ->
+		SchemaUtils.getSchema(SchemaRef.GEOSERVER_SLD_1_1_0));
 	
 	private static Promise<Result> renderCreateForm (final Form<StyleForm> styleForm) {
 		// No need to go to the database, because the form contains all information needed
@@ -119,13 +122,14 @@ public class Styles extends Controller {
 					if (form.hasErrors ()) {
 						return Promise.pure ((Result) ok (views.html.styles.form.render (form, null, null, form.field ("id").equals (ID), Optional.empty (), Optional.empty ())));
 					}
-
+					
 					final StyleForm styleForm = form.get ();
 					final String sldContent = join (styleForm.getDefinition ());
+					final String sldScheme = styleForm.getSldScheme();
 					final Optional<Integer> errorLine;
 					final Optional<String> errorMessage;
 					
-					final XmlError xmlError = isValidXml (sldContent);
+					final XmlError xmlError = isValidXml (sldContent, sldScheme);
 					if (xmlError != null){ 
 						form.reject("definition", Domain.message("web.application.page.styles.form.field.definition.validation.error", form.field("format").value()));
 						form.reject ("definition", xmlError.message);
@@ -163,12 +167,22 @@ public class Styles extends Controller {
 	}
 	
 
-	private static XmlError isValidXml(String xmlContent) {
+	private static XmlError isValidXml(String xmlContent, String sldScheme) {
 		try {
 			final XMLStreamReader reader = XMLInputFactory.newInstance ().createXMLStreamReader (new StringReader (xmlContent));
-			final Validator validator = schemaPromise.get (30000).newValidator ();
+			final Validator validator100 = schemaPromise_1_0_0.get (30000).newValidator ();
+			final Validator validator110 = schemaPromise_1_1_0.get (30000).newValidator ();
 			
-			validator.validate (new StAXSource (reader));
+			String sldScheme100 = Domain.message ("web.application.page.styles.form.validate.option.sldScheme.1.0.0.value");
+			String sldScheme110 = Domain.message ("web.application.page.styles.form.validate.option.sldScheme.1.1.0.value");
+			
+			if(sldScheme.equals(sldScheme100)) {
+				validator100.validate (new StAXSource (reader));
+			} else if(sldScheme.equals(sldScheme110)) {
+				validator110.validate (new StAXSource (reader));
+			} else {
+				throw new IOException("unknown sld scheme type");
+			}
 		} catch (IOException e) {
 			return new XmlError (e.getLocalizedMessage (), null);
 		} catch (SAXParseException e) {
@@ -320,7 +334,7 @@ public class Styles extends Controller {
 	}
 	
 	@BodyParser.Of (value = BodyParser.Raw.class, maxLength = 2 * 1024 * 1024)
-	public static Result validateSld () {
+	public static Result validateSld (String sldScheme) {
 		final String content = request ().body ().asRaw () != null
 				? handleFileUpload (request ().body ().asRaw ().asFile ())
 				: null;
@@ -330,7 +344,7 @@ public class Styles extends Controller {
 			result.put ("valid", false);
 			result.put ("message", Domain.message ("web.application.page.styles.form.field.definition.validation.cantValidate"));
 		} else {
-			final XmlError xmlError = isValidXml (content);
+			final XmlError xmlError = isValidXml (content, sldScheme);
 			
 			if (xmlError != null) {
 				result.put ("valid", false);
@@ -384,6 +398,8 @@ public class Styles extends Controller {
 		@Constraints.MinLength (value = 3, message = "web.application.page.styles.form.field.name.validation.length")
 		@Constraints.Pattern (value = "^[a-zA-Z0-9\\-\\_]+$", message = "web.application.page.styles.form.field.name.validation.error")
 		private String name;
+		@Constraints.Required (message = "web.application.page.styles.form.field.sldscheme.validation.required")
+		private String sldScheme;
 		@Constraints.Required (message = "web.application.page.styles.form.field.definition.validation.required")
 		private List<String> definition = new ArrayList<> ();
 		private String styleType;
@@ -418,6 +434,14 @@ public class Styles extends Controller {
 		public void setName(String name) {
 			this.name = name;
 		}
+		public String getSldScheme() {
+			return sldScheme;
+		}
+		
+		public void setSldScheme(String sldScheme) {
+			this.sldScheme = sldScheme;
+		}
+		
 		public List<String> getDefinition() {
 			return definition;
 		}
