@@ -145,7 +145,7 @@ public class Styles extends Controller {
 					}
 					// validation end
 					
-					final Style style = new Style(styleForm.id, styleForm.name.trim (), sldContent, styleForm.styleType, styleForm.inUse);
+					final Style style = new Style(styleForm.id, styleForm.name.trim (), sldScheme, sldContent, styleForm.styleType, styleForm.inUse);
 					
 					return from (database)
 						.put(style)
@@ -270,15 +270,15 @@ public class Styles extends Controller {
 			.query(new GetStyleParentLayers(styleId))
 			.query(new GetStyleParentGroups(styleId))
 			.execute (new Function3<Style, Page<Layer>, Page<LayerGroup>, Result> () {
-
+				
 				@Override
 				public Result apply (final Style style, final Page<Layer> layers, final Page<LayerGroup> groups) throws Throwable {
 					final Form<StyleForm> styleForm = Form
 							.form (StyleForm.class)
 							.fill (new StyleForm (style));
 					
-					Logger.debug ("Edit styleForm: " + styleForm);						
-					Logger.debug ("Style is in layers: " + layers.values().toString());						
+					Logger.debug ("Edit styleForm: " + styleForm);
+					Logger.debug ("Style is in layers: " + layers.values().toString());
 					return ok (form.render (styleForm, layers, groups, false, Optional.empty (), Optional.empty ()));
 				}
 			});
@@ -414,6 +414,7 @@ public class Styles extends Controller {
 		public StyleForm (final Style style){
 			this.id = style.id();
 			this.name = style.name();
+			this.sldScheme = style.sldScheme();
 			this.definition = new ArrayList<> ();
 			this.definition.add (style.definition ());
 			this.styleType = style.styleType().name();

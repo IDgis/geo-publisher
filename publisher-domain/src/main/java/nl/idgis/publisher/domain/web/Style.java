@@ -30,8 +30,9 @@ import com.mysema.query.annotations.QueryProjection;
  *
  */
 public class Style extends Identifiable {
-	private static final long serialVersionUID = -103047524556298813L;
+	private static final long serialVersionUID = 6426250809920063015L;
 	private final String name;
+	private final String sldScheme;
 	private final CompactByteString definition;
 	private final StyleType styleType;
 	private final Boolean inUse;
@@ -41,12 +42,14 @@ public class Style extends Identifiable {
 	public Style(
 			final @JsonProperty("id") String id, 
 			final @JsonProperty("name") String name,
+			final @JsonProperty("sldScheme") String sldScheme,
 			final @JsonProperty("definition") String definition,
 			final @JsonProperty("styleType") String styleType,
 			final @JsonProperty("inUse") Boolean inUse) {
 		super(id);
 		
 		this.name = name;
+		this.sldScheme = sldScheme;
 		this.definition = encodeStyleBody (definition).compact ();
 		this.styleType = StyleType.valueOf(styleType);
 		this.inUse = inUse;
@@ -55,6 +58,11 @@ public class Style extends Identifiable {
 	@JsonGetter
 	public String name() {
 		return name;
+	}
+
+	@JsonGetter
+	public String sldScheme() {
+		return sldScheme;
 	}
 
 	@JsonGetter

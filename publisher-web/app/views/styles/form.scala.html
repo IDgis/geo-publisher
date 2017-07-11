@@ -13,7 +13,7 @@ errorMessage: java.util.Optional[String] = java.util.Optional.empty ())
 @styleId = @{styleForm("id").value()}
 
 @sldScheme100 = @{Domain.message("web.application.page.styles.form.validate.option.sldScheme.1.0.0.value")}
-@sldScheme101 = @{Domain.message("web.application.page.styles.form.validate.option.sldScheme.1.1.0.value")}
+@sldScheme110 = @{Domain.message("web.application.page.styles.form.validate.option.sldScheme.1.1.0.value")}
 
 @layout.application( 
 	title=Domain.message("web.application.page.styles.form.title"),
@@ -65,13 +65,13 @@ errorMessage: java.util.Optional[String] = java.util.Optional.empty ())
 								<div id="style-sld-scheme-radio-buttons">
 									<div class="radio">
 										<label>
-											<input type="radio" name="sldScheme" value="@sldScheme100" @if(sldScheme100.equals(styleForm("sldScheme").value)) {checked}>
+											<input type="radio" name="sldScheme" value="@sldScheme100" @if(!sldScheme110.equals(styleForm("sldScheme").value)) {checked}>
 											@Domain.message("web.application.page.styles.form.validate.option.sldScheme.1.0.0.label")
 										</label>
 									</div>
 									<div class="radio">
 										<label>
-											<input type="radio" name="sldScheme" value="@sldScheme101" @if(sldScheme101.equals(styleForm("sldScheme").value)) {checked}>
+											<input type="radio" name="sldScheme" value="@sldScheme110" @if(sldScheme110.equals(styleForm("sldScheme").value)) {checked}>
 											@Domain.message("web.application.page.styles.form.validate.option.sldScheme.1.1.0.label")
 										</label>
 									</div>
