@@ -44,7 +44,7 @@ VI) Stijl aanpassen via QGIS (optioneel)
 ### IV) Service aanmaken
 
 16. Klik links bij "Servicebeheer" op **Services**
-17. Klik op de knop **maak een nieuwe service …**
+17. Klik op de knop **maak een nieuwe service**
 18. Vul de velden in. Dit is de metadata die ervoor zorgt dat uw service vindbaar is via het web.
 19. Klik op **Voeg een laag toe** om uw laag WMS uit de vorige stap aan de service toe te voegen. Het maken van groepen is voor geavanceerd gebruik en kunt u nu overslaan.
 20. Klik op **Opslaan**, uw service is aangemaakt, maar nog niet gepubliceerd. Dit gebeurt in de volgende stap.
