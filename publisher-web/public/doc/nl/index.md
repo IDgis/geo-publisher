@@ -4,7 +4,7 @@ GIS publicatieomgeving
 Inhoudsopgave
 -------------
  *  [Dashboard](dashboard.md)
-	- [Quickstart: Data publiceren via GeoDropIn](quickstart-via-geodropin.md)
+	- [Quickstart: Data publiceren](quickstart-via-geodropin.md)
  *  Databeheer
     -  [Datasets](datasets/list.md)
     -  [Brongegevens](datasources/list.md)
