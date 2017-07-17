@@ -4,13 +4,13 @@
 
 ## Globale workflow:
 
-I) Shapefile uploaden via GeoDropIn (optioneel)
+I) Shapefile uploaden via GeoDropIn (optioneel) 
 
 **II) Dataset aanmaken via GeoPublisher**
 
 **III) Laag aanmaken en (default) stijl toevoegen**
 
-**IV) Service aanmaken**
+**IV)Service aanmaken**
 
 **V) Laag controleren via de GeoPublisher viewer en Publiceren**
 
@@ -26,14 +26,14 @@ VI) Stijl aanpassen via QGIS (optioneel)
 5. Vul **titel**, **beschrijving** en **datum** in. Dit is de (minimaal vereiste) metadata.
 6. Klik op **choose file** en selecteer uw shapefile (zip). Uw shapefile is toegevoegd aan de brongegevens in GeoPublisher.
 
-### II) Dataset aanmaken via GeoPublisher
+###  <a name="datasets"></a> II) Dataset aanmaken via GeoPublisher
 
 7. Klik in de **GeoPublisher** links bij "Databeheer" op **Brongegevens**. U ziet uw data in de lijst staan met datasets
 8. Klik op de **+ knop** om een nieuwe dataset aan te maken
 9. Pas eventueel de velden aan en kies bij "dataset" de zojuist toegevoegde dataset. U ziet twee extra tabbladen ("kolommen" en "filters"), deze zijn voor geavanceerd gebruik en kunt u overslaan.
 10. Klik op **Opslaan**. De dataset wordt nu geïmporteerd. U kunt de voortgang controleren via het Dashboard.
 
-### III) Laag aanmaken
+### <a name="lagen"></a> III) Laag aanmaken
 
 11. Klik links bij "Databeheer" op **Datasets**.
 12. Klik bij uw dataset op de knop **+ nieuwe laag**
@@ -41,7 +41,7 @@ VI) Stijl aanpassen via QGIS (optioneel)
 14. Kies een stijl in dit geval een default style en klik op de **+ knop** om de stijl toe te voegen. Klik buiten keuzevenster om verder te gaan. Het aanpassen van de stijl wordt verderop in deze handleiding uitgelegd. Het aanzetten van tiling is voor geavanceerd gebruik en kunt u nu overslaan.
 15. Klik op **Opslaan**.
 
-### IV) Service aanmaken
+### <a name="services"></a> IV) Service aanmaken
 
 16. Klik links bij "Servicebeheer" op **Services**
 17. Klik op de knop **maak een nieuwe service**
@@ -56,7 +56,7 @@ VI) Stijl aanpassen via QGIS (optioneel)
 23. Onderaan ziet u nu dat de "preview" knop beschikbaar is. Klik op de knop om de laag in preview modus (opent in nieuw tabblad) te bekijken)
 24. Klik links bij "Servicebeheer" op **Services** en vervolgens op **Publiceren**.  
 
-### VI) Optioneel: stijl aanpassen via QGIS
+### <a name="qgis"></a> VI) Optioneel: stijl aanpassen via QGIS
 
 > In deze stap ziet u hoe u met behulp van GGIS (desktop GIS) een stijl kunt aanpassen. QGIS is open source software die u gratis kunt downloaden en gebruiken (zie [http://www.qgis.org/nl/](http://www.qgis.org/nl/)).
 
