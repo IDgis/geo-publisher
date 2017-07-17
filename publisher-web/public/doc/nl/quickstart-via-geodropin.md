@@ -28,14 +28,14 @@ VI) Optioneel: stijl aanpassen via QGIS
 
 ### II) Dataset aanmaken via GeoPublisher
 
-7) Klik in de **GeoPublisher** links bij “Databeheer” op **Brongegevens**. U ziet uw data in de lijst staan met datasets
+7) Klik in de **GeoPublisher** links bij "Databeheer" op **Brongegevens**. U ziet uw data in de lijst staan met datasets
 8) Klik op de **+ knop** om een nieuwe dataset aan te maken
-9) Pas eventueel de velden aan en kies bij “dataset” de zojuist toegevoegde dataset. U ziet twee extra tabbladen (“kolommen” en “filters”), deze zijn voor geavanceerd gebruik en kunt u overslaan.
+9) Pas eventueel de velden aan en kies bij "dataset" de zojuist toegevoegde dataset. U ziet twee extra tabbladen ("kolommen" en "filters"), deze zijn voor geavanceerd gebruik en kunt u overslaan.
 10) Klik op **Opslaan**. De dataset wordt nu geïmporteerd. U kunt de voortgang controleren via het Dashboard.
 
 ### III) Laag aanmaken
 
-11) Klik links bij “Databeheer” op **Datasets**.
+11) Klik links bij "Databeheer" op **Datasets**.
 12) Klik bij uw dataset op de knop **+ nieuwe laag**
 13) Vul de velden in. Bij trefwoorden vult u zelf gekozen trefwoorden in om de vindbaarheid van de laag te vergroten, klik op de **+ knop** om het trefwoord toe te voegen. 
 14) Kies een stijl in dit geval een default style en klik op de **+ knop** om de stijl toe te voegen. Klik buiten keuzevenster om verder te gaan. Het aanpassen van de stijl wordt verderop in deze handleiding uitgelegd. Het aanzetten van tiling is voor geavanceerd gebruik en kunt u nu overslaan.
@@ -43,7 +43,7 @@ VI) Optioneel: stijl aanpassen via QGIS
 
 ### IV) Service aanmaken
 
-16) Klik links bij “Servicebeheer” op **Services**
+16) Klik links bij "Servicebeheer" op **Services**
 17) Klik op de knop **maak een nieuwe service …**
 18) Vul de velden in. Dit is de metadata die ervoor zorgt dat uw service vindbaar is via het web.
 19) Klik op **Voeg een laag toe** om uw laag WMS uit de vorige stap aan de service toe te voegen. Het maken van groepen is voor geavanceerd gebruik en kunt u nu overslaan.
@@ -51,10 +51,10 @@ VI) Optioneel: stijl aanpassen via QGIS
 
 ### V) Laag controleren en services publiceren
 
-21) Klik links bij “Servicebeheer” op **Lagen**.
+21) Klik links bij "Servicebeheer" op **Lagen**.
 22) Klik op de laag die u heeft toegevoegd.
-23) Onderaan ziet u nu dat de “preview” knop beschikbaar is. Klik op de knop om de laag in preview modus (opent in nieuw tabblad) te bekijken)
-24) Klik links bij “Servicebeheer” op **Services** en vervolgens op **Publiceren**.  
+23) Onderaan ziet u nu dat de "preview" knop beschikbaar is. Klik op de knop om de laag in preview modus (opent in nieuw tabblad) te bekijken)
+24) Klik links bij "Servicebeheer" op **Services** en vervolgens op **Publiceren**.  
 
 ### VI) Optioneel: stijl aanpassen via QGIS
 
@@ -65,10 +65,10 @@ VI) Optioneel: stijl aanpassen via QGIS
 3) Klik op de tab/knop **Details**
 4) Kopieer de URL achter OGC:WFS. 
 5) Start QGIS en voeg onder **kaartlagen** een nieuwe **WFS laag** toe mbv de zojuist gekopieerde URL. 
-6) Zorg dat “paneel lagen” open staat en open van daaruit het paneel voor opmaak van stijlen 
-7) Selecteer een van de kolommen om je stijl op te baseren en gebruik bijvoorbeeld vervolgens een kleurverloop (of “willekeurige kleur”)
+6) Zorg dat "paneel lagen" open staat en open van daaruit het paneel voor opmaak van stijlen 
+7) Selecteer een van de kolommen om je stijl op te baseren en gebruik bijvoorbeeld vervolgens een kleurverloop (of "willekeurige kleur")
 8) Klik onderaan op Style opslaan als **SLD**.
-9) Ga naar de **GeoPublisher** en klik links bij “servicebeheer” op **Stijlen**.
+9) Ga naar de **GeoPublisher** en klik links bij "servicebeheer" op **Stijlen**.
 10) Klik op **Maak een nieuwe stijl ..**
 11) Upload de stijl via de knop **choose file** en klik op **Gekozen stijl inladen** of copy paste de stijl via een texteditor
 12) Geef aan of het om punten, lijnen, vlakken gaat en valideer eventueel de stijl tegen het schema

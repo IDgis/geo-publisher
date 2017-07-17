@@ -11,9 +11,9 @@ Services
 
 ### Laag controleren en services publiceren
 
-5) Klik links bij “Servicebeheer” op **Lagen**.
+5) Klik links bij "Servicebeheer" op **Lagen**.
 6) Klik op de laag die u heeft toegevoegd.
-7) Onderaan ziet u nu dat de “preview” knop beschikbaar is. Klik op de knop om de laag in de preview modus te bekijken  (opent in nieuw tabblad). 
-8) Klik links bij “Servicebeheer” op **Services** en vervolgens op **Publiceren**.  
+7) Onderaan ziet u nu dat de "preview" knop beschikbaar is. Klik op de knop om de laag in de preview modus te bekijken  (opent in nieuw tabblad). 
+8) Klik links bij "Servicebeheer" op **Services** en vervolgens op **Publiceren**.  
 
 [Inhoudsopgave](../index.md)

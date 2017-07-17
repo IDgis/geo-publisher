@@ -10,10 +10,10 @@ Stijlen
 3) Klik op de tab/knop **Details**
 4) Kopieer de URL achter OGC:WFS. 
 5) Start QGIS en voeg onder **kaartlagen** een nieuwe **WFS laag** toe mbv de zojuist gekopieerde URL. 
-6) Zorg dat “paneel lagen” open staat en open van daaruit het paneel voor opmaak van stijlen 
-7) Selecteer een van de kolommen om je stijl op te baseren en gebruik bijvoorbeeld vervolgens een kleurverloop (of “willekeurige kleur”)
+6) Zorg dat "paneel lagen" open staat en open van daaruit het paneel voor opmaak van stijlen 
+7) Selecteer een van de kolommen om je stijl op te baseren en gebruik bijvoorbeeld vervolgens een kleurverloop (of "willekeurige kleur")
 8) Klik onderaan op Style opslaan als **SLD**.
-9) Ga naar de **GeoPublisher** en klik links bij “servicebeheer” op **Stijlen**.
+9) Ga naar de **GeoPublisher** en klik links bij "servicebeheer" op **Stijlen**.
 10) Klik op **Maak een nieuwe stijl ..**
 11) Upload de stijl via de knop **choose file** en klik op **Gekozen stijl inladen** of copy paste de stijl via een texteditor
 12) Geef aan of het om punten, lijnen, vlakken gaat en valideer eventueel de stijl tegen het schema

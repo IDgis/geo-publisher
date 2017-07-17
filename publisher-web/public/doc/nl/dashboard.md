@@ -3,6 +3,6 @@ Dashboard
 
 Documentatie behorende bij het dashboard.
 
-* [Quickstart: Data publiceren via GeoDropIn](overview.md)
+* [Quickstart: Data publiceren via GeoDropIn](quickstart-via-geodropin.md)
 
 [Inhoudsopgave](index.md)
