@@ -19,7 +19,7 @@ VI) [Stijl aanpassen via QGIS (optioneel)](#qgis)
 ## Stappen:
 ### <a name="shapefiles"></a> I) Shapefile uploaden via GeoDropIn (optioneel)
 
-1. Zorg dat u een zip-file heeft klaarstaan waarin minimaal de bestanden [filenaam]**__.shp__**, [filenaam]**.dbf**  en [filenaam]**.shx** zijn opgenomen.
+1. Zorg dat u een zip-file heeft klaarstaan waarin minimaal de bestanden [filenaam]<b>.shp</b>, [filenaam]<b>.dbf</b>  en [filenaam]<b>.shx</b> zijn opgenomen.
 2. Start **GeoDropIn** via [https://geodropin.geopublisher.nl/index](https://geodropin.geopublisher.nl/index)
 3. Login
 4. Klik op **+ toevoegen**
@@ -31,7 +31,7 @@ VI) [Stijl aanpassen via QGIS (optioneel)](#qgis)
 1. Klik in de **GeoPublisher** links bij "Databeheer" op **Brongegevens**. U ziet uw data in de lijst staan met datasets
 2. Klik op de **+ knop** om een nieuwe dataset aan te maken
 3. Pas eventueel de velden aan en kies bij "dataset" de zojuist toegevoegde dataset. U ziet twee extra tabbladen ("kolommen" en "filters"), deze zijn voor geavanceerd gebruik en kunt u overslaan.
-4. Klik op **Opslaan**. De dataset wordt nu geïmporteerd. U kunt de voortgang controleren via het Dashboard.
+4. Klik op **Opslaan**. De dataset wordt nu geÃ¯mporteerd. U kunt de voortgang controleren via het Dashboard.
 
 ### <a name="lagen"></a> III) Laag aanmaken
 
@@ -73,5 +73,5 @@ VI) [Stijl aanpassen via QGIS (optioneel)](#qgis)
 11. Upload de stijl via de knop **choose file** en klik op **Gekozen stijl inladen** of copy paste de stijl via een texteditor
 12. Geef aan of het om punten, lijnen, vlakken gaat en valideer eventueel de stijl tegen het schema
 13. Klik op **stijl opslaan** (stijl wordt automatisch gevalideerd)
-14. U kunt de stijl nu toepassen in de stap bij aanmaken/editen van een laag (**Kies een stijl ..**) (zie boven).  
+14. U kunt de stijl nu toepassen in de stap bij aanmaken/editen van een laag (<b>Kies een stijl</b>) (zie boven).  
 15. **NB Publiceer de service opnieuw om de stijl te effectueren.** 
