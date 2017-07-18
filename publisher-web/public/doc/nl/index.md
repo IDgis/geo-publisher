@@ -1,12 +1,10 @@
 GIS publicatieomgeving
 ======================
 
-![Logo](logo.png)
-
 Inhoudsopgave
 -------------
-
  *  [Dashboard](dashboard.md)
+	- [Quickstart: Data publiceren](quickstart-via-geodropin.md)
  *  Databeheer
     -  [Datasets](datasets/list.md)
     -  [Brongegevens](datasources/list.md)
