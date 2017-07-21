@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -21,6 +22,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThat;
+
+import static org.hamcrest.CoreMatchers.instanceOf;
 
 public class FutureUtilsTest {
 	
@@ -242,8 +246,14 @@ public class FutureUtilsTest {
 		f.cast(f.successful("Hello, world!"), Integer.class)
 			.exceptionally(e -> {
 				try {
-					assertTrue(e instanceof WrongResultException);
-					assertEquals("Hello, world!", ((WrongResultException)e).getResult());
+					assertThat(e, instanceOf(CompletionException.class));
+					
+					Throwable cause = e.getCause();
+					assertThat(cause, instanceOf(WrongResultException.class));
+					
+					WrongResultException wrongResultException = (WrongResultException)cause;
+					assertEquals("Hello, world!", wrongResultException.getResult());
+					assertEquals(Integer.class, wrongResultException.getExpected());
 					
 					testFuture.complete(true);
 				} catch(Throwable t) {
