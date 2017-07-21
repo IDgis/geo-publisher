@@ -8,6 +8,10 @@
 	play.Play.application().configuration().getString("publisher.metadata.service") + fileId + ".xml" 
 }
 
+@viewerPrefix() = @{
+	play.Play.application().configuration().getString("publisher.viewer.prefix")
+}
+
 @import nl.idgis.publisher.domain.web._ 
 @layout.application( title = Domain.message("web.application.page.services.list.header"),
 	jsMain = routes.Assets.at("js/services/list.js").url, 
@@ -90,9 +94,9 @@
 			<div class="list-group">
 				<div class="list-group-item well well-sm"> 
 					<div class="row">
-						<div class="col-md-8">
+						<div class="col-md-7">
 						</div>
-						<div class="col-md-2">
+						<div class="col-md-5">
 							<div class="btn-group pull-left">
 								<a href="@models.Service.getWmtsGetCapUrl()" target="_blank"
 									class="btn btn-default" title="@Domain.message("web.application.button.getcap")">
@@ -102,9 +106,11 @@
 									class="btn btn-default" title="@Domain.message("web.application.button.getcap")">
 									<span>&nbsp;TMS&nbsp;</span>
 								</a> 
+								<a href="@viewerPrefix()"  target="_blank"
+									class="btn btn-default" title="@Domain.message("web.application.button.viewer")">
+									<span>Viewer</span>
+								</a> 
 							</div>
-						</div>
-						<div class="col-md-2">
 						</div>
 					</div>
 				</div>

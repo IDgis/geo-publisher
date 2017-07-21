@@ -148,6 +148,7 @@ web.application.button.add=Toevoegen
 web.application.button.edit=Bewerken
 web.application.button.remove=Verwijderen
 web.application.button.getcap=GetCapabilities
+web.application.button.viewer=Viewer
 web.application.button.publish=Publiceren
 
 
