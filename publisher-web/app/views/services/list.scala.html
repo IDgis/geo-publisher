@@ -1,7 +1,7 @@
 @(services: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Service], query: String, isPublished: java.lang.Boolean)
 
 @pageRef(targetPage: Long) = @{	  
-	routes.Services.list (query, isPublished, targetPage)		
+	routes.Services.list (query, isPublished, targetPage)
 }
 
 @metadataUrl(fileId: String) = @{
@@ -151,7 +151,7 @@
 									class="btn btn-default" title="">
 									<span>@Domain.message("web.application.page.services.list.publish")</span>
 								</a> 
-						</div>							
+						</div>
 						<div class="col-md-3">
 							<div class="btn-group pull-left">
 								<a href="@models.Service.getWmsGetCapUrl(service.name)" target="_blank"
@@ -163,6 +163,7 @@
 								} else {
 									<a href="" class="btn btn-default disabled" title="@Domain.message("web.application.page.services.list.button.metadata.wms")" target="_blank"><span class="glyphicon glyphicon-download"></span></a>
 								} 
+								<a href="@viewerPrefix()?service=@service.name" class="btn btn-default" title="@Domain.message("web.application.page.services.list.button.viewer")" target="_blank"><span class="glyphicon glyphicon-picture"></span></a>
 								<a href="@models.Service.getWfsGetCapUrl(service.name)"  target="_blank"
 									class="btn btn-default" title="@Domain.message("web.application.button.getcap")">
 									<span>&nbsp;WFS&nbsp;</span>

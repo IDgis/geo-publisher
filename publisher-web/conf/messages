@@ -148,7 +148,7 @@ web.application.button.add=Toevoegen
 web.application.button.edit=Bewerken
 web.application.button.remove=Verwijderen
 web.application.button.getcap=GetCapabilities
-web.application.button.viewer=Viewer
+web.application.button.viewer=Bekijk de lijst van services in de GeoPublisher-viewer
 web.application.button.publish=Publiceren
 
 
@@ -517,6 +517,7 @@ web.application.page.services.list.header=Services
 web.application.page.services.list.empty=Er zijn geen services gevonden die voldoen aan de criteria.
 web.application.page.services.list.button.metadata.wms=Download de metadata van de WMS
 web.application.page.services.list.button.metadata.wfs=Download de metadata van de WFS
+web.application.page.services.list.button.viewer=Bekijk de service in de GeoPublisher-viewer
 web.application.page.services.list.button.create=Maak een nieuwe service ...
 web.application.page.layers.services.search.placeholder=Zoek een service ...
 web.application.page.services.list.search.showAll=Hef filter op servicenaam op
