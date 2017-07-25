@@ -394,6 +394,9 @@ public class DatasetMetadata extends AbstractMetadata {
 					}
 				}
 				
+				String lastWMSLinkage = null;
+				String lastWFSLinkage = null;
+				
 				for(int i = 0; i < serviceTuples.size(); i++) {
 					JsonNode serviceInfo = Json.parse(serviceTuples.get(i).get(publishedService.content));
 					String serviceName = serviceInfo.get("name").asText();
@@ -444,8 +447,22 @@ public class DatasetMetadata extends AbstractMetadata {
 						String protocol = serviceType.getProtocol();
 						
 						for(String spatialSchema : metadataDocument.getSpatialSchema()) {
-							if((!wmsOnly && "vector".equals(spatialSchema)) || "OGC:WMS".equals(protocol)) {
-								metadataDocument.addServiceLinkage(linkage, protocol, scopedName);
+							if((!wmsOnly && "vector".equals(spatialSchema)) || 
+									"OGC:WMS".equals(protocol)) {
+								
+								// only add wms url when linkage hasn't been added already
+								if("OGC:WMS".equals(protocol) && 
+										(lastWMSLinkage == null || !linkage.equals(lastWMSLinkage))) {
+									lastWMSLinkage = linkage;
+									metadataDocument.addServiceLinkage(linkage, protocol, scopedName);
+								}
+
+								// only add wfs url when linkage hasn't been added already
+								if("OGC:WFS".equals(protocol) && 
+										(lastWFSLinkage == null || !linkage.equals(lastWFSLinkage))) {
+									lastWFSLinkage = linkage;
+									metadataDocument.addServiceLinkage(linkage, protocol, scopedName);
+								}
 							}
 						}
 					}
