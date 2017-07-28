@@ -1,11 +1,15 @@
 @(services: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Service], query: String, isPublished: java.lang.Boolean)
 
 @pageRef(targetPage: Long) = @{	  
-	routes.Services.list (query, isPublished, targetPage)		
+	routes.Services.list (query, isPublished, targetPage)
 }
 
 @metadataUrl(fileId: String) = @{
 	play.Play.application().configuration().getString("publisher.metadata.service") + fileId + ".xml" 
+}
+
+@viewerPrefix() = @{
+	play.Play.application().configuration().getString("publisher.viewer.prefix")
 }
 
 @import nl.idgis.publisher.domain.web._ 
@@ -90,9 +94,9 @@
 			<div class="list-group">
 				<div class="list-group-item well well-sm"> 
 					<div class="row">
-						<div class="col-md-8">
+						<div class="col-md-7">
 						</div>
-						<div class="col-md-2">
+						<div class="col-md-5">
 							<div class="btn-group pull-left">
 								<a href="@models.Service.getWmtsGetCapUrl()" target="_blank"
 									class="btn btn-default" title="@Domain.message("web.application.button.getcap")">
@@ -102,9 +106,11 @@
 									class="btn btn-default" title="@Domain.message("web.application.button.getcap")">
 									<span>&nbsp;TMS&nbsp;</span>
 								</a> 
+								<a href="@viewerPrefix()"  target="_blank"
+									class="btn btn-default" title="@Domain.message("web.application.button.viewer")">
+									<span>Viewer</span>
+								</a> 
 							</div>
-						</div>
-						<div class="col-md-2">
 						</div>
 					</div>
 				</div>
@@ -123,7 +129,7 @@
 					<div class="row">
 						<div class="col-md-3">
 							<h4 class="list-group-item-heading">
-								<a href="@routes.Services.edit(service.id)" class="text-warning">@service.name</a>
+								<a href="@routes.Services.edit(service.id)" class="text-warning app-list-item">@service.name</a>
 							</h4>
 							@if(service.confidential) {
 								<span class="label label-warning">@Domain.message("web.application.page.services.list.confidential")</span>
@@ -145,7 +151,7 @@
 									class="btn btn-default" title="">
 									<span>@Domain.message("web.application.page.services.list.publish")</span>
 								</a> 
-						</div>							
+						</div>
 						<div class="col-md-3">
 							<div class="btn-group pull-left">
 								<a href="@models.Service.getWmsGetCapUrl(service.name)" target="_blank"
@@ -157,6 +163,7 @@
 								} else {
 									<a href="" class="btn btn-default disabled" title="@Domain.message("web.application.page.services.list.button.metadata.wms")" target="_blank"><span class="glyphicon glyphicon-download"></span></a>
 								} 
+								<a href="@viewerPrefix()?service=@service.name" class="btn btn-default" title="@Domain.message("web.application.page.services.list.button.viewer")" target="_blank"><span class="glyphicon glyphicon-picture"></span></a>
 								<a href="@models.Service.getWfsGetCapUrl(service.name)"  target="_blank"
 									class="btn btn-default" title="@Domain.message("web.application.button.getcap")">
 									<span>&nbsp;WFS&nbsp;</span>

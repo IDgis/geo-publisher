@@ -22,7 +22,9 @@ public class MetadataConfig {
 	
 	private final Boolean downloadUrlDisplay;
 	
-	private final String downloadUrlPrefix;
+	private final String downloadUrlPrefixExternal;
+	
+	private final String downloadUrlPrefixInternal;
 	
 	private final String viewerUrlPublicPrefix;
 	
@@ -53,7 +55,9 @@ public class MetadataConfig {
 		
 		metadataUrlPrefix = "http://" + host + path + (path.endsWith("/") ? "" : "/") + "metadata/";
 		
-		downloadUrlPrefix = metadata.getString("download-url-prefix");
+		downloadUrlPrefixExternal = metadata.getString("download-url-prefix-external");
+		
+		downloadUrlPrefixInternal = metadata.getString("download-url-prefix-internal");
 		
 		viewerUrlPublicPrefix = metadata.getString("viewer-url-prefix-public");
 		
@@ -102,10 +106,14 @@ public class MetadataConfig {
 		return downloadUrlDisplay;
 	}
 
-	public Optional<String> getDownloadUrlPrefix() {
-		return Optional.ofNullable(downloadUrlPrefix);
+	public Optional<String> getDownloadUrlPrefixExternal() {
+		return Optional.ofNullable(downloadUrlPrefixExternal);
 	}
 	
+	public Optional<String> getDownloadUrlPrefixInternal() {
+		return Optional.ofNullable(downloadUrlPrefixInternal);
+	}
+
 	public Optional<String> getViewerUrlWmsOnlyPrefix() {
 		return Optional.ofNullable(viewerUrlWmsOnlyPrefix);
 	}

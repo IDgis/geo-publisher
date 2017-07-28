@@ -366,15 +366,35 @@ public class DatasetMetadata extends AbstractMetadata {
 						publishedServiceDataset.layerName);
 				
 				if(!serviceTuples.isEmpty()) {
-					config.getDownloadUrlPrefix().ifPresent(downloadUrlPrefix -> {
-						if(config.getDownloadUrlDisplay()) {
-							try {
-								metadataDocument.addServiceLinkage(downloadUrlPrefix + fileIdentifier, "download", null);
-							} catch(NotFound nf) {
-								throw new RuntimeException(nf);
+					boolean sourceDatasetConfidential = tx.query().from(sourceDataset)
+						.join(sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
+						.where(sourceDatasetVersion.id.eq(
+								new SQLSubQuery().from(sourceDatasetVersion)
+									.where(sourceDatasetVersion.sourceDatasetId.eq(sourceDatasetId))
+									.unique(sourceDatasetVersion.id.max())))
+						.uniqueResult(sourceDatasetVersion.confidential);
+					
+					if(sourceDatasetConfidential) {
+						config.getDownloadUrlPrefixInternal().ifPresent(downloadUrlPrefix -> {
+							if(config.getDownloadUrlDisplay()) {
+								try {
+									metadataDocument.addServiceLinkage(downloadUrlPrefix + fileIdentifier, "download", null);
+								} catch(NotFound nf) {
+									throw new RuntimeException(nf);
+								}
 							}
-						}
-					});
+						});
+					} else {
+						config.getDownloadUrlPrefixExternal().ifPresent(downloadUrlPrefix -> {
+							if(config.getDownloadUrlDisplay()) {
+								try {
+									metadataDocument.addServiceLinkage(downloadUrlPrefix + fileIdentifier, "download", null);
+								} catch(NotFound nf) {
+									throw new RuntimeException(nf);
+								}
+							}
+						});
+					}
 				}
 				
 				boolean environmentConfidential = true;
@@ -393,6 +413,9 @@ public class DatasetMetadata extends AbstractMetadata {
 						}
 					}
 				}
+				
+				String lastWMSLinkage = null;
+				String lastWFSLinkage = null;
 				
 				for(int i = 0; i < serviceTuples.size(); i++) {
 					JsonNode serviceInfo = Json.parse(serviceTuples.get(i).get(publishedService.content));
@@ -444,8 +467,22 @@ public class DatasetMetadata extends AbstractMetadata {
 						String protocol = serviceType.getProtocol();
 						
 						for(String spatialSchema : metadataDocument.getSpatialSchema()) {
-							if((!wmsOnly && "vector".equals(spatialSchema)) || "OGC:WMS".equals(protocol)) {
-								metadataDocument.addServiceLinkage(linkage, protocol, scopedName);
+							if((!wmsOnly && "vector".equals(spatialSchema)) || 
+									"OGC:WMS".equals(protocol)) {
+								
+								// only add wms url when linkage hasn't been added already
+								if("OGC:WMS".equals(protocol) && 
+										(lastWMSLinkage == null || !linkage.equals(lastWMSLinkage))) {
+									lastWMSLinkage = linkage;
+									metadataDocument.addServiceLinkage(linkage, protocol, scopedName);
+								}
+								
+								// only add wfs url when linkage hasn't been added already
+								if("OGC:WFS".equals(protocol) && 
+										(lastWFSLinkage == null || !linkage.equals(lastWFSLinkage))) {
+									lastWFSLinkage = linkage;
+									metadataDocument.addServiceLinkage(linkage, protocol, scopedName);
+								}
 							}
 						}
 					}

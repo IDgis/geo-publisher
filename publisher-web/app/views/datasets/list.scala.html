@@ -193,7 +193,7 @@
 							data-warning-delete-body="@Domain.message("web.application.page.datasets.list.delete.warning.body")">
 							<div class="row">
 								<div class="col-md-4">
-									<h4 class="list-group-item-heading"><a href="@routes.Datasets.show(dataset.id)" class="text-warning">@dataset.name</a></h4>
+									<h4 class="list-group-item-heading"><a href="@routes.Datasets.show(dataset.id)" class="text-warning app-list-item">@dataset.name</a></h4>
 
 									@if(dataset.category != null) {									
 										@categoryRefLink(dataset.category)
