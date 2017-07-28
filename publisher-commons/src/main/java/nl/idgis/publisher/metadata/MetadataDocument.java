@@ -599,6 +599,12 @@ public class MetadataDocument {
 			.strings(getUseLimitationsPath());
 	}
 	
+	public List<String> getConfidentialElements(String path) throws NotFound {
+		return isoMetadata
+			.xpath(Optional.of(namespaces))
+			.strings(path);
+	}
+	
 	/*
 	 * other constraints
 	 * 

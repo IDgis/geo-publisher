@@ -97,8 +97,14 @@ public class ProviderDataSourceTest {
 		
 		recorder = actorSystem.actorOf(Recorder.props(), "recorder");
 		
-		provider = actorSystem.actorOf(ProviderMock.props(recorder), "providerMock");		
-		providerDataSource = actorSystem.actorOf(ProviderDataSource.props(provider), "providerDataSource");
+		provider = actorSystem.actorOf(ProviderMock.props(recorder), "providerMock");
+		
+		Config harvesterConfig = ConfigFactory.empty()
+			.withValue("confidentialPath", ConfigValueFactory.fromAnyRef("/gmd:MD_Metadata/gmd:identificationInfo/gmd:MD_DataIdentification/gmd:resourceConstraints/gmd:MD_Constraints/gmd:useLimitation/gco:CharacterString"))
+			.withValue("dataPublicValue", ConfigValueFactory.fromAnyRef("Downloadable data"))
+			.withValue("metadataPublicValue", ConfigValueFactory.fromAnyRef("Geoportaal extern"))
+			.withValue("wmsOnlyValue", ConfigValueFactory.fromAnyRef("Alleen WMS extern"));
+		providerDataSource = actorSystem.actorOf(ProviderDataSource.props(provider, harvesterConfig), "providerDataSource");
 		
 		f = new FutureUtils(actorSystem);
 	}

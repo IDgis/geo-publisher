@@ -4,6 +4,7 @@ import com.typesafe.config.Config;
 
 import nl.idgis.publisher.protocol.MessageProtocolHandler;
 import nl.idgis.publisher.protocol.messages.ListenerInit;
+import nl.idgis.publisher.utils.ConfigUtils;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Terminated;
@@ -16,18 +17,18 @@ public class ServerListener extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final Config sslConfig;	
+	private final Config harvesterConfig;	
 	private final ActorRef harvester;
 	private final String harvesterName;
 	
-	public ServerListener(String harvesterName, ActorRef harvester, Config sslConfig) {
+	public ServerListener(String harvesterName, ActorRef harvester, Config harvesterConfig) {
 		this.harvesterName = harvesterName;
 		this.harvester = harvester;
-		this.sslConfig = sslConfig;
+		this.harvesterConfig = harvesterConfig;
 	}
 	
-	public static Props props(String harvesterName, ActorRef harvester, Config sslConfig) {
-		return Props.create(ServerListener.class, harvesterName, harvester, sslConfig);
+	public static Props props(String harvesterName, ActorRef harvester, Config harvesterConfig) {
+		return Props.create(ServerListener.class, harvesterName, harvester, harvesterConfig);
 	}
 
 	@Override
@@ -35,7 +36,9 @@ public class ServerListener extends UntypedActor {
 		if(msg instanceof Connected) {
 			log.debug("client connected");
 			
-			ActorRef actors = getContext().actorOf(ServerActors.props(harvesterName, harvester), "serverActors");
+			ActorRef actors = getContext().actorOf(ServerActors.props(harvesterName, harvester, harvesterConfig), "serverActors");
+			
+			Config sslConfig = ConfigUtils.getOptionalConfig(harvesterConfig, "ssl");
 			ActorRef messageProtocolHandler = getContext().actorOf(MessageProtocolHandler.props(true, sslConfig, getSender(), actors), "messages");
 			
 			getContext().watch(messageProtocolHandler);

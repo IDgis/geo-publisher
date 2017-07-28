@@ -28,17 +28,17 @@ public class Server extends UntypedActor {
 	
 	private final int port;
 	
-	private final Config sslConfig;
+	private final Config harvesterConfig;
 	
-	public Server(String harvesterName, ActorRef harvester, int port, Config sslConfig) {
+	public Server(String harvesterName, ActorRef harvester, int port, Config harvesterConfig) {
 		this.harvesterName = harvesterName;
 		this.harvester = harvester;
 		this.port = port;
-		this.sslConfig = sslConfig;
+		this.harvesterConfig = harvesterConfig;
 	}
 	
-	public static Props props(String harvesterName, ActorRef harvester, int port, Config sslConfig) {
-		return Props.create(Server.class, harvesterName, harvester, port, sslConfig);
+	public static Props props(String harvesterName, ActorRef harvester, int port, Config harvesterConfig) {
+		return Props.create(Server.class, harvesterName, harvester, port, harvesterConfig);
 	}
 	
 	@Override
@@ -55,7 +55,7 @@ public class Server extends UntypedActor {
 			getContext().stop(getSelf());
 		} else if (msg instanceof Connected) {
 			ActorRef listener = getContext().actorOf(
-					ServerListener.props(harvesterName, harvester, sslConfig),
+					ServerListener.props(harvesterName, harvester, harvesterConfig),
 					nameGenerator.getName(ServerListener.class));			
 			listener.tell(msg, getSender());
 		} else {
