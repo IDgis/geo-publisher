@@ -10,6 +10,8 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.Logging;
@@ -38,12 +40,6 @@ import nl.idgis.publisher.stream.messages.Start;
 
 public class ProviderDatasetConverter extends StreamConverter {
 	
-	private static final String DATA_NOT_CONFIDENTIAL_CONSTRAINT_VALUE = "Downloadable data";
-	
-	private static final String METADATA_NOT_CONFIDENTIAL_CONSTRAINT_VALUE = "Geoportaal extern";
-	
-	private static final String WMS_ONLY_CONSTRAINT_VALUE = "Alleen WMS extern";
-	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final Set<AttachmentType> attachmentTypes;
@@ -52,8 +48,11 @@ public class ProviderDatasetConverter extends StreamConverter {
 	
 	private final MetadataDocumentFactory mdf;
 	
-	public ProviderDatasetConverter(ActorRef provider) throws Exception {
+	private final Config harvesterConfig;
+	
+	public ProviderDatasetConverter(ActorRef provider, Config harvesterConfig) throws Exception {
 		this.provider = provider;
+		this.harvesterConfig = harvesterConfig;
 		
 		Set<AttachmentType> attachmentTypes = new HashSet<>();
 		attachmentTypes.add(AttachmentType.METADATA);
@@ -62,8 +61,8 @@ public class ProviderDatasetConverter extends StreamConverter {
 		mdf = new MetadataDocumentFactory();
 	}
 	
-	public static Props props(ActorRef provider) {
-		return Props.create(ProviderDatasetConverter.class, provider);
+	public static Props props(ActorRef provider, Config harvesterConfig) {
+		return Props.create(ProviderDatasetConverter.class, provider, harvesterConfig);
 	}
 
 	@Override
@@ -102,11 +101,14 @@ public class ProviderDatasetConverter extends StreamConverter {
 				if(content instanceof byte[]) {
 					try {
 						metadata = mdf.parseDocument((byte[])attachment.getContent());
-						List<String> useLimitations = metadata.getUseLimitations();
 						
-						confidential = !useLimitations.contains(DATA_NOT_CONFIDENTIAL_CONSTRAINT_VALUE);
-						metadataConfidential = !useLimitations.contains(METADATA_NOT_CONFIDENTIAL_CONSTRAINT_VALUE);
-						wmsOnly = useLimitations.contains(WMS_ONLY_CONSTRAINT_VALUE);
+						String confidentialsElement = harvesterConfig.getString("confidentialPath");
+						
+						List<String> useLimitations = metadata.getConfidentialElements(confidentialsElement);
+						
+						confidential = !useLimitations.contains(harvesterConfig.getString("dataPublicValue"));
+						metadataConfidential = !useLimitations.contains(harvesterConfig.getString("metadataPublicValue"));
+						wmsOnly = useLimitations.contains(harvesterConfig.getString("wmsOnlyValue"));
 						
 						log.debug("data confidential: " + confidential);
 						log.debug("metadata confidential: " + metadataConfidential);

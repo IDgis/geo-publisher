@@ -99,9 +99,7 @@ public class Harvester extends UntypedActor {
 		final String name = config.getString("name");		
 		final int port = config.getInt("port");
 		
-		final Config sslConfig = ConfigUtils.getOptionalConfig(config, "ssl");
-		
-		getContext().actorOf(Server.props(name, getSelf(), port, sslConfig), "server");
+		getContext().actorOf(Server.props(name, getSelf(), port, config), "server");
 		
 		dataSources = HashBiMap.create();
 		

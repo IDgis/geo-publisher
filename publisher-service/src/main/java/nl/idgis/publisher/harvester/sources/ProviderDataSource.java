@@ -6,6 +6,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -38,15 +40,18 @@ public class ProviderDataSource extends UntypedActor {
 		
 	private final ActorRef provider;
 	
-	public ProviderDataSource(ActorRef provider) {		
+	private final Config harvesterConfig;
+	
+	public ProviderDataSource(ActorRef provider, Config harvesterConfig) {		
 		this.provider = provider;
+		this.harvesterConfig = harvesterConfig;
 		
 		metadataType = new HashSet<>();
 		metadataType.add(AttachmentType.METADATA);
 	}
 	
-	public static Props props(ActorRef provider) {
-		return Props.create(ProviderDataSource.class, provider);
+	public static Props props(ActorRef provider, Config harvesterConfig) {
+		return Props.create(ProviderDataSource.class, provider, harvesterConfig);
 	}
 
 	@Override
@@ -86,7 +91,7 @@ public class ProviderDataSource extends UntypedActor {
 		log.debug("retrieving datasets from provider");
 		
 		ActorRef converter = getContext().actorOf(
-				ProviderDatasetConverter.props(provider),
+				ProviderDatasetConverter.props(provider, harvesterConfig),
 				nameGenerator.getName(ProviderDatasetConverter.class));
 		
 		converter.forward(msg, getContext());

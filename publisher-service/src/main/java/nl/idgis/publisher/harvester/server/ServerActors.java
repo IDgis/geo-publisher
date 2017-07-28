@@ -3,6 +3,8 @@ package nl.idgis.publisher.harvester.server;
 import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.Logging;
@@ -45,14 +47,17 @@ public class ServerActors extends MessageProtocolActors {
 	private final String harvesterName;
 	
 	private final ActorRef harvester;
+
+	private final Config harvesterConfig;
 	
-	public ServerActors(String harvesterName, ActorRef harvester) {
+	public ServerActors(String harvesterName, ActorRef harvester, Config harvesterConfig) {
 		this.harvesterName = harvesterName;
 		this.harvester = harvester;
+		this.harvesterConfig = harvesterConfig;
 	}
 
-	public static Props props(String harvesterName, ActorRef harvester) {
-		return Props.create(ServerActors.class, harvesterName, harvester);
+	public static Props props(String harvesterName, ActorRef harvester, Config harvesterConfig) {
+		return Props.create(ServerActors.class, harvesterName, harvester, harvesterConfig);
 	}
 	
 	@Override
@@ -69,7 +74,7 @@ public class ServerActors extends MessageProtocolActors {
 	private void createProviderConnectionClient(ActorRef admin) {
 		log.debug("creating provider connection client");
 		
-		getContext().actorOf(ProviderConnectionClient.props(harvesterName, harvester, admin), "harvester");
+		getContext().actorOf(ProviderConnectionClient.props(harvesterName, harvester, admin, harvesterConfig), "harvester");
 	}
 
 	@Override
