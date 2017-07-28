@@ -46,6 +46,7 @@ ext {
 	curatorVersion = '2.7.1'
 	querydslVersion = '3.4.1'
 	provisionRegistrationVersion = '1.1.3'
+	jolokiaVersion = '1.3.7'
 }
 
 configure([
@@ -584,12 +585,18 @@ project(':publisher-service') {
 	apply plugin: DockerRemoteConfig
 	
 	mainClassName = 'nl.idgis.publisher.ServiceApp'
+	applicationDefaultJvmArgs = ["-javaagent:/opt/bin/agents/jolokia-jvm-${jolokiaVersion}-agent.jar=host=*"]
 
 	configurations {
 		webapp
+		agents
 	}
 
 	dependencies {
+		agents(group: 'org.jolokia', name: 'jolokia-jvm', version: jolokiaVersion, classifier: 'agent') {
+			transitive = false
+		}
+	
 		webapp "org.geoserver.web:gs-web-app:${geoserverVersion}@war"
 		
 		testCompile project(':publisher-test')
@@ -643,20 +650,27 @@ project(':publisher-service') {
 		from 'src/main/docker'
 		into "${project.buildDir}/docker"
 	}
+	
+	task copyAgents(type: Copy) {
+		from configurations.agents
+		into "${project.buildDir}/docker/agents"
+	}
 
 	task createDockerfile(type: Dockerfile) {
 		destFile = file("${project.buildDir}/docker/Dockerfile")
 		from 'azul/zulu-openjdk'
 		copyFile "publisher-service-${project.version}", '/opt'
+		copyFile 'agents', "/opt/bin/agents"
 		copyFile 'start.sh', '/opt'
 		runCommand 'chmod +x /opt/bin/publisher-service && chmod +x /opt/start.sh'
-		exposePort 2552
-		exposePort 4242
+		exposePort 2552 // Akka
+		exposePort 4242 // Provider
+		exposePort 8778 // Jolokia
 		defaultCommand "/opt/start.sh"
 	}
 
 	task buildImage(type: DockerBuildImage) {
-		dependsOn rootProject.pullJavaImage, createDockerfile, unpackTar, copyContext
+		dependsOn rootProject.pullJavaImage, createDockerfile, unpackTar, copyContext, copyAgents
 
 		inputDir = file("${project.buildDir}/docker")
 		tag = "idgis/geopublisher_service:${project.version}"
