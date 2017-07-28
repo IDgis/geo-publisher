@@ -118,8 +118,7 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 		} else if(msg instanceof FileSize) {
 			log.debug("file size received: {}", msg);
 			
-			target.tell(
-				new RasterDatasetInfo(
+			RasterDatasetInfo rasterDatasetInfo = new RasterDatasetInfo(
 					identification, 
 					title, 
 					alternateTitle, 
@@ -128,8 +127,12 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 					attachments,
 					Collections.emptySet(), // logs
 					RasterFormat.TIFF,
-					((FileSize)msg).getSize()),
-				getSelf());
+					((FileSize)msg).getSize());
+			
+			log.debug("sending raster dataset info: {}", rasterDatasetInfo);
+			
+			target.tell(rasterDatasetInfo, getSelf());
+			
 			getContext().stop(getSelf());
 		} else if(msg instanceof SDEItemInfo) {
 			log.debug("item info received: {}", msg);
@@ -140,13 +143,16 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 			categoryId = ProviderUtils.getCategoryId(physicalname);
 			
 			title = physicalname;
+			
 			itemInfo.getDocumentation().ifPresent(documentation -> {
 				try {
 					MetadataDocumentFactory mdf = new MetadataDocumentFactory();
 					MetadataDocument md = mdf.parseDocument(documentation.getBytes("utf-8"));
 					
 					attributeAliases = md.getAttributeAliases();
-					revisionDate = md.getDatasetRevisionDate();
+					try {
+						revisionDate = md.getDatasetRevisionDate();
+					} catch (NotFound nf) {}
 					
 					if(attachmentTypes.contains(AttachmentType.METADATA)) {
 						attachments.add(new Attachment(
@@ -154,7 +160,7 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 							AttachmentType.METADATA,
 							md.getContent()));
 					}
-				
+					
 					try {
 						title = md.getDatasetTitle();
 					} catch(NotFound nf) {}
@@ -200,9 +206,7 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 			
 			TableInfo tableInfo = new TableInfo(columns.toArray(new ColumnInfo[columns.size()]));
 			
-			log.debug("sending vector dataset info");
-			
-			target.tell( 
+			VectorDatasetInfo vectorDatasetInfo = 
 				new VectorDatasetInfo(
 					identification, 
 					title, 
@@ -213,8 +217,11 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 					Collections.emptySet(), // logs
 					physicalname, // tableName
 					tableInfo,
-					numberOfRecords),
-				getSelf());
+					numberOfRecords);
+			
+			log.debug("sending vector dataset info: {}", vectorDatasetInfo);
+			
+			target.tell(vectorDatasetInfo, getSelf());
 			
 			getContext().stop(getSelf());
 		} else if(msg instanceof DatabaseTableInfo) {
