@@ -234,7 +234,8 @@ public class HarvestSession extends UntypedActor {
 				}
 			});
 		} else {
-			log.debug("confidential not included and confidential necessary");
+			log.debug("dataset with external uuid " + dataset.getId() + " is confidential and confidential is not "
+					+ "included in this instance");
 			
 			sender.tell(new NextItem(), getSelf());
 		}
