@@ -182,10 +182,10 @@ public class HarvestSession extends UntypedActor {
 		
 		ActorRef sender = getSender();
 		
-		String dataSourceId = harvestJob.getDataSourceId();
-		datasetIds.remove(dataset.getId());
-		
 		if(includeConfidential || (!includeConfidential && !dataset.isConfidential())) {
+			String dataSourceId = harvestJob.getDataSourceId();
+			datasetIds.remove(dataset.getId());
+			
 			f.ask(datasetManager, new RegisterSourceDataset(dataSourceId, dataset))
 			.exceptionally(e -> new Failure(e)).thenAccept((msg) -> {
 				if(msg instanceof AlreadyRegistered) {
