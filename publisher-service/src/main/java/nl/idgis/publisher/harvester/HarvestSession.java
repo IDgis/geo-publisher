@@ -182,7 +182,14 @@ public class HarvestSession extends UntypedActor {
 		
 		ActorRef sender = getSender();
 		
-		if(includeConfidential || (!includeConfidential && !dataset.isConfidential())) {
+		final boolean includeDataset;
+		if(includeConfidential) {
+			includeDataset = true;
+		} else {
+			includeDataset = !dataset.isConfidential();
+		}
+		
+		if(includeDataset) {
 			String dataSourceId = harvestJob.getDataSourceId();
 			datasetIds.remove(dataset.getId());
 			
