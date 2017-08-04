@@ -47,7 +47,7 @@ public class HarvestSession extends UntypedActor {
 	
 	private final HarvestJobInfo harvestJob;
 	
-	private final Set<String> datasetIds;
+	private final Set<String> toBeRemovedDatasetIds;
 	
 	private final boolean includeConfidential;
 	
@@ -55,16 +55,16 @@ public class HarvestSession extends UntypedActor {
 	
 	private int retriesLeft = 5;
 	
-	public HarvestSession(ActorRef jobContext, ActorRef datasetManager, HarvestJobInfo harvestJob, Set<String> datasetIds, boolean includeConfidential) {
+	public HarvestSession(ActorRef jobContext, ActorRef datasetManager, HarvestJobInfo harvestJob, Set<String> currentDatasetIds, boolean includeConfidential) {
 		this.jobContext = jobContext;
 		this.datasetManager = datasetManager;
 		this.harvestJob = harvestJob;
-		this.datasetIds = datasetIds;
+		this.toBeRemovedDatasetIds = currentDatasetIds;
 		this.includeConfidential = includeConfidential;
 	}
 	
-	public static Props props(ActorRef jobContext, ActorRef datasetManager, HarvestJobInfo harvestJob, Set<String> datasetIds, boolean includeConfidential) {
-		return Props.create(HarvestSession.class, jobContext, datasetManager, harvestJob, datasetIds, includeConfidential);
+	public static Props props(ActorRef jobContext, ActorRef datasetManager, HarvestJobInfo harvestJob, Set<String> currentDatasetIds, boolean includeConfidential) {
+		return Props.create(HarvestSession.class, jobContext, datasetManager, harvestJob, currentDatasetIds, includeConfidential);
 	}
 	
 	@Override
@@ -73,7 +73,7 @@ public class HarvestSession extends UntypedActor {
 		
 		f = new FutureUtils(getContext());
 		
-		log.debug("existing datasets: {}", datasetIds.size());
+		log.debug("existing datasets: {}", toBeRemovedDatasetIds.size());
 	}
 	
 	@Override
@@ -129,15 +129,15 @@ public class HarvestSession extends UntypedActor {
 	private void handleEnd() {
 		log.debug("harvesting finished");
 		
-		if(datasetIds.isEmpty()) {
+		if(toBeRemovedDatasetIds.isEmpty()) {
 			log.debug ("no obsolete datasets");
 			cleanup();
 		} else {
-			log.debug ("obsolete datasets: {}", datasetIds.size());
+			log.debug ("obsolete datasets: {}", toBeRemovedDatasetIds.size());
 			
 			f.ask (datasetManager, new DeleteSourceDatasets(
 				harvestJob.getDataSourceId(), 
-				datasetIds)).whenComplete ((message, error) -> {
+				toBeRemovedDatasetIds)).whenComplete ((message, error) -> {
 					if (error != null) {
 						log.error ("couldn't delete source datasets: {}", error);
 						finish(JobState.FAILED);
@@ -182,10 +182,17 @@ public class HarvestSession extends UntypedActor {
 		
 		ActorRef sender = getSender();
 		
-		String dataSourceId = harvestJob.getDataSourceId();
-		datasetIds.remove(dataset.getId());
+		final boolean includeDataset;
+		if(includeConfidential) {
+			includeDataset = true;
+		} else {
+			includeDataset = !dataset.isConfidential();
+		}
 		
-		if(includeConfidential || (!includeConfidential && !dataset.isConfidential())) {
+		if(includeDataset) {
+			String dataSourceId = harvestJob.getDataSourceId();
+			toBeRemovedDatasetIds.remove(dataset.getId());
+			
 			f.ask(datasetManager, new RegisterSourceDataset(dataSourceId, dataset))
 			.exceptionally(e -> new Failure(e)).thenAccept((msg) -> {
 				if(msg instanceof AlreadyRegistered) {
