@@ -284,14 +284,22 @@ public class DatasetAdmin extends AbstractAdmin {
 			datasetStatus.imported,
 			datasetStatus.sourceDatasetColumnsChanged,
 			lastImportJob.finishTime,
-			lastImportJob.finishState,							
+			lastImportJob.finishState,
 			datasetActiveNotification.notificationId,
 			datasetActiveNotification.notificationType,
 			datasetActiveNotification.notificationResult,
 			datasetActiveNotification.jobId,
 			datasetActiveNotification.jobType,
 			new SQLSubQuery ().from (leafLayer).where (leafLayer.datasetId.eq (dataset.id)).count ().as (layerCountPath),
-			new SQLSubQuery ().from (publishedServiceDataset).where (publishedServiceDataset.datasetId.eq (dataset.id)).count ().as (publishedServiceCountPath),
+			new SQLSubQuery ().from (
+					new SQLSubQuery()
+						.from(publishedServiceDataset)
+						.where(publishedServiceDataset.datasetId.eq(dataset.id))
+						.distinct()
+						.list(publishedServiceDataset.serviceId, publishedServiceDataset.datasetId)
+						.as("tmp"))
+					.count()
+					.as (publishedServiceCountPath),
 			sourceDatasetVersion.confidential,
 			sourceDatasetVersion.wmsOnly
 		};
