@@ -233,6 +233,7 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 											fileName,
 											getStyleRefs(styles, t),
 											confidential,
+											wmsOnly,
 											importTime);
 							
 								case "VECTOR":
