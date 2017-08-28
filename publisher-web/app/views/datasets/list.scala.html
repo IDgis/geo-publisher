@@ -4,6 +4,7 @@
 	categories: List[nl.idgis.publisher.domain.web.Category],
 	currentCategory: nl.idgis.publisher.domain.web.Category,
 	currentDatasetStatus: DatasetStatus = null,
+	withCoupling: java.lang.Boolean,
 	query: String)
 
 @import nl.idgis.publisher.domain.web._
@@ -14,29 +15,45 @@
 }
 
 @categoryRefLink(cat: Category) = {
-	<a href="@routes.Datasets.listByCategory(cat.id, 1, query)" class="label label-info">@Domain.message("web.application.page.datasets.list.categorieref"): @cat.name</a>
+	<a href="@routes.Datasets.listByCategory(cat.id, withCoupling, 1, query)" class="label label-info">@Domain.message("web.application.page.datasets.list.categorieref"): @cat.name</a>
 }
 
 @allCategoriesLink() = {
 	<li@if(currentCategory == null){ class="active"}>
 
 		@if(currentDatasetStatus == null) {
-			<a href="@routes.Datasets.list(1, query)">
+			<a href="@routes.Datasets.list(withCoupling, 1, query)">
 		} else {
-			<a href="@routes.Datasets.listByStatus(currentDatasetStatus, 1, query)">
+			<a href="@routes.Datasets.listByStatus(currentDatasetStatus, withCoupling, 1, query)">
 		}
 		@Domain.message("web.application.page.datasets.list.allcategories")</a>
 	
 	</li>
 }
 
+@couplingLink(coupling: java.lang.Boolean) = @{
+	if(currentDatasetStatus == null) {
+		if(currentCategory == null) {
+			routes.Datasets.list(coupling, 1, query)
+		} else {
+			routes.Datasets.listByCategory(currentCategory.id, coupling, 1, query)
+		}
+	} else {
+		if(currentCategory == null) {
+			routes.Datasets.listByStatus(currentDatasetStatus, coupling, 1, query)
+		} else {
+			routes.Datasets.listByCategoryAndStatus(currentCategory.id, currentDatasetStatus, coupling, 1, query)
+		}
+	}
+}
+
 @categoryLink(cat: Category) = {
 	<li@if(cat == currentCategory){ class="active"}>	
 	
 		@if(currentDatasetStatus == null) {
-			<a href="@routes.Datasets.listByCategory(cat.id, 1, query)" title="@cat.id">
+			<a href="@routes.Datasets.listByCategory(cat.id, withCoupling, 1, query)" title="@cat.id">
 		} else {
-			<a href="@routes.Datasets.listByCategoryAndStatus(cat.id, currentDatasetStatus, 1, query)" title="@cat.id">
+			<a href="@routes.Datasets.listByCategoryAndStatus(cat.id, currentDatasetStatus, withCoupling, 1, query)" title="@cat.id">
 		}		
 		@cat.name</a>	
 	
@@ -48,15 +65,15 @@
 		<li@if(boundStatus == currentDatasetStatus){ class="active"}>
 			@if(boundStatus == null) {
 				@if(currentCategory == null) {
-					<a href="@routes.Datasets.list(1, query)">
+					<a href="@routes.Datasets.list(withCoupling, 1, query)">
 				} else {
-					<a href="@routes.Datasets.listByCategory(currentCategory.id, 1, query)">
+					<a href="@routes.Datasets.listByCategory(currentCategory.id, withCoupling, 1, query)">
 				}
 			} else {
 				@if(currentCategory == null) {
-					<a href="@routes.Datasets.listByStatus(boundStatus, 1, query)">
+					<a href="@routes.Datasets.listByStatus(boundStatus, withCoupling, 1, query)">
 				} else {
-					<a href="@routes.Datasets.listByCategoryAndStatus(currentCategory.id, boundStatus, 1, query)">
+					<a href="@routes.Datasets.listByCategoryAndStatus(currentCategory.id, boundStatus, withCoupling, 1, query)">
 				}			
 			}
 			@Domain.message(message)
@@ -68,27 +85,27 @@
 @clearSearch(targetPage: Long = 1) = @{
 	if(currentDatasetStatus == null)
 		if(currentCategory == null)
-			routes.Datasets.list(targetPage)
+			routes.Datasets.list(withCoupling, targetPage)
 		else
-			routes.Datasets.listByCategory(currentCategory.id, targetPage)
+			routes.Datasets.listByCategory(currentCategory.id, withCoupling, targetPage)
 	else		
 		if(currentCategory == null) 
-			routes.Datasets.listByStatus(currentDatasetStatus, targetPage)
+			routes.Datasets.listByStatus(currentDatasetStatus, withCoupling, targetPage)
 		else
-			routes.Datasets.listByCategoryAndStatus(currentCategory.id, currentDatasetStatus, targetPage)
+			routes.Datasets.listByCategoryAndStatus(currentCategory.id, currentDatasetStatus, withCoupling, targetPage)
 }
 
 @pageRef(targetPage: Long = 1) = @{
 	if(currentDatasetStatus == null)
 		if(currentCategory == null)
-			routes.Datasets.list(targetPage, query)
+			routes.Datasets.list(withCoupling, targetPage, query)
 		else
-			routes.Datasets.listByCategory(currentCategory.id, targetPage, query)
+			routes.Datasets.listByCategory(currentCategory.id, withCoupling, targetPage, query)
 	else		
 		if(currentCategory == null) 
-			routes.Datasets.listByStatus(currentDatasetStatus, targetPage, query)
+			routes.Datasets.listByStatus(currentDatasetStatus, withCoupling, targetPage, query)
 		else
-			routes.Datasets.listByCategoryAndStatus(currentCategory.id, currentDatasetStatus, targetPage, query)
+			routes.Datasets.listByCategoryAndStatus(currentCategory.id, currentDatasetStatus, withCoupling, targetPage, query)
 }
 
 @statusClass(dataset: Dataset) = @{
@@ -139,7 +156,26 @@
 				
 				@* Filters: *@
 				<div class="panel-group" id="filters-accordion">
-				
+					
+					<div class="panel panel-default">
+						<div class="panel-heading">
+							<h4 class="panel-title">
+								<a data-toggle="collapse" data-parent="#filters-accordion" href="#collapse-filter-coupled">
+									@Domain.message("web.application.page.datasets.list.coupling.title")
+								</a>
+							</h4>
+						</div>
+						<div id="collapse-filter-coupled" class="panel-collapse collapse in">
+							<div class="panel-body">
+								<ul class="nav nav-pills nav-stacked">
+									<li@if(withCoupling == null) { class="active"}><a href="@couplingLink(null).url">@Domain.message("web.application.page.datasets.list.coupling.both")</a></li>
+									<li@if(withCoupling != null && !withCoupling) { class="active"}><a href="@couplingLink(false).url">@Domain.message("web.application.page.datasets.list.coupling.without")</a></li>
+									<li@if(withCoupling != null && withCoupling) { class="active"}><a href="@couplingLink(true).url">@Domain.message("web.application.page.datasets.list.coupling.with")</a></li>
+								</ul>
+							</div>
+						</div>
+					</div>
+					
 					<div class="panel panel-default">
 						<div class="panel-heading">
 							<h4 class="panel-title">

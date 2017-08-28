@@ -697,6 +697,20 @@ private String getEnumName(Enum e){
 								.notExists());
 				}
 			}
+			
+			if (msg.getWithCoupling () != null) {
+				if(msg.getWithCoupling ()) {
+					baseQuery.where(new SQLSubQuery()
+							.from(dataset)
+							.where(dataset.sourceDatasetId.eq(sourceDataset.id))
+								.exists());
+				} else {
+					baseQuery.where(new SQLSubQuery()
+							.from(dataset)
+							.where(dataset.sourceDatasetId.eq(sourceDataset.id))
+								.notExists());
+				}
+			}
 				
 			AsyncSQLQuery listQuery = baseQuery.clone()	
 				.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id));
