@@ -65,7 +65,7 @@
 	} 
 }
 
-@pageRef(targetPage: Long = 1) = @{
+@clearSearch(targetPage: Long = 1) = @{
 	if(currentDatasetStatus == null)
 		if(currentCategory == null)
 			routes.Datasets.list(targetPage)
@@ -76,6 +76,19 @@
 			routes.Datasets.listByStatus(currentDatasetStatus, targetPage)
 		else
 			routes.Datasets.listByCategoryAndStatus(currentCategory.id, currentDatasetStatus, targetPage)
+}
+
+@pageRef(targetPage: Long = 1) = @{
+	if(currentDatasetStatus == null)
+		if(currentCategory == null)
+			routes.Datasets.list(targetPage, query)
+		else
+			routes.Datasets.listByCategory(currentCategory.id, targetPage, query)
+	else		
+		if(currentCategory == null) 
+			routes.Datasets.listByStatus(currentDatasetStatus, targetPage, query)
+		else
+			routes.Datasets.listByCategoryAndStatus(currentCategory.id, currentDatasetStatus, targetPage, query)
 }
 
 @statusClass(dataset: Dataset) = @{
@@ -117,7 +130,7 @@
 							<button type="submit" class="btn btn-link form-control-feedback"><span class="glyphicon glyphicon-search"></span></button>
 							
 							@if(query != null) {
-								<small><a href="@pageRef()">@Domain.message("web.application.page.datasets.list.search.clear")</a></small>
+								<small><a href="@clearSearch()">@Domain.message("web.application.page.datasets.list.search.clear")</a></small>
 							}
 						</div>
 					</div>
