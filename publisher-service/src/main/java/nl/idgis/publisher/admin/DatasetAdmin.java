@@ -382,6 +382,18 @@ public class DatasetAdmin extends AbstractAdmin {
 						}
 					}
 					
+					if (listDatasets.withCoupling () != null) {
+						if (listDatasets.withCoupling ()) {
+							baseQuery.where(new SQLSubQuery()
+									.from(leafLayer).where(leafLayer.datasetId.eq(dataset.id))
+										.exists());
+						} else {
+							baseQuery.where(new SQLSubQuery()
+									.from(leafLayer).where(leafLayer.datasetId.eq(dataset.id))
+										.notExists());
+						}
+					}
+					
 					if (listDatasets.getQuery () != null) {
 						baseQuery.where (dataset.name.containsIgnoreCase (listDatasets.getQuery ().trim ()));
 					}
