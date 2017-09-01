@@ -10,7 +10,7 @@ import nl.idgis.publisher.domain.job.JobState;
 
 public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 	
-	private static final long serialVersionUID = 6103408676819855770L;
+	private static final long serialVersionUID = 5854139357908268835L;
 	
 	private String sourceDatasetId, sourceDatasetName;
 	private String categoryId, categoryName;
@@ -24,7 +24,7 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 	private final long publishedServiceCount;
 	private final boolean confidential;
 	private final boolean wmsOnly;
-	private final String tableName;
+	private final String physicalName;
 
 	public DatasetInfo(String id, String name, String sourceDatasetId,
 			String sourceDatasetName, String categoryId, String categoryName,
@@ -39,7 +39,7 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 			final boolean confidential,
 			final boolean wmsOnly,
 			final String metadataFileId,
-			final String tableName) {
+			final String physicalName) {
 		super(id, name);
 		
 		this.sourceDatasetId = sourceDatasetId;
@@ -57,7 +57,7 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 		this.confidential = confidential;
 		this.wmsOnly = wmsOnly;
 		this.metadataFileId = metadataFileId;
-		this.tableName = tableName;
+		this.physicalName = physicalName;
 	}
 	
 	private static JobState toJobState(String jobStateName) {
@@ -128,8 +128,8 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 		return metadataFileId;
 	}
 	
-	public String getTableName () {
-		return tableName;
+	public String getPhysicalName () {
+		return physicalName;
 	}
 
 	@Override
@@ -139,6 +139,6 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 				+ filterConditions + ", metadataFileId=" + metadataFileId + ", imported=" + imported
 				+ ", sourceDatasetColumnsChanged=" + sourceDatasetColumnsChanged + ", lastImportTime=" + lastImportTime
 				+ ", lastImportJobState=" + lastImportJobState + ", notifications=" + notifications + ", layerCount="
-				+ layerCount + ", confidential=" + confidential + ", wmsOnly=" + wmsOnly + ", tableName=" + tableName + "]";
+				+ layerCount + ", confidential=" + confidential + ", wmsOnly=" + wmsOnly + ", physicalName=" + physicalName + "]";
 	}
 }

@@ -10,7 +10,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public final class Dataset extends Identifiable {
 	
-	private static final long serialVersionUID = 4935402389306554571L;
+	private static final long serialVersionUID = 209558793371572155L;
 	
 	private final String name, metadataFileId;
 	private final Category category;
@@ -22,7 +22,7 @@ public final class Dataset extends Identifiable {
 	private final long publishedServiceCount;
 	private final boolean confidential;
 	private final boolean wmsOnly;
-	private final String tableName;
+	private final String physicalName;
 	
 	@JsonCreator
 	public Dataset (
@@ -38,7 +38,7 @@ public final class Dataset extends Identifiable {
 			final @JsonProperty("confidential") boolean confidential,
 			final @JsonProperty("wmsOnly") boolean wmsOnly,
 			final @JsonProperty("metadataFileId") String metadataFileId,
-			final @JsonProperty("tableName") String tableName) {
+			final @JsonProperty("physicalName") String physicalName) {
 		
 		super (id);
 		
@@ -53,7 +53,7 @@ public final class Dataset extends Identifiable {
 		this.confidential = confidential;
 		this.wmsOnly = wmsOnly;
 		this.metadataFileId = metadataFileId;
-		this.tableName = tableName;
+		this.physicalName = physicalName;
 	}
 	
 	@JsonGetter
@@ -112,7 +112,7 @@ public final class Dataset extends Identifiable {
 	}
 	
 	@JsonGetter
-	public String tableName () {
-		return this.tableName;
+	public String physicalName () {
+		return this.physicalName;
 	}
 }

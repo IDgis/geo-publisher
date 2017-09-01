@@ -94,7 +94,7 @@ public class SourceDatasetAdmin extends AbstractAdmin {
 						dataSource.identification, dataSource.name, sourceDatasetVersion.type, 
 						sourceDataset.deleteTime, sourceDatasetVersion.confidential, 
 						sourceDatasetVersion.wmsOnly, sourceDataset.externalIdentification,
-						sourceDatasetVersion.tableName);
+						sourceDatasetVersion.physicalName);
 		
 		return querySourceDatasetFuture.thenCompose(optionalSourceDataset -> {
 			if(optionalSourceDataset.isPresent()) {
@@ -140,7 +140,7 @@ public class SourceDatasetAdmin extends AbstractAdmin {
 									sourceDatasetTuple.get(sourceDatasetVersion.wmsOnly),
 									listNotifications,
 									sourceDatasetTuple.get(sourceDataset.externalIdentification),
-									sourceDatasetTuple.get(sourceDatasetVersion.tableName))));
+									sourceDatasetTuple.get(sourceDatasetVersion.physicalName))));
 				});
 				
 				

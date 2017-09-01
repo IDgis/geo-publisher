@@ -72,7 +72,7 @@ public class ProviderDatasetConverter extends StreamConverter {
 		
 		Set<AttachmentType> attachmentTypes = new HashSet<>();
 		attachmentTypes.add(AttachmentType.METADATA);
-		attachmentTypes.add(AttachmentType.TABLE_NAME);
+		attachmentTypes.add(AttachmentType.PHYSICAL_NAME);
 		this.attachmentTypes = Collections.unmodifiableSet(attachmentTypes);
 		
 		mdf = new MetadataDocumentFactory();
@@ -112,11 +112,11 @@ public class ProviderDatasetConverter extends StreamConverter {
 			
 			MetadataDocument metadata;
 			
-			String tableName = null;
-			if(attachments.containsKey(AttachmentType.TABLE_NAME)) {
-				Attachment attachment = attachments.get(AttachmentType.TABLE_NAME);
+			String physicalName = null;
+			if(attachments.containsKey(AttachmentType.PHYSICAL_NAME)) {
+				Attachment attachment = attachments.get(AttachmentType.PHYSICAL_NAME);
 				if(attachment.getContent() instanceof String) {
-					tableName = (String) attachment.getContent();
+					physicalName = (String) attachment.getContent();
 				}
 			}
 			
@@ -183,15 +183,15 @@ public class ProviderDatasetConverter extends StreamConverter {
 					.collect(Collectors.toList());
 				
 				Table table = new Table(columns);
-				dataset = new VectorDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata, table, tableName);
+				dataset = new VectorDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata, table, physicalName);
 			} else if(msg instanceof RasterDatasetInfo) {
 				log.debug("raster dataset info type");
 				
-				dataset = new RasterDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata, tableName);
+				dataset = new RasterDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata, physicalName);
 			} else {
 				log.debug("unhandled dataset info type");
 				
-				dataset = new UnavailableDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata, tableName);
+				dataset = new UnavailableDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata, physicalName);
 			}
 			
 			log.debug("resulting dataset: {}", dataset);

@@ -83,8 +83,8 @@ public class VectorDatasetInfoBuilder extends AbstractDatasetInfoBuilder {
 		tableName = ProviderUtils.getTableName(alternateTitle);
 		log.debug("tableName: {}", tableName);
 		
-		if(requestedAttachmentTypes.contains(AttachmentType.TABLE_NAME)) {
-			attachments.add(new Attachment(identification, AttachmentType.TABLE_NAME, tableName));
+		if(requestedAttachmentTypes.contains(AttachmentType.PHYSICAL_NAME)) {
+			attachments.add(new Attachment(identification, AttachmentType.PHYSICAL_NAME, tableName));
 		}
 		
 		categoryId = ProviderUtils.getCategoryId(tableName);

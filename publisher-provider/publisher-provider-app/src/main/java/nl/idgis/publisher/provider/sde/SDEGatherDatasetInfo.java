@@ -161,10 +161,10 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 							md.getContent()));
 					}
 					
-					if(attachmentTypes.contains(AttachmentType.TABLE_NAME)) {
+					if(attachmentTypes.contains(AttachmentType.PHYSICAL_NAME)) {
 						attachments.add(new Attachment(
 							"gdb_items_vw.physicalname", 
-							AttachmentType.TABLE_NAME,
+							AttachmentType.PHYSICAL_NAME,
 							physicalname));
 					}
 					

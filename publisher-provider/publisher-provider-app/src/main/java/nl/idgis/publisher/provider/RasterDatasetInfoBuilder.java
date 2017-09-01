@@ -48,8 +48,8 @@ public class RasterDatasetInfoBuilder extends AbstractDatasetInfoBuilder {
 		if(alternateTitle != null && !alternateTitle.trim().isEmpty()) {
 			fileName = ProviderUtils.getRasterFile(alternateTitle);
 			
-			if(requestedAttachmentTypes.contains(AttachmentType.TABLE_NAME)) {
-				attachments.add(new Attachment(identification, AttachmentType.TABLE_NAME, fileName));
+			if(requestedAttachmentTypes.contains(AttachmentType.PHYSICAL_NAME)) {
+				attachments.add(new Attachment(identification, AttachmentType.PHYSICAL_NAME, fileName));
 			}
 			
 			folder.tell(new GetFileSize(Paths.get(fileName)), getSelf());

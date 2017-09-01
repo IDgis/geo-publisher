@@ -12,8 +12,8 @@ public final class VectorDataset extends Dataset {
 	
 	private final Table table;
 	
-	public VectorDataset(String id, String name, String alternateTitle, String categoryId, Date revisionDate, Set<Log> logs, boolean confidential, boolean metadataConfidential, boolean wmsOnly, MetadataDocument metadata, Table table, String tableName) {
-		super(id, name, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata, tableName);
+	public VectorDataset(String id, String name, String alternateTitle, String categoryId, Date revisionDate, Set<Log> logs, boolean confidential, boolean metadataConfidential, boolean wmsOnly, MetadataDocument metadata, Table table, String physicalName) {
+		super(id, name, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata, physicalName);
 		
 		this.table = table;
 	}
@@ -52,6 +52,6 @@ public final class VectorDataset extends Dataset {
 		return "VectorDataset [table=" + table + ", id=" + id + ", name=" + name + ", alternateTitle=" + alternateTitle
 				+ ", categoryId=" + categoryId + ", revisionDate=" + revisionDate + ", logs=" + logs + ", confidential="
 				+ confidential + ", metadataConfidential=" + metadataConfidential + ", metadata=" + metadata
-				+ ", wmsOnly=" + wmsOnly + ", tableName=" + tableName + "]";
+				+ ", wmsOnly=" + wmsOnly + ", physicalName=" + physicalName + "]";
 	}
 }

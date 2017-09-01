@@ -319,10 +319,10 @@
 										} else {
 											<span class="label label-default">@Domain.message("web.application.page.datasets.list.nocategory")</span>
 										}
-										@if(dataset.sourceDataset.tableName != null) {
-											<span class="label label-info">@Domain.message("web.application.page.datasets.list.tablename.label") @dataset.sourceDataset.tableName</span>
+										@if(dataset.sourceDataset.physicalName != null) {
+											<span class="label label-info">@Domain.message("web.application.page.datasets.list.physicalname.label") @dataset.sourceDataset.physicalName</span>
 										} else {
-											<span class="label label-default">@Domain.message("web.application.page.datasets.list.notablename")</span>
+											<span class="label label-default">@Domain.message("web.application.page.datasets.list.nophysicalname")</span>
 										}
 										@dataSourceRefLink(dataset.sourceDataset.dataSource, "label label-info")
 										@if(dataset.sourceDataset.confidential) {

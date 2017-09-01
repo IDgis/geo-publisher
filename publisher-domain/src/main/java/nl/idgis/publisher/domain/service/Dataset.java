@@ -10,7 +10,7 @@ import nl.idgis.publisher.metadata.MetadataDocument;
 
 public abstract class Dataset implements Serializable {
 	
-	private static final long serialVersionUID = 8296975731489807295L;
+	private static final long serialVersionUID = -1488631999191753710L;
 
 	protected final String id, name, alternateTitle;
 	
@@ -26,9 +26,9 @@ public abstract class Dataset implements Serializable {
 	
 	protected final boolean wmsOnly;
 	
-	protected final String tableName;
+	protected final String physicalName;
 	
-	Dataset(String id, String name, String alternateTitle, String categoryId, Date revisionDate, Set<Log> logs, boolean confidential, boolean metadataConfidential, boolean wmsOnly, MetadataDocument metadata, String tableName) {
+	Dataset(String id, String name, String alternateTitle, String categoryId, Date revisionDate, Set<Log> logs, boolean confidential, boolean metadataConfidential, boolean wmsOnly, MetadataDocument metadata, String physicalName) {
 		this.id = id;
 		this.name = name;
 		this.alternateTitle = alternateTitle;
@@ -39,7 +39,7 @@ public abstract class Dataset implements Serializable {
 		this.metadataConfidential = metadataConfidential;
 		this.wmsOnly = wmsOnly;
 		this.metadata = metadata;
-		this.tableName = tableName;
+		this.physicalName = physicalName;
 	}
 
 	public String getId() {
@@ -78,8 +78,8 @@ public abstract class Dataset implements Serializable {
 		return wmsOnly;
 	}
 	
-	public String getTableName() {
-		return tableName;
+	public String getPhysicalName() {
+		return physicalName;
 	}
 
 	@Override
@@ -94,7 +94,7 @@ public abstract class Dataset implements Serializable {
 		result = prime * result + (metadataConfidential ? 1231 : 1237);
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result + ((revisionDate == null) ? 0 : revisionDate.hashCode());
-		result = prime * result + ((tableName == null) ? 0 : tableName.hashCode());
+		result = prime * result + ((physicalName == null) ? 0 : physicalName.hashCode());
 		result = prime * result + (wmsOnly ? 1231 : 1237);
 		return result;
 	}
@@ -146,10 +146,10 @@ public abstract class Dataset implements Serializable {
 				return false;
 		} else if (!revisionDate.equals(other.revisionDate))
 			return false;
-		if (tableName == null) {
-			if (other.tableName != null)
+		if (physicalName == null) {
+			if (other.physicalName != null)
 				return false;
-		} else if (!tableName.equals(other.tableName))
+		} else if (!physicalName.equals(other.physicalName))
 			return false;
 		if (wmsOnly != other.wmsOnly)
 			return false;

@@ -535,7 +535,7 @@ private String getEnumName(Enum e){
 						sourceDatasetVersion.confidential,
 						sourceDatasetVersion.wmsOnly,
 						sourceDataset.externalIdentification,
-						sourceDatasetVersion.tableName
+						sourceDatasetVersion.physicalName
 					)).thenApply(sourceDatasetInfoOptional -> 
 						sourceDatasetInfoOptional.map(sourceDatasetInfo -> 
 							new SourceDataset(
@@ -556,7 +556,7 @@ private String getEnumName(Enum e){
 								sourceDatasetInfo.isWmsOnly (),
 								Collections.<Notification>emptyList(),
 								sourceDatasetInfo.externalId(),
-								sourceDatasetInfo.tableName()
+								sourceDatasetInfo.physicalName()
 							)));	
 	}
 
@@ -749,7 +749,7 @@ private String getEnumName(Enum e){
 						sourceDatasetVersion.confidential,
 						sourceDatasetVersion.wmsOnly,
 						sourceDataset.externalIdentification,
-						sourceDatasetVersion.tableName
+						sourceDatasetVersion.physicalName
 					)))
 				.collect(baseQuery.count()).thenApply((list, count) -> {
 					Page.Builder<SourceDatasetStats> pageBuilder = new Page.Builder<> ();
@@ -767,7 +767,7 @@ private String getEnumName(Enum e){
 							sourceDatasetInfo.isWmsOnly(),
 							Collections.<Notification>emptyList(),
 							sourceDatasetInfo.externalId(),
-							sourceDatasetInfo.tableName()
+							sourceDatasetInfo.physicalName()
 						);
 						
 						pageBuilder.add (new SourceDatasetStats (

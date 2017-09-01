@@ -354,7 +354,7 @@ public class DatasetManager extends UntypedActor {
 						sourceDatasetVersion.confidential,
 						sourceDatasetVersion.wmsOnly,
 						sourceDatasetVersion.metadataConfidential,
-						sourceDatasetVersion.tableName))
+						sourceDatasetVersion.physicalName))
 			.collect(
 				tx.query().from(sourceDatasetVersionLog)
 				.where(sourceDatasetVersionLog.sourceDatasetVersionId.eq(versionId))
@@ -382,7 +382,7 @@ public class DatasetManager extends UntypedActor {
 						boolean metadataConfidential = baseInfo.get(sourceDatasetVersion.metadataConfidential);
 						boolean wmsOnly = baseInfo.get(sourceDatasetVersion.wmsOnly);
 						byte[] metadataContent = baseInfo.get(sourceDatasetMetadata.document);
-						String tableName = baseInfo.get(sourceDatasetVersion.tableName);
+						String physicalName = baseInfo.get(sourceDatasetVersion.physicalName);
 						
 						MetadataDocument metadata;
 						if(metadataContent == null) {
@@ -443,7 +443,7 @@ public class DatasetManager extends UntypedActor {
 									wmsOnly,
 									metadata,
 									new Table(columnInfo.list()),
-									tableName);
+									physicalName);
 								break;
 							case "RASTER":
 								dataset = new RasterDataset(
@@ -457,7 +457,7 @@ public class DatasetManager extends UntypedActor {
 									metadataConfidential,
 									wmsOnly,
 									metadata,
-									tableName);
+									physicalName);
 								break;
 							default:
 								dataset = new UnavailableDataset(
@@ -471,7 +471,7 @@ public class DatasetManager extends UntypedActor {
 									metadataConfidential,
 									wmsOnly,
 									metadata,
-									tableName);
+									physicalName);
 								break;
 						}
 						
@@ -561,7 +561,7 @@ public class DatasetManager extends UntypedActor {
 			boolean confidential = dataset.isConfidential();
 			boolean metadataConfidential = dataset.isMetadataConfidential();
 			boolean wmsOnly = dataset.isWmsOnly();
-			String tableName = dataset.getTableName();
+			String physicalName = dataset.getPhysicalName();
 			
 			return tx.insert(sourceDatasetVersion)
 				.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
@@ -573,7 +573,7 @@ public class DatasetManager extends UntypedActor {
 				.set(sourceDatasetVersion.confidential, confidential)
 				.set(sourceDatasetVersion.metadataConfidential, metadataConfidential)
 				.set(sourceDatasetVersion.wmsOnly, wmsOnly)
-				.set(sourceDatasetVersion.tableName, tableName)
+				.set(sourceDatasetVersion.physicalName, physicalName)
 				.executeWithKey(sourceDatasetVersion.id);
 			}).thenCompose(sourceDatasetVersionId -> {
 				log.debug("sourceDatasetVersionId: {}", sourceDatasetVersionId);

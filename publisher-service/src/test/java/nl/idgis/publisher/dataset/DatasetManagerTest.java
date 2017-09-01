@@ -121,7 +121,7 @@ public class DatasetManagerTest extends AbstractServiceTest {
 			dataset.isMetadataConfidential(),
 			dataset.isWmsOnly(),
 			dataset.getMetadata().orElse(null),
-			dataset.getTableName());
+			dataset.getPhysicalName());
 		
 		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), AlreadyRegistered.class).get();
 		
@@ -138,7 +138,7 @@ public class DatasetManagerTest extends AbstractServiceTest {
 			dataset.isMetadataConfidential(),
 			dataset.isWmsOnly(),
 			dataset.getMetadata().orElse(null),
-			dataset.getTableName());
+			dataset.getPhysicalName());
 		
 		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), Updated.class).get();
 	}
@@ -324,7 +324,7 @@ public class DatasetManagerTest extends AbstractServiceTest {
 				dataset.isMetadataConfidential(),
 				dataset.isWmsOnly(),
 				dataset.getMetadata().orElse(null),
-				dataset.getTableName());
+				dataset.getPhysicalName());
 		
 		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), Registered.class).get();
 		
