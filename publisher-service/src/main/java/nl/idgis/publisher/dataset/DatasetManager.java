@@ -561,6 +561,7 @@ public class DatasetManager extends UntypedActor {
 			boolean confidential = dataset.isConfidential();
 			boolean metadataConfidential = dataset.isMetadataConfidential();
 			boolean wmsOnly = dataset.isWmsOnly();
+			String tableName = dataset.getTableName();
 			
 			return tx.insert(sourceDatasetVersion)
 				.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
@@ -572,6 +573,7 @@ public class DatasetManager extends UntypedActor {
 				.set(sourceDatasetVersion.confidential, confidential)
 				.set(sourceDatasetVersion.metadataConfidential, metadataConfidential)
 				.set(sourceDatasetVersion.wmsOnly, wmsOnly)
+				.set(sourceDatasetVersion.tableName, tableName)
 				.executeWithKey(sourceDatasetVersion.id);
 			}).thenCompose(sourceDatasetVersionId -> {
 				log.debug("sourceDatasetVersionId: {}", sourceDatasetVersionId);
