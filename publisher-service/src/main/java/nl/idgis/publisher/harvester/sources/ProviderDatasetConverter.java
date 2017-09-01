@@ -72,6 +72,7 @@ public class ProviderDatasetConverter extends StreamConverter {
 		
 		Set<AttachmentType> attachmentTypes = new HashSet<>();
 		attachmentTypes.add(AttachmentType.METADATA);
+		attachmentTypes.add(AttachmentType.TABLE_NAME);
 		this.attachmentTypes = Collections.unmodifiableSet(attachmentTypes);
 		
 		mdf = new MetadataDocumentFactory();
