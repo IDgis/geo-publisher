@@ -534,7 +534,8 @@ private String getEnumName(Enum e){
 						sourceDataset.deleteTime,
 						sourceDatasetVersion.confidential,
 						sourceDatasetVersion.wmsOnly,
-						sourceDataset.externalIdentification
+						sourceDataset.externalIdentification,
+						sourceDatasetVersion.tableName
 					)).thenApply(sourceDatasetInfoOptional -> 
 						sourceDatasetInfoOptional.map(sourceDatasetInfo -> 
 							new SourceDataset(
@@ -554,7 +555,8 @@ private String getEnumName(Enum e){
 								sourceDatasetInfo.isConfidential (),
 								sourceDatasetInfo.isWmsOnly (),
 								Collections.<Notification>emptyList(),
-								sourceDatasetInfo.externalId()
+								sourceDatasetInfo.externalId(),
+								sourceDatasetInfo.tableName()
 							)));	
 	}
 
@@ -746,7 +748,8 @@ private String getEnumName(Enum e){
 						sourceDataset.deleteTime,
 						sourceDatasetVersion.confidential,
 						sourceDatasetVersion.wmsOnly,
-						sourceDataset.externalIdentification
+						sourceDataset.externalIdentification,
+						sourceDatasetVersion.tableName
 					)))
 				.collect(baseQuery.count()).thenApply((list, count) -> {
 					Page.Builder<SourceDatasetStats> pageBuilder = new Page.Builder<> ();
@@ -763,7 +766,8 @@ private String getEnumName(Enum e){
 							sourceDatasetInfo.isConfidential (),
 							sourceDatasetInfo.isWmsOnly(),
 							Collections.<Notification>emptyList(),
-							sourceDatasetInfo.externalId()
+							sourceDatasetInfo.externalId(),
+							sourceDatasetInfo.tableName()
 						);
 						
 						pageBuilder.add (new SourceDatasetStats (

@@ -10,7 +10,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public final class SourceDataset extends Identifiable {
 	
-	private static final long serialVersionUID = 4618332818034060153L;
+	private static final long serialVersionUID = -8252771622443070933L;
 	
 	private final String name, alternateTitle;
 	private final EntityRef category;
@@ -21,6 +21,7 @@ public final class SourceDataset extends Identifiable {
 	private final boolean wmsOnly;
 	private final List<Notification> notifications;
 	private final String externalId;
+	private final String tableName;
 	
 	@JsonCreator
 	public SourceDataset (
@@ -34,7 +35,8 @@ public final class SourceDataset extends Identifiable {
 			final @JsonProperty("confidential") boolean confidential,
 			final @JsonProperty("wmsOnly") boolean wmsOnly,
 			final @JsonProperty("notifications") List<Notification> notifications,
-			final @JsonProperty("externalId") String externalId) {
+			final @JsonProperty("externalId") String externalId,
+			final @JsonProperty("tableName") String tableName) {
 		super(id);
 		
 		if (type == null) {
@@ -51,6 +53,7 @@ public final class SourceDataset extends Identifiable {
 		this.wmsOnly = wmsOnly;
 		this.notifications = notifications;
 		this.externalId = externalId;
+		this.tableName = tableName;
 	}
 
 	@JsonGetter
@@ -101,5 +104,10 @@ public final class SourceDataset extends Identifiable {
 	@JsonGetter
 	public String externalId() {
 		return this.externalId;
+	}
+	
+	@JsonGetter
+	public String tableName() {
+		return this.tableName;
 	}
 }
