@@ -118,7 +118,8 @@ public class MissingColumnTest extends AbstractServiceTest {
 			false, // metadataConfidential
 			false, // wmsOnly
 			null, // metadata
-			new Table(columns));
+			new Table(columns),
+			null);
 		
 		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", testDataset), Registered.class).get();
 		
@@ -231,7 +232,8 @@ public class MissingColumnTest extends AbstractServiceTest {
 			testDataset.isMetadataConfidential(),
 			testDataset.isWmsOnly(),
 			testDataset.getMetadata().orElse(null),
-			new Table(Collections.singletonList(columns.get(0)))); 
+			new Table(Collections.singletonList(columns.get(0))),
+			testDataset.getTableName()); 
 		
 		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", testDataset), Updated.class).get();
 		
@@ -373,7 +375,8 @@ public class MissingColumnTest extends AbstractServiceTest {
 				false, // metadataConfidential
 				false, // wmsOnly
 				null, // metadata
-				new Table(columns));
+				new Table(columns),
+				null /*tableName*/ );
 			
 			f.ask(datasetManager, new RegisterSourceDataset("testDataSource", anotherDataset), Registered.class).get();
 			

@@ -10,7 +10,7 @@ import nl.idgis.publisher.metadata.MetadataDocument;
 
 public abstract class Dataset implements Serializable {
 	
-	private static final long serialVersionUID = 2610617192023615620L;
+	private static final long serialVersionUID = 8296975731489807295L;
 
 	protected final String id, name, alternateTitle;
 	
@@ -26,7 +26,9 @@ public abstract class Dataset implements Serializable {
 	
 	protected final boolean wmsOnly;
 	
-	Dataset(String id, String name, String alternateTitle, String categoryId, Date revisionDate, Set<Log> logs, boolean confidential, boolean metadataConfidential, boolean wmsOnly, MetadataDocument metadata) {
+	protected final String tableName;
+	
+	Dataset(String id, String name, String alternateTitle, String categoryId, Date revisionDate, Set<Log> logs, boolean confidential, boolean metadataConfidential, boolean wmsOnly, MetadataDocument metadata, String tableName) {
 		this.id = id;
 		this.name = name;
 		this.alternateTitle = alternateTitle;
@@ -37,6 +39,7 @@ public abstract class Dataset implements Serializable {
 		this.metadataConfidential = metadataConfidential;
 		this.wmsOnly = wmsOnly;
 		this.metadata = metadata;
+		this.tableName = tableName;
 	}
 
 	public String getId() {
@@ -74,6 +77,10 @@ public abstract class Dataset implements Serializable {
 	public boolean isWmsOnly() {
 		return wmsOnly;
 	}
+	
+	public String getTableName() {
+		return tableName;
+	}
 
 	@Override
 	public int hashCode() {
@@ -87,6 +94,7 @@ public abstract class Dataset implements Serializable {
 		result = prime * result + (metadataConfidential ? 1231 : 1237);
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result + ((revisionDate == null) ? 0 : revisionDate.hashCode());
+		result = prime * result + ((tableName == null) ? 0 : tableName.hashCode());
 		result = prime * result + (wmsOnly ? 1231 : 1237);
 		return result;
 	}
@@ -137,6 +145,11 @@ public abstract class Dataset implements Serializable {
 			if (other.revisionDate != null)
 				return false;
 		} else if (!revisionDate.equals(other.revisionDate))
+			return false;
+		if (tableName == null) {
+			if (other.tableName != null)
+				return false;
+		} else if (!tableName.equals(other.tableName))
 			return false;
 		if (wmsOnly != other.wmsOnly)
 			return false;

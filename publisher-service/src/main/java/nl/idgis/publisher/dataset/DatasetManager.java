@@ -353,7 +353,8 @@ public class DatasetManager extends UntypedActor {
 						sourceDatasetVersion.revision,
 						sourceDatasetVersion.confidential,
 						sourceDatasetVersion.wmsOnly,
-						sourceDatasetVersion.metadataConfidential))
+						sourceDatasetVersion.metadataConfidential,
+						sourceDatasetVersion.tableName))
 			.collect(
 				tx.query().from(sourceDatasetVersionLog)
 				.where(sourceDatasetVersionLog.sourceDatasetVersionId.eq(versionId))
@@ -381,6 +382,7 @@ public class DatasetManager extends UntypedActor {
 						boolean metadataConfidential = baseInfo.get(sourceDatasetVersion.metadataConfidential);
 						boolean wmsOnly = baseInfo.get(sourceDatasetVersion.wmsOnly);
 						byte[] metadataContent = baseInfo.get(sourceDatasetMetadata.document);
+						String tableName = baseInfo.get(sourceDatasetVersion.tableName);
 						
 						MetadataDocument metadata;
 						if(metadataContent == null) {
@@ -440,7 +442,8 @@ public class DatasetManager extends UntypedActor {
 									metadataConfidential,
 									wmsOnly,
 									metadata,
-									new Table(columnInfo.list()));
+									new Table(columnInfo.list()),
+									tableName);
 								break;
 							case "RASTER":
 								dataset = new RasterDataset(
@@ -453,7 +456,8 @@ public class DatasetManager extends UntypedActor {
 									confidential,
 									metadataConfidential,
 									wmsOnly,
-									metadata);
+									metadata,
+									tableName);
 								break;
 							default:
 								dataset = new UnavailableDataset(
@@ -466,7 +470,8 @@ public class DatasetManager extends UntypedActor {
 									confidential,
 									metadataConfidential,
 									wmsOnly,
-									metadata);
+									metadata,
+									tableName);
 								break;
 						}
 						

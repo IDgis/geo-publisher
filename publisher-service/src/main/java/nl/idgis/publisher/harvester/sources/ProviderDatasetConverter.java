@@ -112,6 +112,14 @@ public class ProviderDatasetConverter extends StreamConverter {
 			
 			MetadataDocument metadata;
 			
+			String tableName = null;
+			if(attachments.containsKey(AttachmentType.TABLE_NAME)) {
+				Attachment attachment = attachments.get(AttachmentType.TABLE_NAME);
+				if(attachment.getContent() instanceof String) {
+					tableName = (String) attachment.getContent();
+				}
+			}
+			
 			boolean confidential = true;
 			boolean metadataConfidential = true;
 			boolean wmsOnly = false;
@@ -174,16 +182,16 @@ public class ProviderDatasetConverter extends StreamConverter {
 						column.getAlias().orElse(null)))
 					.collect(Collectors.toList());
 				
-				Table table = new Table(columns);				
-				dataset = new VectorDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata, table);
+				Table table = new Table(columns);
+				dataset = new VectorDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata, table, tableName);
 			} else if(msg instanceof RasterDatasetInfo) {
 				log.debug("raster dataset info type");
 				
-				dataset = new RasterDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata);
+				dataset = new RasterDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata, tableName);
 			} else {
 				log.debug("unhandled dataset info type");
 				
-				dataset = new UnavailableDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata);
+				dataset = new UnavailableDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata, tableName);
 			}
 			
 			log.debug("resulting dataset: {}", dataset);

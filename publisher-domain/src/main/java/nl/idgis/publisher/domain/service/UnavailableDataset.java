@@ -8,17 +8,18 @@ import nl.idgis.publisher.metadata.MetadataDocument;
 
 public final class UnavailableDataset extends Dataset {
 	
-	private static final long serialVersionUID = -534696949105325818L;
-	
-	public UnavailableDataset(String id, String name, String alternateTitle, String categoryId, Date revisionDate, Set<Log> logs, boolean confidential, boolean metadataConfidential, boolean wmsOnly, MetadataDocument metadata) {
-		super(id, name, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata);
+	private static final long serialVersionUID = -2017804011630724932L;
+
+	public UnavailableDataset(String id, String name, String alternateTitle, String categoryId, Date revisionDate, Set<Log> logs, boolean confidential, boolean metadataConfidential, boolean wmsOnly, MetadataDocument metadata, String tableName) {
+		super(id, name, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata, tableName);
 	}
 
 	@Override
 	public String toString() {
 		return "UnavailableDataset [id=" + id + ", name=" + name + ", alternateTitle=" + alternateTitle
 				+ ", categoryId=" + categoryId + ", revisionDate=" + revisionDate + ", logs=" + logs + ", confidential="
-				+ confidential + ", metadataConfidential=" + metadataConfidential + ", metadata=" + metadata + "]";
+				+ confidential + ", metadataConfidential=" + metadataConfidential + ", metadata=" + metadata
+				+ ", wmsOnly=" + wmsOnly + ", tableName=" + tableName + "]";
 	}
 	
 }

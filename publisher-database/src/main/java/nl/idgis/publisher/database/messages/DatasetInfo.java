@@ -10,7 +10,7 @@ import nl.idgis.publisher.domain.job.JobState;
 
 public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 	
-	private static final long serialVersionUID = -6871554571865111299L;
+	private static final long serialVersionUID = 6103408676819855770L;
 	
 	private String sourceDatasetId, sourceDatasetName;
 	private String categoryId, categoryName;
@@ -19,14 +19,15 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 	private final Boolean sourceDatasetColumnsChanged;
 	private final Timestamp lastImportTime;
 	private final JobState lastImportJobState;
-	private final List<StoredNotification> notifications;	
+	private final List<StoredNotification> notifications;
 	private final long layerCount;
 	private final long publishedServiceCount;
 	private final boolean confidential;
 	private final boolean wmsOnly;
+	private final String tableName;
 
 	public DatasetInfo(String id, String name, String sourceDatasetId,
-			String sourceDatasetName, String categoryId, String categoryName, 
+			String sourceDatasetName, String categoryId, String categoryName,
 			final String filterConditions,
 			final Boolean imported,
 			final Boolean sourceDatasetColumnsChanged,
@@ -37,7 +38,8 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 			final long publishedServiceCount,
 			final boolean confidential,
 			final boolean wmsOnly,
-			final String metadataFileId) {
+			final String metadataFileId,
+			final String tableName) {
 		super(id, name);
 		
 		this.sourceDatasetId = sourceDatasetId;
@@ -55,6 +57,7 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 		this.confidential = confidential;
 		this.wmsOnly = wmsOnly;
 		this.metadataFileId = metadataFileId;
+		this.tableName = tableName;
 	}
 	
 	private static JobState toJobState(String jobStateName) {
@@ -124,6 +127,10 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 	public String getMetadataFileId () {
 		return metadataFileId;
 	}
+	
+	public String getTableName () {
+		return tableName;
+	}
 
 	@Override
 	public String toString() {
@@ -132,6 +139,6 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 				+ filterConditions + ", metadataFileId=" + metadataFileId + ", imported=" + imported
 				+ ", sourceDatasetColumnsChanged=" + sourceDatasetColumnsChanged + ", lastImportTime=" + lastImportTime
 				+ ", lastImportJobState=" + lastImportJobState + ", notifications=" + notifications + ", layerCount="
-				+ layerCount + ", confidential=" + confidential + ", wmsOnly=" + wmsOnly + "]";
+				+ layerCount + ", confidential=" + confidential + ", wmsOnly=" + wmsOnly + ", tableName=" + tableName + "]";
 	}
 }
