@@ -11,6 +11,7 @@ import nl.idgis.publisher.folder.messages.FileNotExists;
 import nl.idgis.publisher.folder.messages.FileSize;
 import nl.idgis.publisher.folder.messages.GetFileSize;
 import nl.idgis.publisher.provider.messages.SkipDataset;
+import nl.idgis.publisher.provider.protocol.Attachment;
 import nl.idgis.publisher.provider.protocol.AttachmentType;
 import nl.idgis.publisher.provider.protocol.RasterDatasetInfo;
 import nl.idgis.publisher.provider.protocol.RasterFormat;
@@ -46,6 +47,11 @@ public class RasterDatasetInfoBuilder extends AbstractDatasetInfoBuilder {
 		
 		if(alternateTitle != null && !alternateTitle.trim().isEmpty()) {
 			fileName = ProviderUtils.getRasterFile(alternateTitle);
+			
+			if(requestedAttachmentTypes.contains(AttachmentType.TABLE_NAME)) {
+				attachments.add(new Attachment(identification, AttachmentType.TABLE_NAME, fileName));
+			}
+			
 			folder.tell(new GetFileSize(Paths.get(fileName)), getSelf());
 		} else {
 			logs.add(Log.create(LogLevel.ERROR, DatasetLogType.UNKNOWN_FILE));
