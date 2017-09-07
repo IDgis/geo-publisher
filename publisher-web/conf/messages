@@ -486,6 +486,10 @@ web.application.page.sourcedatasets.list.button.refresh.failure=Verversen van br
 web.application.page.sourcedatasets.list.deleted=Gegevens verwijderd in de bron. Als alle gekoppelde datasets verwijderd en alle notificaties afgevlagd zijn verdwijnt deze uit het overzicht. 
 
 # DataSources
+web.application.page.datasources.sort.label=Sortering
+web.application.page.datasources.sort.title=Titel
+web.application.page.datasources.sort.physicalname=Tabel naam / bestandsnaam
+
 web.application.page.datasources.title=Gegevensbronnen
 web.application.page.datasources.ref=Gegevensbron
 web.application.page.datasources.all=Alle gegevensbronnen
