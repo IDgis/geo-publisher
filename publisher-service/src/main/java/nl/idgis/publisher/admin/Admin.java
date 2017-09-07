@@ -54,6 +54,7 @@ import nl.idgis.publisher.domain.query.ListDatasetColumns;
 import nl.idgis.publisher.domain.query.ListIssues;
 import nl.idgis.publisher.domain.query.ListSourceDatasetColumns;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
+import nl.idgis.publisher.domain.query.ListSourceDatasetsOrderBy;
 import nl.idgis.publisher.domain.query.PutNotificationResult;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Page.Builder;
@@ -713,6 +714,12 @@ private String getEnumName(Enum e){
 								.notExists());
 				}
 			}
+			
+			if(msg.getOrderBy().equals(ListSourceDatasetsOrderBy.TITLE)) {
+				baseQuery.orderBy(sourceDatasetVersion.name.trim().asc());
+			} else if(msg.getOrderBy().equals(ListSourceDatasetsOrderBy.PHYSICAL_NAME)) {
+				baseQuery.orderBy(sourceDatasetVersion.physicalName.trim().asc());
+			}
 				
 			AsyncSQLQuery listQuery = baseQuery.clone()	
 				.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id));
@@ -731,7 +738,6 @@ private String getEnumName(Enum e){
 					.groupBy(sourceDataset.deleteTime)
 					.groupBy(sourceDatasetVersion.confidential)
 					.groupBy(sourceDataset.externalIdentification)
-					.orderBy(sourceDatasetVersion.name.trim().asc())
 					.list(new QSourceDatasetInfo(
 						sourceDataset.identification, 
 						sourceDatasetVersion.name,

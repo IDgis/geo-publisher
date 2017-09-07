@@ -6,7 +6,8 @@
 	search: String,
 	withErrors: java.lang.Boolean,
 	withNotifications: java.lang.Boolean,
-	withCoupling: java.lang.Boolean
+	withCoupling: java.lang.Boolean,
+	orderBy: String
 )
 
 @import nl.idgis.publisher.domain._
@@ -14,14 +15,14 @@
 
 @dataSourceLink(ds: DataSource, cls: String = null) = {
 	@if(currentCategory == null) {
-		<a href="@routes.DataSources.listByDataSource(ds.id, search, withErrors, withNotifications, withCoupling)"@if(cls != null){ class="@cls"}>
+		<a href="@routes.DataSources.listByDataSource(ds.id, search, withErrors, withNotifications, withCoupling, orderBy)"@if(cls != null){ class="@cls"}>
 			@ds.name
 			<span data-datasource-id="@ds.id" class="pull-right js-datasource-refresh gp-mini-refresh-button" title="@Domain.message("web.application.page.sourcedatasets.list.button.refresh")">
 				<span class="glyphicon glyphicon-refresh"></span>
 			</span>			
 		</a>
 	} else {
-		<a href="@routes.DataSources.listByDataSourceAndCategory(ds.id, currentCategory.id, search, withErrors, withNotifications, withCoupling)"@if(cls != null){ class="@cls"}>
+		<a href="@routes.DataSources.listByDataSourceAndCategory(ds.id, currentCategory.id, search, withErrors, withNotifications, withCoupling, orderBy)"@if(cls != null){ class="@cls"}>
 			@ds.name
 			<span data-datasource-id="@ds.id" class="pull-right js-datasource-refresh gp-mini-refresh-button" title="@Domain.message("web.application.page.sourcedatasets.list.button.refresh")">
 				<span class="glyphicon glyphicon-refresh"></span>
@@ -32,56 +33,56 @@
 
 @dataSourceRefLink(ref: EntityRef, cls: String = null) = {
 	@if(currentCategory == null) {
-		<a href="@routes.DataSources.listByDataSource(ref.id, search, withErrors, withNotifications, withCoupling)"@if(cls != null){ class="@cls"}>@Domain.message("web.application.page.datasources.ref"): @ref.name</a>
+		<a href="@routes.DataSources.listByDataSource(ref.id, search, withErrors, withNotifications, withCoupling, orderBy)"@if(cls != null){ class="@cls"}>@Domain.message("web.application.page.datasources.ref"): @ref.name</a>
 	} else {
-		<a href="@routes.DataSources.listByDataSourceAndCategory(ref.id, currentCategory.id, search, withErrors, withNotifications, withCoupling)"@if(cls != null){ class="@cls"}>@Domain.message("web.application.page.datasources.ref"): @ref.name</a>
+		<a href="@routes.DataSources.listByDataSourceAndCategory(ref.id, currentCategory.id, search, withErrors, withNotifications, withCoupling, orderBy)"@if(cls != null){ class="@cls"}>@Domain.message("web.application.page.datasources.ref"): @ref.name</a>
 	}
 }
 
 
 @allDataSourcesLink() = {
 	@if(currentCategory == null) {
-		<a href="@routes.DataSources.list(search, withErrors, withNotifications, withCoupling)">@Domain.message("web.application.page.datasources.all")</a>
+		<a href="@routes.DataSources.list(search, withErrors, withNotifications, withCoupling, orderBy)">@Domain.message("web.application.page.datasources.all")</a>
 	} else {
-		<a href="@routes.DataSources.listByCategory(currentCategory.id, search, withErrors, withNotifications, withCoupling)">@Domain.message("web.application.page.datasources.all")</a>
+		<a href="@routes.DataSources.listByCategory(currentCategory.id, search, withErrors, withNotifications, withCoupling, orderBy)">@Domain.message("web.application.page.datasources.all")</a>
 	}
 }
 
 @categoryLink(cat: Category, cls: String = null) = {
 	@if(currentDataSource == null) {
-		<a href="@routes.DataSources.listByCategory(cat.id, search, withErrors, withNotifications, withCoupling)" title=@cat.id @if(cls != null){ class="@cls"}>@cat.name</a>
+		<a href="@routes.DataSources.listByCategory(cat.id, search, withErrors, withNotifications, withCoupling, orderBy)" title=@cat.id @if(cls != null){ class="@cls"}>@cat.name</a>
 	} else {
-		<a href="@routes.DataSources.listByDataSourceAndCategory(currentDataSource.id, cat.id, search, withErrors, withNotifications, withCoupling)" title=@cat.id @if(cls != null){ class="@cls"}>@cat.name</a>
+		<a href="@routes.DataSources.listByDataSourceAndCategory(currentDataSource.id, cat.id, search, withErrors, withNotifications, withCoupling, orderBy)" title=@cat.id @if(cls != null){ class="@cls"}>@cat.name</a>
 	}
 }
 
 @categoryRefLink(ref: EntityRef, cls: String = null) = {
 	@if(currentDataSource == null) {
-		<a href="@routes.DataSources.listByCategory(ref.id, search, withErrors, withNotifications, withCoupling)"@if(cls != null){ class="@cls"}>@Domain.message("web.application.page.datasets.list.categorieref"): @ref.name</a>
+		<a href="@routes.DataSources.listByCategory(ref.id, search, withErrors, withNotifications, withCoupling, orderBy)"@if(cls != null){ class="@cls"}>@Domain.message("web.application.page.datasets.list.categorieref"): @ref.name</a>
 	} else {
-		<a href="@routes.DataSources.listByDataSourceAndCategory(currentDataSource.id, ref.id, search, withErrors, withNotifications, withCoupling)"@if(cls != null){ class="@cls"}>@Domain.message("web.application.page.datasets.list.categorieref"): @ref.name</a>
+		<a href="@routes.DataSources.listByDataSourceAndCategory(currentDataSource.id, ref.id, search, withErrors, withNotifications, withCoupling, orderBy)"@if(cls != null){ class="@cls"}>@Domain.message("web.application.page.datasets.list.categorieref"): @ref.name</a>
 	}
 }
 
 @allCategoriesLink() = {
 	@if(currentDataSource == null) {
-		<a href="@routes.DataSources.list(search, withErrors, withNotifications, withCoupling)">@Domain.message("web.application.page.datasets.list.allcategories")</a>
+		<a href="@routes.DataSources.list(search, withErrors, withNotifications, withCoupling, orderBy)">@Domain.message("web.application.page.datasets.list.allcategories")</a>
 	} else {
-		<a href="@routes.DataSources.listByDataSource(currentDataSource.id, search, withErrors, withNotifications, withCoupling)">@Domain.message("web.application.page.datasets.list.allcategories")</a>
+		<a href="@routes.DataSources.listByDataSource(currentDataSource.id, search, withErrors, withNotifications, withCoupling, orderBy)">@Domain.message("web.application.page.datasets.list.allcategories")</a>
 	}
 }
 
 @pageRefWithFilter(errors: java.lang.Boolean, notifications: java.lang.Boolean, withCoupling: java.lang.Boolean, targetPage: Long = 1) = @{
 	if(currentCategory == null)
 		if(currentDataSource == null)
-			routes.DataSources.list(search, errors, notifications, withCoupling, targetPage)
+			routes.DataSources.list(search, errors, notifications, withCoupling, orderBy, targetPage)
 		else
-			routes.DataSources.listByDataSource(currentDataSource.id, search, errors, notifications, withCoupling, targetPage) 
+			routes.DataSources.listByDataSource(currentDataSource.id, search, errors, notifications, withCoupling, orderBy, targetPage) 
 	else
 		if(currentDataSource == null)
-			routes.DataSources.listByCategory(currentCategory.id, search, errors, notifications, withCoupling, targetPage)
+			routes.DataSources.listByCategory(currentCategory.id, search, errors, notifications, withCoupling, orderBy, targetPage)
 		else
-			routes.DataSources.listByDataSourceAndCategory(currentDataSource.id, currentCategory.id, search, errors, notifications, withCoupling, targetPage)
+			routes.DataSources.listByDataSourceAndCategory(currentDataSource.id, currentCategory.id, search, errors, notifications, withCoupling, orderBy, targetPage)
 }
 
 @pageRef(targetPage: Long = 1) = @{

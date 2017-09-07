@@ -26,6 +26,7 @@ import nl.idgis.publisher.domain.query.ListDatasets;
 import nl.idgis.publisher.domain.query.ListLayers;
 import nl.idgis.publisher.domain.query.ListSourceDatasetColumns;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
+import nl.idgis.publisher.domain.query.ListSourceDatasetsOrderBy;
 import nl.idgis.publisher.domain.query.PutNotificationResult;
 import nl.idgis.publisher.domain.query.RefreshDataset;
 import nl.idgis.publisher.domain.response.Page;
@@ -189,7 +190,7 @@ public class Datasets extends Controller {
 			return new Constant<Page<SourceDatasetStats>> (new Page.Builder<SourceDatasetStats> ().build ());
 		}
 		
-		return new ListSourceDatasets (dataSourceId, categoryId, null, null, null, null, null); 
+		return new ListSourceDatasets (dataSourceId, categoryId, null, null, null, null, ListSourceDatasetsOrderBy.TITLE, null); 
 	}
 	
 	private static DomainQuery<List<Column>> listSourceDatasetColumns (final String dataSourceId, final String sourceDatasetId) {
