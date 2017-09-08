@@ -73,18 +73,18 @@ public class Datasets extends Controller {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
 	private final static String ID="#CREATE_DATASET#";
 	
-	public static Promise<Result> listByStatus(DatasetStatus status, Boolean withCoupling, long page, 
+	public static Promise<Result> listByStatus(DatasetStatus status, Boolean withLayer, long page, 
 			final String query) {
-		return listByCategoryAndStatus(null, status, withCoupling, page, query);
+		return listByCategoryAndStatus(null, status, withLayer, page, query);
 	}
 
-	public static Promise<Result> list (Boolean withCoupling, long page, final String query) {
-		return listByCategoryAndStatus(null, null, withCoupling, page, query);
+	public static Promise<Result> list (Boolean withLayer, long page, final String query) {
+		return listByCategoryAndStatus(null, null, withLayer, page, query);
 	}
 	
-	public static Promise<Result> listByCategory (String categoryId, Boolean withCoupling, long page, 
+	public static Promise<Result> listByCategory (String categoryId, Boolean withLayer, long page, 
 			final String query) {
-		return listByCategoryAndStatus(categoryId, null, withCoupling, page, query);
+		return listByCategoryAndStatus(categoryId, null, withLayer, page, query);
 	}
 	
 	public static Promise<Result> show (final String datasetId) {
@@ -474,7 +474,7 @@ public class Datasets extends Controller {
 	}
 	
 	public static Promise<Result> listByCategoryAndStatus(final String categoryId, final DatasetStatus status, 
-			Boolean withCoupling, final long page, final String query) {
+			Boolean withLayer, final long page, final String query) {
 		// Hack: force the database actor to be loaded:
 		if (Database.instance == null) {
 			throw new NullPointerException ();
@@ -490,12 +490,12 @@ public class Datasets extends Controller {
 				public Promise<Result> apply (final Page<Category> categories, final Category currentCategory) throws Throwable {
 					
 					return from (database)
-							.query (new ListDatasets (currentCategory, status == null ? null : status.value, withCoupling, query, page))
+							.query (new ListDatasets (currentCategory, status == null ? null : status.value, withLayer, query, page))
 							.execute (new Function<Page<Dataset>, Result> () {
 								@Override
 								public Result apply (final Page<Dataset> datasets) throws Throwable {
 
-									return ok (list.render (datasets, categories.values (), currentCategory, status, withCoupling, query));
+									return ok (list.render (datasets, categories.values (), currentCategory, status, withLayer, query));
 								}
 								
 							});

@@ -94,24 +94,24 @@ public class DataSources extends Controller {
 	}
 	
 	public static Promise<Result> list (final String search, final Boolean withErrors, 
-			final Boolean withNotifications, final Boolean withCoupling, 
+			final Boolean withNotifications, final Boolean withDataset, 
 			final String orderBy, final long page) {
 		return listByDataSourceAndCategory (null, null, search, withErrors, withNotifications, 
-				withCoupling, orderBy, page);
+				withDataset, orderBy, page);
 	}
 	
 	public static Promise<Result> listByDataSource (final String dataSourceId, final String search, 
-			final Boolean withErrors, final Boolean withNotifications, final Boolean withCoupling, 
+			final Boolean withErrors, final Boolean withNotifications, final Boolean withDataset, 
 			final String orderBy, final long page) {
 		return listByDataSourceAndCategory (dataSourceId, null, search, withErrors, withNotifications, 
-				withCoupling, orderBy, page);
+				withDataset, orderBy, page);
 	}
 	
 	public static Promise<Result> listByCategory (final String categoryId, final String search, 
-			final Boolean withErrors, final Boolean withNotifications, final Boolean withCoupling,
+			final Boolean withErrors, final Boolean withNotifications, final Boolean withDataset,
 			final String orderBy, final long page) {
 		return listByDataSourceAndCategory (null, categoryId, search, withErrors, withNotifications, 
-				withCoupling, orderBy, page);
+				withDataset, orderBy, page);
 	}
 	
 	public static Promise<Result> listByDataSourceAndCategoryJson (final String dataSourceId, final String categoryId) {
@@ -148,15 +148,15 @@ public class DataSources extends Controller {
 	
 	public static Promise<Result> listByDataSourceAndCategory (final String dataSourceId, 
 			final String categoryId, final String search, final Boolean withErrors, 
-			final Boolean withNotifications, final Boolean withCoupling, final String orderBy,
+			final Boolean withNotifications, final Boolean withDataset, final String orderBy,
 			final long page) {
 			return listByDataSourceAndCategoryAndSearchString (dataSourceId, categoryId, search, withErrors, 
-					withNotifications, withCoupling, orderBy, page);
+					withNotifications, withDataset, orderBy, page);
 	}
 	
 	private static Promise<Result> listByDataSourceAndCategoryAndSearchString (final String dataSourceId, 
 			final String categoryId, final String search, final Boolean withErrors, 
-			final Boolean withNotifications, final Boolean withCoupling, final String orderBy,
+			final Boolean withNotifications, final Boolean withDataset, final String orderBy,
 			final long page) {
 		// Hack: force the database actor to be loaded:
 		if (Database.instance == null) {
@@ -182,7 +182,7 @@ public class DataSources extends Controller {
 								search, 
 								withErrors, 
 								withNotifications, 
-								withCoupling, 
+								withDataset, 
 								ListSourceDatasetsOrderBy.PHYSICAL_NAME, 
 								page);
 						break;
@@ -192,7 +192,7 @@ public class DataSources extends Controller {
 								search, 
 								withErrors, 
 								withNotifications, 
-								withCoupling, 
+								withDataset, 
 								ListSourceDatasetsOrderBy.TITLE, 
 								page);
 					}
@@ -203,7 +203,7 @@ public class DataSources extends Controller {
 								@Override
 								public Result apply (final Page<SourceDatasetStats> sourceDatasets) throws Throwable {
 									
-									return ok (list.render (sourceDatasets, dataSources.values (), categories.values (), currentDataSource, currentCategory, search, withErrors, withNotifications, withCoupling, orderBy));
+									return ok (list.render (sourceDatasets, dataSources.values (), categories.values (), currentDataSource, currentCategory, search, withErrors, withNotifications, withDataset, orderBy));
 								}
 								
 							});

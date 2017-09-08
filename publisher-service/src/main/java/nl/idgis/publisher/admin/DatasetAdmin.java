@@ -384,8 +384,8 @@ public class DatasetAdmin extends AbstractAdmin {
 						}
 					}
 					
-					if (listDatasets.withCoupling () != null) {
-						if (listDatasets.withCoupling ()) {
+					if (listDatasets.withLayer () != null) {
+						if (listDatasets.withLayer ()) {
 							baseQuery.where(new SQLSubQuery()
 									.from(leafLayer).where(leafLayer.datasetId.eq(dataset.id))
 										.exists());
