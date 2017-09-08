@@ -6,7 +6,8 @@
 	search: String,
 	withErrors: java.lang.Boolean,
 	withNotifications: java.lang.Boolean,
-	withCoupling: java.lang.Boolean
+	withCoupling: java.lang.Boolean,
+	orderBy: String
 )
 
 @import nl.idgis.publisher.domain._
@@ -14,14 +15,14 @@
 
 @dataSourceLink(ds: DataSource, cls: String = null) = {
 	@if(currentCategory == null) {
-		<a href="@routes.DataSources.listByDataSource(ds.id, search, withErrors, withNotifications, withCoupling)"@if(cls != null){ class="@cls"}>
+		<a href="@routes.DataSources.listByDataSource(ds.id, search, withErrors, withNotifications, withCoupling, orderBy)"@if(cls != null){ class="@cls"}>
 			@ds.name
 			<span data-datasource-id="@ds.id" class="pull-right js-datasource-refresh gp-mini-refresh-button" title="@Domain.message("web.application.page.sourcedatasets.list.button.refresh")">
 				<span class="glyphicon glyphicon-refresh"></span>
 			</span>			
 		</a>
 	} else {
-		<a href="@routes.DataSources.listByDataSourceAndCategory(ds.id, currentCategory.id, search, withErrors, withNotifications, withCoupling)"@if(cls != null){ class="@cls"}>
+		<a href="@routes.DataSources.listByDataSourceAndCategory(ds.id, currentCategory.id, search, withErrors, withNotifications, withCoupling, orderBy)"@if(cls != null){ class="@cls"}>
 			@ds.name
 			<span data-datasource-id="@ds.id" class="pull-right js-datasource-refresh gp-mini-refresh-button" title="@Domain.message("web.application.page.sourcedatasets.list.button.refresh")">
 				<span class="glyphicon glyphicon-refresh"></span>
@@ -32,60 +33,60 @@
 
 @dataSourceRefLink(ref: EntityRef, cls: String = null) = {
 	@if(currentCategory == null) {
-		<a href="@routes.DataSources.listByDataSource(ref.id, search, withErrors, withNotifications, withCoupling)"@if(cls != null){ class="@cls"}>@Domain.message("web.application.page.datasources.ref"): @ref.name</a>
+		<a href="@routes.DataSources.listByDataSource(ref.id, search, withErrors, withNotifications, withCoupling, orderBy)"@if(cls != null){ class="@cls"}>@Domain.message("web.application.page.datasources.ref"): @ref.name</a>
 	} else {
-		<a href="@routes.DataSources.listByDataSourceAndCategory(ref.id, currentCategory.id, search, withErrors, withNotifications, withCoupling)"@if(cls != null){ class="@cls"}>@Domain.message("web.application.page.datasources.ref"): @ref.name</a>
+		<a href="@routes.DataSources.listByDataSourceAndCategory(ref.id, currentCategory.id, search, withErrors, withNotifications, withCoupling, orderBy)"@if(cls != null){ class="@cls"}>@Domain.message("web.application.page.datasources.ref"): @ref.name</a>
 	}
 }
 
 
 @allDataSourcesLink() = {
 	@if(currentCategory == null) {
-		<a href="@routes.DataSources.list(search, withErrors, withNotifications, withCoupling)">@Domain.message("web.application.page.datasources.all")</a>
+		<a href="@routes.DataSources.list(search, withErrors, withNotifications, withCoupling, orderBy)">@Domain.message("web.application.page.datasources.all")</a>
 	} else {
-		<a href="@routes.DataSources.listByCategory(currentCategory.id, search, withErrors, withNotifications, withCoupling)">@Domain.message("web.application.page.datasources.all")</a>
+		<a href="@routes.DataSources.listByCategory(currentCategory.id, search, withErrors, withNotifications, withCoupling, orderBy)">@Domain.message("web.application.page.datasources.all")</a>
 	}
 }
 
 @categoryLink(cat: Category, cls: String = null) = {
 	@if(currentDataSource == null) {
-		<a href="@routes.DataSources.listByCategory(cat.id, search, withErrors, withNotifications, withCoupling)" title=@cat.id @if(cls != null){ class="@cls"}>@cat.name</a>
+		<a href="@routes.DataSources.listByCategory(cat.id, search, withErrors, withNotifications, withCoupling, orderBy)" title=@cat.id @if(cls != null){ class="@cls"}>@cat.name</a>
 	} else {
-		<a href="@routes.DataSources.listByDataSourceAndCategory(currentDataSource.id, cat.id, search, withErrors, withNotifications, withCoupling)" title=@cat.id @if(cls != null){ class="@cls"}>@cat.name</a>
+		<a href="@routes.DataSources.listByDataSourceAndCategory(currentDataSource.id, cat.id, search, withErrors, withNotifications, withCoupling, orderBy)" title=@cat.id @if(cls != null){ class="@cls"}>@cat.name</a>
 	}
 }
 
 @categoryRefLink(ref: EntityRef, cls: String = null) = {
 	@if(currentDataSource == null) {
-		<a href="@routes.DataSources.listByCategory(ref.id, search, withErrors, withNotifications, withCoupling)"@if(cls != null){ class="@cls"}>@Domain.message("web.application.page.datasets.list.categorieref"): @ref.name</a>
+		<a href="@routes.DataSources.listByCategory(ref.id, search, withErrors, withNotifications, withCoupling, orderBy)"@if(cls != null){ class="@cls"}>@Domain.message("web.application.page.datasets.list.categorieref"): @ref.name</a>
 	} else {
-		<a href="@routes.DataSources.listByDataSourceAndCategory(currentDataSource.id, ref.id, search, withErrors, withNotifications, withCoupling)"@if(cls != null){ class="@cls"}>@Domain.message("web.application.page.datasets.list.categorieref"): @ref.name</a>
+		<a href="@routes.DataSources.listByDataSourceAndCategory(currentDataSource.id, ref.id, search, withErrors, withNotifications, withCoupling, orderBy)"@if(cls != null){ class="@cls"}>@Domain.message("web.application.page.datasets.list.categorieref"): @ref.name</a>
 	}
 }
 
 @allCategoriesLink() = {
 	@if(currentDataSource == null) {
-		<a href="@routes.DataSources.list(search, withErrors, withNotifications, withCoupling)">@Domain.message("web.application.page.datasets.list.allcategories")</a>
+		<a href="@routes.DataSources.list(search, withErrors, withNotifications, withCoupling, orderBy)">@Domain.message("web.application.page.datasets.list.allcategories")</a>
 	} else {
-		<a href="@routes.DataSources.listByDataSource(currentDataSource.id, search, withErrors, withNotifications, withCoupling)">@Domain.message("web.application.page.datasets.list.allcategories")</a>
+		<a href="@routes.DataSources.listByDataSource(currentDataSource.id, search, withErrors, withNotifications, withCoupling, orderBy)">@Domain.message("web.application.page.datasets.list.allcategories")</a>
 	}
 }
 
-@pageRefWithFilter(errors: java.lang.Boolean, notifications: java.lang.Boolean, withCoupling: java.lang.Boolean, targetPage: Long = 1) = @{
+@pageRefWithFilter(errors: java.lang.Boolean, notifications: java.lang.Boolean, withCoupling: java.lang.Boolean, orderBy: String, targetPage: Long = 1) = @{
 	if(currentCategory == null)
 		if(currentDataSource == null)
-			routes.DataSources.list(search, errors, notifications, withCoupling, targetPage)
+			routes.DataSources.list(search, errors, notifications, withCoupling, orderBy, targetPage)
 		else
-			routes.DataSources.listByDataSource(currentDataSource.id, search, errors, notifications, withCoupling, targetPage) 
+			routes.DataSources.listByDataSource(currentDataSource.id, search, errors, notifications, withCoupling, orderBy, targetPage) 
 	else
 		if(currentDataSource == null)
-			routes.DataSources.listByCategory(currentCategory.id, search, errors, notifications, withCoupling, targetPage)
+			routes.DataSources.listByCategory(currentCategory.id, search, errors, notifications, withCoupling, orderBy, targetPage)
 		else
-			routes.DataSources.listByDataSourceAndCategory(currentDataSource.id, currentCategory.id, search, errors, notifications, withCoupling, targetPage)
+			routes.DataSources.listByDataSourceAndCategory(currentDataSource.id, currentCategory.id, search, errors, notifications, withCoupling, orderBy, targetPage)
 }
 
 @pageRef(targetPage: Long = 1) = @{
-	pageRefWithFilter(withErrors, withNotifications, withCoupling, targetPage)
+	pageRefWithFilter(withErrors, withNotifications, withCoupling, orderBy, targetPage)
 }
 
 @layout.application(
@@ -128,6 +129,24 @@
 					<div class="panel panel-default">
 						<div class="panel-heading">
 							<h4 class="panel-title">
+								<a data-toggle="collapse" href="#collapse-sort-source-datasets">
+									@Domain.message("web.application.page.datasources.sort.label")
+								</a>
+							</h4>
+						</div>
+						<div id="collapse-sort-source-datasets" class="panel-collapse collapse in">
+							<div class="panel-body">
+								<ul class="nav nav-pills nav-stacked">
+									<li@if(orderBy != "PHYSICAL_NAME"){ class="active"}><a href="@pageRefWithFilter(withErrors, withNotifications, withCoupling, "TITLE").url">@Domain.message("web.application.page.datasources.sort.title")</a></li>
+									<li@if(orderBy == "PHYSICAL_NAME"){ class="active"}><a href="@pageRefWithFilter(withErrors, withNotifications, withCoupling, "PHYSICAL_NAME").url">@Domain.message("web.application.page.datasources.sort.physicalname")</a></li>
+								</ul>
+							</div>
+						</div>
+					</div>
+					
+					<div class="panel panel-default">
+						<div class="panel-heading">
+							<h4 class="panel-title">
 								<a data-toggle="collapse" data-parent="#filters-accordion" href="#collapse-filter-datasources">
 									@Domain.message("web.application.page.datasources.title")
 								</a>
@@ -158,9 +177,9 @@
 						<div id="collapse-filter-coupled" class="panel-collapse collapse in">
 							<div class="panel-body">
 								<ul class="nav nav-pills nav-stacked">
-									<li@if(withCoupling == null){ class="active"}><a href="@pageRefWithFilter(withErrors, withNotifications, null).url">@Domain.message("web.application.page.sourcedatasets.list.couplingBoth")</a></li>
-									<li@if(withCoupling != null && !withCoupling){ class="active"}><a href="@pageRefWithFilter(withErrors, withNotifications, false).url">@Domain.message("web.application.page.sourcedatasets.list.couplingWithout")</a></li>
-									<li@if(withCoupling != null && withCoupling){ class="active"}><a href="@pageRefWithFilter(withErrors, withNotifications, true).url">@Domain.message("web.application.page.sourcedatasets.list.couplingWith")</a></li>
+									<li@if(withCoupling == null){ class="active"}><a href="@pageRefWithFilter(withErrors, withNotifications, null, orderBy).url">@Domain.message("web.application.page.sourcedatasets.list.couplingBoth")</a></li>
+									<li@if(withCoupling != null && !withCoupling){ class="active"}><a href="@pageRefWithFilter(withErrors, withNotifications, false, orderBy).url">@Domain.message("web.application.page.sourcedatasets.list.couplingWithout")</a></li>
+									<li@if(withCoupling != null && withCoupling){ class="active"}><a href="@pageRefWithFilter(withErrors, withNotifications, true, orderBy).url">@Domain.message("web.application.page.sourcedatasets.list.couplingWith")</a></li>
 								</ul>
 							</div>
 						</div>
@@ -177,9 +196,9 @@
 						<div id="collapse-filter-errors" class="panel-collapse collapse in">
 							<div class="panel-body">
 								<ul class="nav nav-pills nav-stacked">
-									<li@if(withErrors == null){ class="active"}><a href="@pageRefWithFilter(null, withNotifications, withCoupling).url">@Domain.message("web.application.page.sourcedatasets.list.errorsBoth")</a></li>
-									<li@if(withErrors != null && !withErrors){ class="active"}><a href="@pageRefWithFilter(false, withNotifications, withCoupling).url">@Domain.message("web.application.page.sourcedatasets.list.errorsWithout")</a></li>
-									<li@if(withErrors != null && withErrors){ class="active"}><a href="@pageRefWithFilter(true, withNotifications, withCoupling).url">@Domain.message("web.application.page.sourcedatasets.list.errorsWith")</a></li>
+									<li@if(withErrors == null){ class="active"}><a href="@pageRefWithFilter(null, withNotifications, withCoupling, orderBy).url">@Domain.message("web.application.page.sourcedatasets.list.errorsBoth")</a></li>
+									<li@if(withErrors != null && !withErrors){ class="active"}><a href="@pageRefWithFilter(false, withNotifications, withCoupling, orderBy).url">@Domain.message("web.application.page.sourcedatasets.list.errorsWithout")</a></li>
+									<li@if(withErrors != null && withErrors){ class="active"}><a href="@pageRefWithFilter(true, withNotifications, withCoupling, orderBy).url">@Domain.message("web.application.page.sourcedatasets.list.errorsWith")</a></li>
 								</ul>
 							</div>
 						</div>
@@ -196,9 +215,9 @@
 						<div id="collapse-filter-notifications" class="panel-collapse collapse in">
 							<div class="panel-body">
 								<ul class="nav nav-pills nav-stacked">
-									<li@if(withNotifications == null){ class="active"}><a href="@pageRefWithFilter(withErrors, null, withCoupling).url">@Domain.message("web.application.page.sourcedatasets.list.notificationsBoth")</a></li>
-									<li@if(withNotifications != null && !withNotifications){ class="active"}><a href="@pageRefWithFilter(withErrors, false, withCoupling).url">@Domain.message("web.application.page.sourcedatasets.list.notificationsWithout")</a></li>
-									<li@if(withNotifications != null && withNotifications){ class="active"}><a href="@pageRefWithFilter(withErrors, true, withCoupling).url">@Domain.message("web.application.page.sourcedatasets.list.notificationsWith")</a></li>
+									<li@if(withNotifications == null){ class="active"}><a href="@pageRefWithFilter(withErrors, null, withCoupling, orderBy).url">@Domain.message("web.application.page.sourcedatasets.list.notificationsBoth")</a></li>
+									<li@if(withNotifications != null && !withNotifications){ class="active"}><a href="@pageRefWithFilter(withErrors, false, withCoupling, orderBy).url">@Domain.message("web.application.page.sourcedatasets.list.notificationsWithout")</a></li>
+									<li@if(withNotifications != null && withNotifications){ class="active"}><a href="@pageRefWithFilter(withErrors, true, withCoupling, orderBy).url">@Domain.message("web.application.page.sourcedatasets.list.notificationsWith")</a></li>
 								</ul>
 							</div>
 						</div>
@@ -311,8 +330,8 @@
 												@dataset.sourceDataset.name
 											</a>
 										</h4>
-										@if(dataset.sourceDataset.alternateTitle != null) {
-											<h6>@dataset.sourceDataset.alternateTitle</h6>
+										@if(dataset.sourceDataset.physicalName != null) {
+											<h6>@dataset.sourceDataset.physicalName</h6>
 										}
 										@if(dataset.sourceDataset.category != null) {
 											@categoryRefLink(dataset.sourceDataset.category, "label label-info")

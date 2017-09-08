@@ -11,6 +11,7 @@ public enum AttachmentType {
 	/**
 	 * ISO19115/ISO19119 metadata document.
 	 */
-	METADATA;
+	METADATA,
+	PHYSICAL_NAME;
 	
 }

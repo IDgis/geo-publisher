@@ -583,7 +583,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				Long.MAX_VALUE, // dummy value
 				t.get (sourceDatasetVersion.confidential),
 				t.get (sourceDatasetVersion.wmsOnly),
-				t.get (dataset.metadataFileIdentification)
+				t.get (dataset.metadataFileIdentification),
+				t.get (sourceDatasetVersion.physicalName)
 			);
 	}
 

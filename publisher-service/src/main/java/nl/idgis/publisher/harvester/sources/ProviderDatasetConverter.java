@@ -72,6 +72,7 @@ public class ProviderDatasetConverter extends StreamConverter {
 		
 		Set<AttachmentType> attachmentTypes = new HashSet<>();
 		attachmentTypes.add(AttachmentType.METADATA);
+		attachmentTypes.add(AttachmentType.PHYSICAL_NAME);
 		this.attachmentTypes = Collections.unmodifiableSet(attachmentTypes);
 		
 		mdf = new MetadataDocumentFactory();
@@ -110,6 +111,14 @@ public class ProviderDatasetConverter extends StreamConverter {
 					Function.identity()));
 			
 			MetadataDocument metadata;
+			
+			String physicalName = null;
+			if(attachments.containsKey(AttachmentType.PHYSICAL_NAME)) {
+				Attachment attachment = attachments.get(AttachmentType.PHYSICAL_NAME);
+				if(attachment.getContent() instanceof String) {
+					physicalName = (String) attachment.getContent();
+				}
+			}
 			
 			boolean confidential = true;
 			boolean metadataConfidential = true;
@@ -173,16 +182,16 @@ public class ProviderDatasetConverter extends StreamConverter {
 						column.getAlias().orElse(null)))
 					.collect(Collectors.toList());
 				
-				Table table = new Table(columns);				
-				dataset = new VectorDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata, table);
+				Table table = new Table(columns);
+				dataset = new VectorDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata, table, physicalName);
 			} else if(msg instanceof RasterDatasetInfo) {
 				log.debug("raster dataset info type");
 				
-				dataset = new RasterDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata);
+				dataset = new RasterDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata, physicalName);
 			} else {
 				log.debug("unhandled dataset info type");
 				
-				dataset = new UnavailableDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata);
+				dataset = new UnavailableDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata, physicalName);
 			}
 			
 			log.debug("resulting dataset: {}", dataset);

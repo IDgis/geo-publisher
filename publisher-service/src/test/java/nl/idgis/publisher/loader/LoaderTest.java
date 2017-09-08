@@ -282,19 +282,20 @@ public class LoaderTest extends AbstractServiceTest {
 		f.ask(jobManager, new CreateImportJob("testDataset")).get();
 		executeJobs(new GetImportJobs());
 		
-		Table updatedTable = new Table(Arrays.asList(testColumns.get(0)));		
+		Table updatedTable = new Table(Arrays.asList(testColumns.get(0)));
 		VectorDataset updatedDataset = new VectorDataset(
 				testDataset.getId(),
 				testDataset.getName(),
 				testDataset.getAlternateTitle(),
-				testDataset.getCategoryId(),				
+				testDataset.getCategoryId(),
 				testDataset.getRevisionDate(),
 				Collections.<Log>emptySet(),
 				false,
 				false,
 				false,
 				null,
-				updatedTable);
+				updatedTable,
+				null);
 		
 		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", updatedDataset), Updated.class).get();
 		f.ask(jobManager, new CreateImportJob("testDataset")).get();

@@ -14,6 +14,7 @@ import nl.idgis.publisher.provider.database.messages.DescribeTable;
 import nl.idgis.publisher.provider.database.messages.PerformCount;
 import nl.idgis.publisher.provider.database.messages.TableNotFound;
 import nl.idgis.publisher.provider.messages.SkipDataset;
+import nl.idgis.publisher.provider.protocol.Attachment;
 import nl.idgis.publisher.provider.protocol.AttachmentType;
 import nl.idgis.publisher.provider.protocol.ColumnInfo;
 import nl.idgis.publisher.provider.protocol.TableInfo;
@@ -82,6 +83,10 @@ public class VectorDatasetInfoBuilder extends AbstractDatasetInfoBuilder {
 		tableName = ProviderUtils.getTableName(alternateTitle);
 		log.debug("tableName: {}", tableName);
 		
+		if(requestedAttachmentTypes.contains(AttachmentType.PHYSICAL_NAME)) {
+			attachments.add(new Attachment(identification, AttachmentType.PHYSICAL_NAME, tableName));
+		}
+		
 		categoryId = ProviderUtils.getCategoryId(tableName);
 		log.debug("categoryId: {}", categoryId);
 		
@@ -90,7 +95,7 @@ public class VectorDatasetInfoBuilder extends AbstractDatasetInfoBuilder {
 				database.tell(new DescribeTable(tableName), getSelf());
 				database.tell(new PerformCount(tableName), getSelf());
 			} else {
-				logs.add(Log.create(LogLevel.ERROR, DatasetLogType.UNKNOWN_TABLE));					
+				logs.add(Log.create(LogLevel.ERROR, DatasetLogType.UNKNOWN_TABLE));
 				sendUnavailable();
 			}
 		} else {

@@ -35,13 +35,13 @@ POST	/datasets/:datasetId/notification/:notificationId	controllers.Datasets.setN
 # Source datasets
 GET		/sourcedatasets/download						controllers.DataSources.download(searchString: String ?= "", withErrors: java.lang.Boolean ?= null, separator: String ?= ",", quote: String ?= "'", encoding: String ?= "iso-8859-1")
 POST	/sourcedatasets/refresh							controllers.DataSources.refreshDatasources()
-GET		/sourcedatasets									controllers.DataSources.list(q: String ?="", withErrors: java.lang.Boolean ?= null, withNotifications: java.lang.Boolean ?= null, withCoupling: java.lang.Boolean ?= null, page: Long ?= 1)
+GET		/sourcedatasets									controllers.DataSources.list(q: String ?="", withErrors: java.lang.Boolean ?= null, withNotifications: java.lang.Boolean ?= null, withCoupling: java.lang.Boolean ?= null, orderBy: String ?= "TITLE", page: Long ?= 1)
 GET		/sourcedatasets/:sourceDatasetId				controllers.DataSources.get(sourceDatasetId: String)
-GET		/sourcedatasets/-/category/:categoryId 			controllers.DataSources.listByCategory(categoryId: String, q: String ?="", withErrors: java.lang.Boolean ?= null, withNotifications: java.lang.Boolean ?= null, withCoupling: java.lang.Boolean ?= null, page: Long ?= 1)
-GET		/sourcedatasets/-/datasource/:dataSourceId						controllers.DataSources.listByDataSource(dataSourceId: String, q: String ?="", withErrors: java.lang.Boolean ?= null, withNotifications: java.lang.Boolean ?= null, withCoupling: java.lang.Boolean ?= null, page: Long ?= 1)
+GET		/sourcedatasets/-/category/:categoryId 			controllers.DataSources.listByCategory(categoryId: String, q: String ?="", withErrors: java.lang.Boolean ?= null, withNotifications: java.lang.Boolean ?= null, withCoupling: java.lang.Boolean ?= null, orderBy: String ?= "TITLE", page: Long ?= 1)
+GET		/sourcedatasets/-/datasource/:dataSourceId						controllers.DataSources.listByDataSource(dataSourceId: String, q: String ?="", withErrors: java.lang.Boolean ?= null, withNotifications: java.lang.Boolean ?= null, withCoupling: java.lang.Boolean ?= null, orderBy: String ?= "TITLE", page: Long ?= 1)
 POST	/sourcedatasets/-/datasource/:datasourceId/refresh				controllers.DataSources.refreshDatasource(datasourceId: String)
 GET		/sourcedatasets/-/datasource/:dataSourceId/category/$categoryId<[^\.]+>.json	controllers.DataSources.listByDataSourceAndCategoryJson(dataSourceId: String, categoryId: String)
-GET		/sourcedatasets/-/datasource/:dataSourceId/category/:categoryId	controllers.DataSources.listByDataSourceAndCategory(dataSourceId: String, categoryId: String, q: String ?="", withErrors: java.lang.Boolean ?= null, withNotifications: java.lang.Boolean ?= null, withCoupling: java.lang.Boolean ?= null, page: Long ?= 1)
+GET		/sourcedatasets/-/datasource/:dataSourceId/category/:categoryId	controllers.DataSources.listByDataSourceAndCategory(dataSourceId: String, categoryId: String, q: String ?="", withErrors: java.lang.Boolean ?= null, withNotifications: java.lang.Boolean ?= null, withCoupling: java.lang.Boolean ?= null, orderBy: String ?= "TITLE", page: Long ?= 1)
 POST	/sourcedatasets/:sourceDatasetId/notification/:notificationId 		controllers.DataSources.discardHarvestNotification(sourceDatasetId: String, notificationId: String)
 
 #
