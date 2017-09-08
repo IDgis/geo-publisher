@@ -9,39 +9,39 @@ import nl.idgis.publisher.domain.web.SourceDatasetStats;
 
 public class ListSourceDatasets implements DomainQuery<Page<SourceDatasetStats>>{
 	
-	private static final long serialVersionUID = 6270419545638850963L;
+	private static final long serialVersionUID = -7951148810454840884L;
 	
 	private final String dataSourceId;
 	private final String categoryId;
 	private final String searchString;
 	private final Boolean withErrors;
 	private final Boolean withNotifications;
-	private final Boolean withCoupling;
+	private final Boolean withDataset;
 	private final ListSourceDatasetsOrderBy orderBy;
 	private final Long page;
 	private final Long itemsPerPage;
 	
-	public ListSourceDatasets (final DataSource dataSource, final Category category, String searchString, final Boolean withErrors, final Boolean withNotifications, final Boolean withCoupling, final ListSourceDatasetsOrderBy orderBy, final Long page) {
-		this(dataSource, category, searchString, withErrors, withNotifications, withCoupling, orderBy, page, null);
+	public ListSourceDatasets (final DataSource dataSource, final Category category, String searchString, final Boolean withErrors, final Boolean withNotifications, final Boolean withDataset, final ListSourceDatasetsOrderBy orderBy, final Long page) {
+		this(dataSource, category, searchString, withErrors, withNotifications, withDataset, orderBy, page, null);
 	}
 	
-	public ListSourceDatasets (final DataSource dataSource, final Category category, String searchString, final Boolean withErrors, final Boolean withNotifications, final Boolean withCoupling, final ListSourceDatasetsOrderBy orderBy, final Long page, final Long itemsPerPage) {
+	public ListSourceDatasets (final DataSource dataSource, final Category category, String searchString, final Boolean withErrors, final Boolean withNotifications, final Boolean withDataset, final ListSourceDatasetsOrderBy orderBy, final Long page, final Long itemsPerPage) {
 		this(dataSource == null ? null : dataSource.id (), 
-			category == null ? null : category.id (), searchString, withErrors, withNotifications, withCoupling, orderBy, page, itemsPerPage);
+			category == null ? null : category.id (), searchString, withErrors, withNotifications, withDataset, orderBy, page, itemsPerPage);
 	}
 	
-	public ListSourceDatasets (String dataSourceId, String categoryId, String searchString, final Boolean withErrors, final Boolean withNotifications, final Boolean withCoupling, final ListSourceDatasetsOrderBy orderBy, final Long page) {
-		this(dataSourceId, categoryId, searchString, withErrors, withNotifications, withCoupling, orderBy, page, null);
+	public ListSourceDatasets (String dataSourceId, String categoryId, String searchString, final Boolean withErrors, final Boolean withNotifications, final Boolean withDataset, final ListSourceDatasetsOrderBy orderBy, final Long page) {
+		this(dataSourceId, categoryId, searchString, withErrors, withNotifications, withDataset, orderBy, page, null);
 	}
 	
-	public ListSourceDatasets (String dataSourceId, String categoryId, String searchString, final Boolean withErrors, final Boolean withNotifications, final Boolean withCoupling, final ListSourceDatasetsOrderBy orderBy, final Long page, final Long itemsPerPage) {
+	public ListSourceDatasets (String dataSourceId, String categoryId, String searchString, final Boolean withErrors, final Boolean withNotifications, final Boolean withDataset, final ListSourceDatasetsOrderBy orderBy, final Long page, final Long itemsPerPage) {
 		this.dataSourceId = dataSourceId;
 		this.categoryId = categoryId;
 		this.searchString = searchString;
 		this.page = page;
 		this.withErrors = withErrors;
 		this.withNotifications = withNotifications;
-		this.withCoupling = withCoupling;
+		this.withDataset = withDataset;
 		this.orderBy = orderBy;
 		this.itemsPerPage = itemsPerPage;
 	}
@@ -70,8 +70,8 @@ public class ListSourceDatasets implements DomainQuery<Page<SourceDatasetStats>>
 		return withNotifications;
 	}
 	
-	public Boolean getWithCoupling() {
-		return withCoupling;
+	public Boolean getWithDataset() {
+		return withDataset;
 	}
 	
 	public ListSourceDatasetsOrderBy getOrderBy() {

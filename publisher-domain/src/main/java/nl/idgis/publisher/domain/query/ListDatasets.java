@@ -7,23 +7,23 @@ import nl.idgis.publisher.domain.web.DatasetStatusType;
 
 public class ListDatasets implements DomainQuery<Page<Dataset>>{
 	
-	private static final long serialVersionUID = -6774849832776159562L;
-	
+	private static final long serialVersionUID = -5179627828015295011L;
+
 	private final String categoryId;
 	
 	private final DatasetStatusType status;
 	
-	private final Boolean withCoupling;
+	private final Boolean withLayer;
 	
 	private final long page;
 	
 	private final String query;
 	
-	public ListDatasets (final Category category, DatasetStatusType status, Boolean withCoupling, 
+	public ListDatasets (final Category category, DatasetStatusType status, Boolean withLayer, 
 			final String query, long page) {
 		this.categoryId = category == null ? null : category.id ();
 		this.status = status;
-		this.withCoupling = withCoupling;
+		this.withLayer = withLayer;
 		this.page = page;
 		this.query = query;
 	}
@@ -36,8 +36,8 @@ public class ListDatasets implements DomainQuery<Page<Dataset>>{
 		return this.status;
 	}
 	
-	public Boolean withCoupling () {
-		return this.withCoupling;
+	public Boolean withLayer () {
+		return this.withLayer;
 	}
 
 	public long getPage() {
@@ -51,7 +51,7 @@ public class ListDatasets implements DomainQuery<Page<Dataset>>{
 	@Override
 	public String toString() {
 		return "ListDatasets [categoryId=" + categoryId + ", status=" + status
-				+ ", page=" + page + "]";
+				+ ", withLayer" + withLayer + ", page=" + page + "]";
 	}
 
 }

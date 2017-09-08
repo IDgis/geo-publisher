@@ -4,7 +4,7 @@
 	categories: List[nl.idgis.publisher.domain.web.Category],
 	currentCategory: nl.idgis.publisher.domain.web.Category,
 	currentDatasetStatus: DatasetStatus = null,
-	withCoupling: java.lang.Boolean,
+	withLayer: java.lang.Boolean,
 	query: String)
 
 @import nl.idgis.publisher.domain.web._
@@ -15,34 +15,34 @@
 }
 
 @categoryRefLink(cat: Category) = {
-	<a href="@routes.Datasets.listByCategory(cat.id, withCoupling, 1, query)" class="label label-info">@Domain.message("web.application.page.datasets.list.categorieref"): @cat.name</a>
+	<a href="@routes.Datasets.listByCategory(cat.id, withLayer, 1, query)" class="label label-info">@Domain.message("web.application.page.datasets.list.categorieref"): @cat.name</a>
 }
 
 @allCategoriesLink() = {
 	<li@if(currentCategory == null){ class="active"}>
 
 		@if(currentDatasetStatus == null) {
-			<a href="@routes.Datasets.list(withCoupling, 1, query)">
+			<a href="@routes.Datasets.list(withLayer, 1, query)">
 		} else {
-			<a href="@routes.Datasets.listByStatus(currentDatasetStatus, withCoupling, 1, query)">
+			<a href="@routes.Datasets.listByStatus(currentDatasetStatus, withLayer, 1, query)">
 		}
 		@Domain.message("web.application.page.datasets.list.allcategories")</a>
 	
 	</li>
 }
 
-@couplingLink(coupling: java.lang.Boolean) = @{
+@withLayerLink(withLayer: java.lang.Boolean) = @{
 	if(currentDatasetStatus == null) {
 		if(currentCategory == null) {
-			routes.Datasets.list(coupling, 1, query)
+			routes.Datasets.list(withLayer, 1, query)
 		} else {
-			routes.Datasets.listByCategory(currentCategory.id, coupling, 1, query)
+			routes.Datasets.listByCategory(currentCategory.id, withLayer, 1, query)
 		}
 	} else {
 		if(currentCategory == null) {
-			routes.Datasets.listByStatus(currentDatasetStatus, coupling, 1, query)
+			routes.Datasets.listByStatus(currentDatasetStatus, withLayer, 1, query)
 		} else {
-			routes.Datasets.listByCategoryAndStatus(currentCategory.id, currentDatasetStatus, coupling, 1, query)
+			routes.Datasets.listByCategoryAndStatus(currentCategory.id, currentDatasetStatus, withLayer, 1, query)
 		}
 	}
 }
@@ -51,9 +51,9 @@
 	<li@if(cat == currentCategory){ class="active"}>	
 	
 		@if(currentDatasetStatus == null) {
-			<a href="@routes.Datasets.listByCategory(cat.id, withCoupling, 1, query)" title="@cat.id">
+			<a href="@routes.Datasets.listByCategory(cat.id, withLayer, 1, query)" title="@cat.id">
 		} else {
-			<a href="@routes.Datasets.listByCategoryAndStatus(cat.id, currentDatasetStatus, withCoupling, 1, query)" title="@cat.id">
+			<a href="@routes.Datasets.listByCategoryAndStatus(cat.id, currentDatasetStatus, withLayer, 1, query)" title="@cat.id">
 		}		
 		@cat.name</a>	
 	
@@ -65,15 +65,15 @@
 		<li@if(boundStatus == currentDatasetStatus){ class="active"}>
 			@if(boundStatus == null) {
 				@if(currentCategory == null) {
-					<a href="@routes.Datasets.list(withCoupling, 1, query)">
+					<a href="@routes.Datasets.list(withLayer, 1, query)">
 				} else {
-					<a href="@routes.Datasets.listByCategory(currentCategory.id, withCoupling, 1, query)">
+					<a href="@routes.Datasets.listByCategory(currentCategory.id, withLayer, 1, query)">
 				}
 			} else {
 				@if(currentCategory == null) {
-					<a href="@routes.Datasets.listByStatus(boundStatus, withCoupling, 1, query)">
+					<a href="@routes.Datasets.listByStatus(boundStatus, withLayer, 1, query)">
 				} else {
-					<a href="@routes.Datasets.listByCategoryAndStatus(currentCategory.id, boundStatus, withCoupling, 1, query)">
+					<a href="@routes.Datasets.listByCategoryAndStatus(currentCategory.id, boundStatus, withLayer, 1, query)">
 				}			
 			}
 			@Domain.message(message)
@@ -85,27 +85,27 @@
 @clearSearch(targetPage: Long = 1) = @{
 	if(currentDatasetStatus == null)
 		if(currentCategory == null)
-			routes.Datasets.list(withCoupling, targetPage)
+			routes.Datasets.list(withLayer, targetPage)
 		else
-			routes.Datasets.listByCategory(currentCategory.id, withCoupling, targetPage)
+			routes.Datasets.listByCategory(currentCategory.id, withLayer, targetPage)
 	else		
 		if(currentCategory == null) 
-			routes.Datasets.listByStatus(currentDatasetStatus, withCoupling, targetPage)
+			routes.Datasets.listByStatus(currentDatasetStatus, withLayer, targetPage)
 		else
-			routes.Datasets.listByCategoryAndStatus(currentCategory.id, currentDatasetStatus, withCoupling, targetPage)
+			routes.Datasets.listByCategoryAndStatus(currentCategory.id, currentDatasetStatus, withLayer, targetPage)
 }
 
 @pageRef(targetPage: Long = 1) = @{
 	if(currentDatasetStatus == null)
 		if(currentCategory == null)
-			routes.Datasets.list(withCoupling, targetPage, query)
+			routes.Datasets.list(withLayer, targetPage, query)
 		else
-			routes.Datasets.listByCategory(currentCategory.id, withCoupling, targetPage, query)
+			routes.Datasets.listByCategory(currentCategory.id, withLayer, targetPage, query)
 	else		
 		if(currentCategory == null) 
-			routes.Datasets.listByStatus(currentDatasetStatus, withCoupling, targetPage, query)
+			routes.Datasets.listByStatus(currentDatasetStatus, withLayer, targetPage, query)
 		else
-			routes.Datasets.listByCategoryAndStatus(currentCategory.id, currentDatasetStatus, withCoupling, targetPage, query)
+			routes.Datasets.listByCategoryAndStatus(currentCategory.id, currentDatasetStatus, withLayer, targetPage, query)
 }
 
 @statusClass(dataset: Dataset) = @{
@@ -160,17 +160,17 @@
 					<div class="panel panel-default">
 						<div class="panel-heading">
 							<h4 class="panel-title">
-								<a data-toggle="collapse" data-parent="#filters-accordion" href="#collapse-filter-coupled">
-									@Domain.message("web.application.page.datasets.list.coupling.title")
+								<a data-toggle="collapse" data-parent="#filters-accordion" href="#collapse-filter-withlayer">
+									@Domain.message("web.application.page.datasets.list.withlayer.title")
 								</a>
 							</h4>
 						</div>
-						<div id="collapse-filter-coupled" class="panel-collapse collapse in">
+						<div id="collapse-filter-withlayer" class="panel-collapse collapse in">
 							<div class="panel-body">
 								<ul class="nav nav-pills nav-stacked">
-									<li@if(withCoupling == null) { class="active"}><a href="@couplingLink(null).url">@Domain.message("web.application.page.datasets.list.coupling.both")</a></li>
-									<li@if(withCoupling != null && !withCoupling) { class="active"}><a href="@couplingLink(false).url">@Domain.message("web.application.page.datasets.list.coupling.without")</a></li>
-									<li@if(withCoupling != null && withCoupling) { class="active"}><a href="@couplingLink(true).url">@Domain.message("web.application.page.datasets.list.coupling.with")</a></li>
+									<li@if(withLayer == null) { class="active"}><a href="@withLayerLink(null).url">@Domain.message("web.application.page.datasets.list.withlayer.both")</a></li>
+									<li@if(withLayer != null && !withLayer) { class="active"}><a href="@withLayerLink(false).url">@Domain.message("web.application.page.datasets.list.withlayer.without")</a></li>
+									<li@if(withLayer != null && withLayer) { class="active"}><a href="@withLayerLink(true).url">@Domain.message("web.application.page.datasets.list.withlayer.with")</a></li>
 								</ul>
 							</div>
 						</div>

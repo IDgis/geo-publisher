@@ -701,8 +701,8 @@ private String getEnumName(Enum e){
 				}
 			}
 			
-			if (msg.getWithCoupling () != null) {
-				if(msg.getWithCoupling ()) {
+			if (msg.getWithDataset () != null) {
+				if(msg.getWithDataset ()) {
 					baseQuery.where(new SQLSubQuery()
 							.from(dataset)
 							.where(dataset.sourceDatasetId.eq(sourceDataset.id))
