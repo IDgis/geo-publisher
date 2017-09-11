@@ -14,6 +14,8 @@ import nl.idgis.publisher.provider.sde.SDEGetVectorDatasetHandler;
 import nl.idgis.publisher.provider.sde.SDEListDatasetInfoHandler;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
@@ -34,13 +36,16 @@ public class SDEProvider extends UntypedActor {
 	
 	private ActorRef rasterFolder;
 	
-	public SDEProvider(Props databaseProps, Props rasterFolderProps) {
+	private Config databaseConfig;
+	
+	public SDEProvider(Props databaseProps, Props rasterFolderProps, Config databaseConfig) {
 		this.databaseProps = databaseProps;
 		this.rasterFolderProps = rasterFolderProps;
+		this.databaseConfig = databaseConfig;
 	}
 	
-	public static Props props(Props databaseProps, Props rasterFolderProps) {
-		return Props.create(SDEProvider.class, databaseProps, rasterFolderProps);
+	public static Props props(Props databaseProps, Props rasterFolderProps, Config databaseConfig) {
+		return Props.create(SDEProvider.class, databaseProps, rasterFolderProps, databaseConfig);
 	}
 	
 	@Override
@@ -72,7 +77,7 @@ public class SDEProvider extends UntypedActor {
 		log.debug("get raster dataset");
 		
 		ActorRef handler = getContext().actorOf(
-			SDEGetRasterDatasetHandler.props(getSender(), msg, rasterFolder),
+			SDEGetRasterDatasetHandler.props(getSender(), msg, rasterFolder, databaseConfig),
 			nameGenerator.getName(SDEGetRasterDatasetHandler.class));
 			
 		database.tell(new StartTransaction(), handler);
@@ -82,7 +87,7 @@ public class SDEProvider extends UntypedActor {
 		log.debug("get vector dataset");
 		
 		ActorRef handler = getContext().actorOf(
-			SDEGetVectorDatasetHandler.props(getSender(), msg),
+			SDEGetVectorDatasetHandler.props(getSender(), msg, databaseConfig),
 			nameGenerator.getName(SDEGetVectorDatasetHandler.class));
 		
 		database.tell(new StartTransaction(), handler);
@@ -92,7 +97,7 @@ public class SDEProvider extends UntypedActor {
 		log.debug("get dataset info");
 		
 		ActorRef handler = getContext().actorOf(
-			SDEGetDatasetInfoHandler.props(getSender(), msg, rasterFolder),
+			SDEGetDatasetInfoHandler.props(getSender(), msg, rasterFolder, databaseConfig),
 			nameGenerator.getName(SDEGetDatasetInfoHandler.class));
 			
 		database.tell(new StartTransaction(), handler);
@@ -102,7 +107,7 @@ public class SDEProvider extends UntypedActor {
 		log.debug("list dataset info");
 		
 		ActorRef handler = getContext().actorOf(
-			SDEListDatasetInfoHandler.props(getSender(), msg, rasterFolder),
+			SDEListDatasetInfoHandler.props(getSender(), msg, rasterFolder, databaseConfig),
 			nameGenerator.getName(SDEListDatasetInfoHandler.class));
 		
 		database.tell(new StartTransaction(), handler);
