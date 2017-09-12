@@ -216,6 +216,8 @@ public class DatasetMetadata extends AbstractMetadata {
 	}
 
 	private Resource tupleToDatasetResource(Transaction tx, Tuple datasetTuple, int sourceDatasetId, Integer datasetId, String fileIdentifier, String datasetIdentifier) {
+		final QSourceDatasetVersion sourceDatasetVersionSub = new QSourceDatasetVersion("source_dataset_version_sub");
+		
 		try {
 			MetadataDocument metadataDocument = mdf.parseDocument(datasetTuple.get(sourceDatasetMetadata.document));
 			
@@ -224,6 +226,27 @@ public class DatasetMetadata extends AbstractMetadata {
 			
 			metadataDocument.setDatasetIdentifier(datasetIdentifier);
 			metadataDocument.setFileIdentifier(fileIdentifier);
+			
+			final String physicalName = tx.query().from(sourceDatasetVersion)
+					.where(sourceDatasetVersion.sourceDatasetId.eq(sourceDatasetId)
+							.and(sourceDatasetVersion.id.eq(new SQLSubQuery().from(sourceDatasetVersionSub)
+									.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDatasetId))
+									.unique(sourceDatasetVersionSub.id.max()))))
+				.singleResult(sourceDatasetVersion.physicalName);
+			
+			try {
+				final String existingAlternateTitle = metadataDocument.getDatasetAlternateTitle();
+				
+				if(physicalName != null) {
+					if(existingAlternateTitle.toLowerCase().trim().contains(physicalName.toLowerCase().trim())) {
+						 // do nothing
+					} else {
+						metadataDocument.setDatasetAlternateTitle(existingAlternateTitle + " " + physicalName);
+					}
+				}
+			} catch(NotFound nf) {
+				metadataDocument.addDatasetAlternateTitle(physicalName);
+			}
 			
 			if(!isTrusted()) {
 				metadataDocument.removeAdditionalPointOfContacts();
