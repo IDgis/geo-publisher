@@ -16,8 +16,8 @@ public class Dcat {
 	private String spatial;
 	// private String webService;
 	
-	private List<String> keyword;	
-	private List<String> theme;	
+	private String[] keyword;	
+	private String[] theme;	
 	
 	private final String typeDcatContact =	"vcard:Contact";
 	private String contactPointFn;
@@ -48,19 +48,21 @@ public class Dcat {
 	
 	
 		
-	public Dcat(String description, List<String> theme, String landingPage, String publisherName, String issued,
+	public Dcat(String description, String[] theme, String landingPage, String publisherName, String issued,
 				String modified, String contactPointFn, String identifier, String title, String accessLevel,
-				String contactPointHasEmail, String spatial, String license, List<String> keyword) {
+				String contactPointHasEmail, String spatial, String license, String[] keyword) {
 			this.description = description;
 			this.theme = theme;
 			this.landingPage = landingPage;
 			this.publisherName = publisherName;
 			this.issued = issued;
+			
 			this.modified = modified;
 			this.contactPointFn = contactPointFn;
 			this.identifier = identifier;
 			this.title = title;
 			this.accessLevel = accessLevel;
+			
 			this.contactPointHasEmail = contactPointHasEmail;
 			this.spatial = spatial;
 			this.license = license;
@@ -113,11 +115,11 @@ public class Dcat {
 		return spatial;
 	}
 
-	public List<String> getKeyword() {
+	public String[] getKeyword() {
 		return keyword;
 	}
 
-	public List<String> getTheme() {
+	public String[] getTheme() {
 		return theme;
 	}
 

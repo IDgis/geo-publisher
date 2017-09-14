@@ -1273,4 +1273,18 @@ public class MetadataDocument {
 					+ "/@codeListValue")
 			.get();
 	}
+	
+	public Double getDatasetSpatialExtentWest() {
+		return Double.valueOf(xpath()
+				.string("/gmd:MD_Metadata"
+						+ "/gmd:identificationInfo"
+						+ "/gmd:MD_DataIdentification"
+						+ "/gmd:extent"
+						+ "/gmd:EX_Extent"
+						+ "/gmd:geographicElement"
+						+ "/gmd:EX_GeographicBoundingBox"
+						+ "/gmd:westBoundLongitude"
+						+ "/gco:Decimal")
+				.get());
+	}
 }
