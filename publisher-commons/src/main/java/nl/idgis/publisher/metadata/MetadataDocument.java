@@ -587,6 +587,15 @@ public class MetadataDocument {
 	public void setDatasetAlternateTitle(String newTitle) throws QueryFailure {
 		isoMetadata.updateString(namespaces, getAlternateTitlePath(Topic.DATASET), newTitle);
 	}
+
+	public void addDatasetAlternateTitle(String name) throws NotFound{
+		if(name != null && !"".equals(name.trim())) {
+			isoMetadata.addNode(namespaces, 
+					getDatasetIdentificationPath() + "/gmd:citation/gmd:CI_Citation", 
+					"gmd:alternateTitle/gco:CharacterString", 
+					name);
+		}
+	}
 	
 	protected String getUseLimitationsPath() {
 		return getDatasetIdentificationPath() + "/gmd:resourceConstraints"
