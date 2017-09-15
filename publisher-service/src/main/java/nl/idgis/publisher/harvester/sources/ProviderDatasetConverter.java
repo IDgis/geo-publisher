@@ -38,6 +38,7 @@ import nl.idgis.publisher.provider.protocol.VectorDatasetInfo;
 import nl.idgis.publisher.stream.StreamConverter;
 import nl.idgis.publisher.stream.messages.Start;
 import nl.idgis.publisher.utils.ConfigUtils;
+import nl.idgis.publisher.xml.exceptions.NotFound;
 
 public class ProviderDatasetConverter extends StreamConverter {
 	
@@ -120,6 +121,7 @@ public class ProviderDatasetConverter extends StreamConverter {
 				}
 			}
 			
+			String refreshFrequency = null;
 			boolean confidential = true;
 			boolean metadataConfidential = true;
 			boolean wmsOnly = false;
@@ -132,8 +134,15 @@ public class ProviderDatasetConverter extends StreamConverter {
 						metadata = mdf.parseDocument((byte[])attachment.getContent());
 						
 						try {
+							refreshFrequency = metadata.getMaintenanceFrequencyCodeListValue();
+							log.debug("import frequency code list value: {}", refreshFrequency);
+						} catch(NotFound nf) {
+							log.debug("import frequency code list value not found");
+						}
+						
+						try {
 							if(confidentialPath != null) {
-								List<String> useLimitations = metadata.getConfidentialElements(confidentialPath);
+								List<String> useLimitations = metadata.getMetadataElements(confidentialPath);
 								
 								log.debug("useLimitations: {}", useLimitations);
 								
@@ -183,15 +192,15 @@ public class ProviderDatasetConverter extends StreamConverter {
 					.collect(Collectors.toList());
 				
 				Table table = new Table(columns);
-				dataset = new VectorDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata, table, physicalName);
+				dataset = new VectorDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata, table, physicalName, refreshFrequency);
 			} else if(msg instanceof RasterDatasetInfo) {
 				log.debug("raster dataset info type");
 				
-				dataset = new RasterDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata, physicalName);
+				dataset = new RasterDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata, physicalName, refreshFrequency);
 			} else {
 				log.debug("unhandled dataset info type");
 				
-				dataset = new UnavailableDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata, physicalName);
+				dataset = new UnavailableDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata, physicalName, refreshFrequency);
 			}
 			
 			log.debug("resulting dataset: {}", dataset);

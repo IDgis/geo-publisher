@@ -597,6 +597,15 @@ public class MetadataDocument {
 		}
 	}
 	
+	public String getMaintenanceFrequencyCodeListValue() throws NotFound {
+		return isoMetadata.getString(namespaces, getDatasetIdentificationPath() + 
+				"/gmd:resourceMaintenance"
+				+ "/gmd:MD_MaintenanceInformation"
+				+ "/gmd:maintenanceAndUpdateFrequency"
+				+ "/gmd:MD_MaintenanceFrequencyCode/"
+				+ "@codeListValue");
+	}
+	
 	protected String getUseLimitationsPath() {
 		return getDatasetIdentificationPath() + "/gmd:resourceConstraints"
 				+ "/gmd:MD_Constraints/gmd:useLimitation/gco:CharacterString";
@@ -608,7 +617,10 @@ public class MetadataDocument {
 			.strings(getUseLimitationsPath());
 	}
 	
-	public List<String> getConfidentialElements(String path) throws NotFound {
+	/*
+	 * Get values of path from argument
+	 */
+	public List<String> getMetadataElements(String path) throws NotFound {
 		return isoMetadata
 			.xpath(Optional.of(namespaces))
 			.strings(path);

@@ -10,7 +10,7 @@ import nl.idgis.publisher.metadata.MetadataDocument;
 
 public abstract class Dataset implements Serializable {
 	
-	private static final long serialVersionUID = -1488631999191753710L;
+	private static final long serialVersionUID = -9126758457516863133L;
 
 	protected final String id, name, alternateTitle;
 	
@@ -28,7 +28,9 @@ public abstract class Dataset implements Serializable {
 	
 	protected final String physicalName;
 	
-	Dataset(String id, String name, String alternateTitle, String categoryId, Date revisionDate, Set<Log> logs, boolean confidential, boolean metadataConfidential, boolean wmsOnly, MetadataDocument metadata, String physicalName) {
+	protected final String refreshFrequency;
+	
+	Dataset(String id, String name, String alternateTitle, String categoryId, Date revisionDate, Set<Log> logs, boolean confidential, boolean metadataConfidential, boolean wmsOnly, MetadataDocument metadata, String physicalName, String refreshFrequency) {
 		this.id = id;
 		this.name = name;
 		this.alternateTitle = alternateTitle;
@@ -40,6 +42,7 @@ public abstract class Dataset implements Serializable {
 		this.wmsOnly = wmsOnly;
 		this.metadata = metadata;
 		this.physicalName = physicalName;
+		this.refreshFrequency = refreshFrequency;
 	}
 
 	public String getId() {
@@ -81,6 +84,10 @@ public abstract class Dataset implements Serializable {
 	public String getPhysicalName() {
 		return physicalName;
 	}
+	
+	public String getRefreshFrequency() {
+		return refreshFrequency;
+	}
 
 	@Override
 	public int hashCode() {
@@ -93,8 +100,9 @@ public abstract class Dataset implements Serializable {
 		result = prime * result + ((logs == null) ? 0 : logs.hashCode());
 		result = prime * result + (metadataConfidential ? 1231 : 1237);
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
-		result = prime * result + ((revisionDate == null) ? 0 : revisionDate.hashCode());
 		result = prime * result + ((physicalName == null) ? 0 : physicalName.hashCode());
+		result = prime * result + ((refreshFrequency == null) ? 0 : refreshFrequency.hashCode());
+		result = prime * result + ((revisionDate == null) ? 0 : revisionDate.hashCode());
 		result = prime * result + (wmsOnly ? 1231 : 1237);
 		return result;
 	}
@@ -141,15 +149,20 @@ public abstract class Dataset implements Serializable {
 				return false;
 		} else if (!name.equals(other.name))
 			return false;
-		if (revisionDate == null) {
-			if (other.revisionDate != null)
-				return false;
-		} else if (!revisionDate.equals(other.revisionDate))
-			return false;
 		if (physicalName == null) {
 			if (other.physicalName != null)
 				return false;
 		} else if (!physicalName.equals(other.physicalName))
+			return false;
+		if (refreshFrequency == null) {
+			if (other.refreshFrequency != null)
+				return false;
+		} else if (!refreshFrequency.equals(other.refreshFrequency))
+			return false;
+		if (revisionDate == null) {
+			if (other.revisionDate != null)
+				return false;
+		} else if (!revisionDate.equals(other.revisionDate))
 			return false;
 		if (wmsOnly != other.wmsOnly)
 			return false;

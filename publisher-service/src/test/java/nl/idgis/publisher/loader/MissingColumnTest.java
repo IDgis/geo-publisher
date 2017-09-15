@@ -119,6 +119,7 @@ public class MissingColumnTest extends AbstractServiceTest {
 			false, // wmsOnly
 			null, // metadata
 			new Table(columns),
+			null, // physicalName
 			null);
 		
 		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", testDataset), Registered.class).get();
@@ -233,7 +234,8 @@ public class MissingColumnTest extends AbstractServiceTest {
 			testDataset.isWmsOnly(),
 			testDataset.getMetadata().orElse(null),
 			new Table(Collections.singletonList(columns.get(0))),
-			testDataset.getPhysicalName()); 
+			testDataset.getPhysicalName(),
+			testDataset.getRefreshFrequency()); 
 		
 		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", testDataset), Updated.class).get();
 		
@@ -376,7 +378,8 @@ public class MissingColumnTest extends AbstractServiceTest {
 				false, // wmsOnly
 				null, // metadata
 				new Table(columns),
-				null /*physicalName*/ );
+				null, /*physicalName*/
+				null /*refreshFrequency*/);
 			
 			f.ask(datasetManager, new RegisterSourceDataset("testDataSource", anotherDataset), Registered.class).get();
 			
