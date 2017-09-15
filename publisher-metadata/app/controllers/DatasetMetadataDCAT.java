@@ -7,13 +7,14 @@ import static nl.idgis.publisher.database.QSourceDatasetMetadata.sourceDatasetMe
 
 import play.mvc.*;
 import util.QueryDSL;
-import util.QueryDSL.Transaction;
 import play.libs.Json;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.inject.Inject;
 
@@ -22,10 +23,9 @@ import com.mysema.query.Tuple;
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.xml.exceptions.NotFound;
-import util.MetadataConfig;
-import util.QueryDSL;
+
 import util.Security;
-import util.QueryDSL.Transaction;
+
 
 
 public class DatasetMetadataDCAT extends Controller{
@@ -42,6 +42,7 @@ public class DatasetMetadataDCAT extends Controller{
 	private final MetadataDocumentFactory mdf;
 	private final QueryDSL q;
 	private final DatasetQueryBuilder dqb;
+	
 	private HashMap<String, Object> dcatResult = new HashMap<String, Object>();
 
 	@Inject
@@ -71,28 +72,28 @@ public class DatasetMetadataDCAT extends Controller{
 
 	// get datasets:
 	private List<Tuple> getPublishedDatasets() {
-		return q.withTransaction(tx -> {
-			return dqb.fromPublishedDataset(tx)
-					// .join(sourceDatasetMetadata).on(sourceDatasetMetadata.sourceDatasetId.eq(sourceDataset.id))
-					.list(dataset.id, dataset.identification, dataset.name, sourceDatasetVersion.confidential, sourceDatasetMetadata.document);
-		});
+		return q.withTransaction(tx -> 
+			dqb.fromPublishedDataset(tx)
+			.list(dataset.id, dataset.identification, dataset.name, sourceDatasetVersion.confidential, sourceDatasetMetadata.document)
+			);
 	}
 
 	// Fetch all published datasets and generate a hashmap for each. 
 	private void populateDcatResult() {
 
-		HashMap<String, Object> datasetsDcat = new HashMap<String, Object>();
+		List<Object> datasetsDcat = new ArrayList<>();
 
 		// get all published datasets
 		List<Tuple> datasets = getPublishedDatasets();
 
 		// Loop over all dataset to generate correct dcat metadata
-		int i = 0;
+		//int i = 0;
 		for (Tuple ds : datasets) {
-			
+
 			//System.out.println(ds.get(dataset.id)+ds.get(dataset.name)+ds.get(sourceDatasetVersion.confidential));
-			datasetsDcat.put(String.valueOf(i), mapDcat(ds));
-			i++;
+			//datasetsDcat.put(String.valueOf(i), mapDcat(ds));
+			datasetsDcat.add(mapDcat(ds));
+			//i++;
 		}
 
 		// Add hashmap with all datasets to our result
@@ -109,11 +110,57 @@ public class DatasetMetadataDCAT extends Controller{
 
 	private HashMap<String, Object> mapDcat(Tuple ds) {
 		HashMap<String, Object> resultDataset = new HashMap<String, Object>();
-		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+		List<Object> distributions = new ArrayList<>();
 		
-		resultDataset.put("@type", "vcard:Dataset");
-		resultDataset.put("accessLevel", ds.get(sourceDatasetVersion.confidential)?"Confidential":"Public");
+		String baseUrl = "http://services.geodataoverijssel.nl/"; // Waarschijnlijk uit een config file
+		String geoserverUrl = "geoserver/wfs?service=wfs&version=2.0.0&request=GetFeature&typeName=";
+				
+		String datasetIdent =  ds.get(dataset.identification);
+		String metadateIdent = ds.get(dataset.metadataFileIdentification);
+		
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 
+		resultDataset.put("@type", "dcat:Dataset");
+		resultDataset.put("accessLevel", ds.get(sourceDatasetVersion.confidential) ? "confidential" : "public");
+		resultDataset.put("landingspage", baseUrl+"metadata/dataset/"+datasetIdent);
+		
+		
+		Map<String, String> distributionsTypes = new HashMap<>(); 
+		distributionsTypes.put("GML2", "application/gml+xml");
+		distributionsTypes.put("GML3", "application/gml+xml");
+		distributionsTypes.put("KML", "application/vnd.google-earth.kml+xml");
+		distributionsTypes.put("CSV", "text/csv");
+		distributionsTypes.put("ZIP-SHP", "application/zip");
+		distributionsTypes.put("GeoJSON", "application/vnd.geo+json");
+		
+		for (String dt : distributionsTypes.keySet()) {
+			HashMap<String, String> distribution = new HashMap<>();
+			distribution.put("@type", "dcat:Distribution");
+			distribution.put("title", dt);
+			distribution.put("format", dt);
+			distribution.put("mediaType", distributionsTypes.get(dt));
+			distribution.put("downloadURL", baseUrl+geoserverUrl+"typeName:featuretype"+dt.toLowerCase().substring(0,3));
+		
+			distributions.add(distribution);
+		}
+		
+		// http://services.geodataoverijssel.nl/geoserver/wfs?service=wfs&version=2.0.0&request=GetFeature&typeName=B24_spoorwegen:B2_Spoorwegen_NWB&outputFormat=csv
+		
+		// dataseturl = &typeName=B24_spoorwegen:B2_Spoorwegen_NWB
+		// format/url = &outputformat=csv
+
+		//r01_4_ro_algemeen/Rode_contouren
+		//Rode_contouren
+		// https://services.geopublisher.local/geoserver/wfs?service=wfs&version=2.0.0&request=GetFeature&typeName=r01_4_ro_algemeen:Rode_contouren
+		
+		
+		// metadata/dataset/13e4e3d9-f3fa-4a51-ad98-445bf1d01b67.xml
+		// download url
+		
+		//https://admin.geopublisher.local/datasets/1273a264-1d79-4cdb-afed-f06aa353bf49 is dataset.identification
+		//https://metadata.geopublisher.local/metadata/dataset/85b0f332-b73f-4207-8518-b88e3fa710e1.xml is dataset.metadata_file_identification
+		
+		// All info from XML
 		try {
 			MetadataDocument metadataDocument = mdf.parseDocument(ds.get(sourceDatasetMetadata.document));
 
@@ -133,49 +180,60 @@ public class DatasetMetadataDCAT extends Controller{
 				resultDataset.put("issued", sdf.format(pubDate));
 			} catch (NotFound nf) {
 				// TODO
+				resultDataset.put("issued", null);
 			}
-			
+
 			try {
 				Date modDate = metadataDocument.getDatasetRevisionDate();
 				resultDataset.put("modified", sdf.format(modDate));
 			} catch (NotFound nf) {
 				// TODO
+				resultDataset.put("modified", null);
 			}
-			
+
 			try {
 				resultDataset.put("identifier", metadataDocument.getDatasetIdentifier());
 			} catch (NotFound nf) {
 				// TODO
 			}
-			
-			
+
+
 			// keyword
-			// TODO
+			List<String> keywords = new ArrayList<>();
+
+			resultDataset.put("keyword", keywords);
 			
+			// contactPoint
+			HashMap<String, String> contactPoint = new HashMap<String, String>();
+			contactPoint.put("@type", "vcard:Contact");
 			try {
-				HashMap<String, String> contactPoint = new HashMap<String, String>();
-				contactPoint.put("@type", "vcard:Contact");
 				contactPoint.put("fn", metadataDocument.getDatasetResponsiblePartyName("point of contact"));
-				contactPoint.put("hasEmail", metadataDocument.getDatasetResponsiblePartyEmail("point of contact"));
-				resultDataset.put("contactPoint", contactPoint);
+				contactPoint.put("hasEmail", metadataDocument.getDatasetResponsiblePartyEmail("point of contact"));	
 			} catch (NotFound nf) {
 				// 
 			}
-			
+			resultDataset.put("contactPoint", contactPoint);
+
+
 			try {
-				resultDataset.put("spatial", metadataDocument.getDatasetIdentifier());
+				resultDataset.put("spatial", metadataDocument.getDatasetSpatialExtent());
 			} catch (NotFound nf) {
-				// TODO
+				//TODO);
 			}
+
+			// Theme TODO
+			List<String> themes = new ArrayList<>();
+			resultDataset.put("theme", themes);
 			
 			// Get the publisher
+			HashMap<String, String> publisher = new HashMap<String, String>();
 			try {
-				HashMap<String, String> publisher = new HashMap<String, String>();
-				publisher.put("name", metadataDocument.getDatasetResponsiblePartyName("distributor"));
-				resultDataset.put("publisher", publisher);
+				publisher.put("name", metadataDocument.getDatasetResponsiblePartyName("distributor"));	
 			} catch (NotFound nf) {
 				// 
+				publisher.put("name", "Not supplied");
 			}
+			resultDataset.put("publisher", publisher);
 
 			return resultDataset;
 		} catch(Exception e) {

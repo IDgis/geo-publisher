@@ -1274,7 +1274,8 @@ public class MetadataDocument {
 			.get();
 	}
 	
-	public Double getDatasetSpatialExtentWest() {
+	public Double getDatasetSpatialExtentSide(String side) throws NotFound {
+		// side must be west, east, north or south
 		return Double.valueOf(xpath()
 				.string("/gmd:MD_Metadata"
 						+ "/gmd:identificationInfo"
@@ -1283,8 +1284,18 @@ public class MetadataDocument {
 						+ "/gmd:EX_Extent"
 						+ "/gmd:geographicElement"
 						+ "/gmd:EX_GeographicBoundingBox"
-						+ "/gmd:westBoundLongitude"
+						+ "/gmd:"+side+"Bound"+((side == "west" || side == "east") ? "Longitude" : "Latitude") 
 						+ "/gco:Decimal")
 				.get());
+	}
+	
+	public String getDatasetSpatialExtent() throws NotFound {
+		String west = String.valueOf(getDatasetSpatialExtentSide("west"));
+		String east = String.valueOf(getDatasetSpatialExtentSide("east"));
+		String north = String.valueOf(getDatasetSpatialExtentSide("north"));
+		String south = String.valueOf(getDatasetSpatialExtentSide("south"));
+		
+		String spatialExtent = west+","+south+","+east+","+north;
+		return spatialExtent;
 	}
 }
