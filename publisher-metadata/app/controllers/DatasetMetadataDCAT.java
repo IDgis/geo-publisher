@@ -1,9 +1,10 @@
 package controllers;
 
-import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetMetadata.sourceDatasetMetadata;
+import static nl.idgis.publisher.database.QService.service;
+import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 
 import play.mvc.*;
 import util.QueryDSL;
@@ -20,18 +21,17 @@ import javax.inject.Inject;
 
 import com.mysema.query.Tuple;
 
+import nl.idgis.publisher.database.QPublishedServiceDataset;
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.xml.exceptions.NotFound;
 
-import util.Security;
-
-
-
 public class DatasetMetadataDCAT extends Controller{
 
 	/*
-	 * Gebruik alleen gepubiceerde datasets
+	 * This class generates json with metadata according to the dcat specifications. 
+	 * 
+	 * Gebruik alleen geplubiceerde datasets
 	 * 1 bestand met alle datasets erin.
 	 * Voorbeeld: https://geoportaal-ddh.opendata.arcgis.com/data.json
 	 * Referentie: https://www.w3.org/TR/vocab-dcat/
@@ -42,8 +42,9 @@ public class DatasetMetadataDCAT extends Controller{
 	private final MetadataDocumentFactory mdf;
 	private final QueryDSL q;
 	private final DatasetQueryBuilder dqb;
-	
-	private HashMap<String, Object> dcatResult = new HashMap<String, Object>();
+
+	// The mapping which will be converted to JSON
+	private Map<String, Object> dcatResult = new HashMap<>();
 
 	@Inject
 	public DatasetMetadataDCAT(QueryDSL q, DatasetQueryBuilder dqb, MetadataDocumentFactory mdf) {
@@ -70,96 +71,102 @@ public class DatasetMetadataDCAT extends Controller{
 
 	}
 
-	// get datasets:
+	/*
+	 * Retrieves all published datasets from the database.
+	 * Tables included are:
+	 * dataset, published_services_dataset, service, generic_layer, source_dataset_version and source_dataset
+	 */
 	private List<Tuple> getPublishedDatasets() {
+		final QPublishedServiceDataset publishedServiceDataset2 = new QPublishedServiceDataset("published_service_dataset2");
+
 		return q.withTransaction(tx -> 
-			dqb.fromPublishedDataset(tx)
-			.list(dataset.id, dataset.identification, dataset.name, sourceDatasetVersion.confidential, sourceDatasetMetadata.document)
-			);
+		dqb.fromPublishedDataset(tx)
+		.join(publishedServiceDataset2).on(publishedServiceDataset2.datasetId.eq(dataset.id))
+		.join(service).on(service.id.eq(publishedServiceDataset2.serviceId))
+		.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
+		.list(dataset.id, dataset.identification, dataset.metadataFileIdentification, dataset.name, sourceDatasetVersion.confidential, sourceDatasetMetadata.document, publishedServiceDataset2.layerName, genericLayer.name)
+				);
 	}
 
 	// Fetch all published datasets and generate a hashmap for each. 
 	private void populateDcatResult() {
 
+		// A list of all datasets. A dataset is an 
 		List<Object> datasetsDcat = new ArrayList<>();
 
 		// get all published datasets
 		List<Tuple> datasets = getPublishedDatasets();
 
 		// Loop over all dataset to generate correct dcat metadata
-		//int i = 0;
 		for (Tuple ds : datasets) {
-
-			//System.out.println(ds.get(dataset.id)+ds.get(dataset.name)+ds.get(sourceDatasetVersion.confidential));
-			//datasetsDcat.put(String.valueOf(i), mapDcat(ds));
 			datasetsDcat.add(mapDcat(ds));
-			//i++;
 		}
 
 		// Add hashmap with all datasets to our result
 		dcatResult.put("dataset", datasetsDcat);
 	}
 
-	/*
-	 *   at controllers.DatasetMetadataDCAT.getPublishedDatasets(DatasetMetadataDCAT.java:71) 
-	 *   ~[publisher-metadata.jar:1.9.9-26-gb764e62-SNAPSHOT] 
-	 *   2017-09-14T12:58:02.629423630Z  at controllers.DatasetMetadataDCAT.populateDcatResult(DatasetMetadataDCAT.java:83) 
-	 *   ~[publisher-metadata.jar:1.9.9-26-gb764e62-SNAPSHOT]
-	 *   2017-09-14T12:58:02.629461777Z Caused by: java.sql.SQLException: java.lang.IllegalStateException: source_dataset_metadata is already used
-	 */
+	private Map<String, Object> mapDcat(Tuple ds) {
+		final QPublishedServiceDataset publishedServiceDataset2 = new QPublishedServiceDataset("published_service_dataset2");
 
-	private HashMap<String, Object> mapDcat(Tuple ds) {
-		HashMap<String, Object> resultDataset = new HashMap<String, Object>();
+		Map<String, Object> resultDataset = new HashMap<>();
 		List<Object> distributions = new ArrayList<>();
-		
-		String baseUrl = "http://services.geodataoverijssel.nl/"; // Waarschijnlijk uit een config file
-		String geoserverUrl = "geoserver/wfs?service=wfs&version=2.0.0&request=GetFeature&typeName=";
-				
-		String datasetIdent =  ds.get(dataset.identification);
-		String metadateIdent = ds.get(dataset.metadataFileIdentification);
-		
-		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 
+
+		/*
+		 * Constructing of the URL's was a bit of a search. 
+		 * 
+		 * For the GetFeature URL the nameSpace is the service name. It is stored in generic_layer.layerName. The typeName is stored in published_service_dataset.layerName
+		 * The UUID for the landingspage URL is the metadata for this dataset contained in the xml.
+		 * The UUID is from dataset.metadata_file_identification
+		 *
+		 * Examples:
+		 * https://metadata.geopublisher.local/metadata/dataset/85b0f332-b73f-4207-8518-b88e3fa710e1.xml is dataset.metadata_file_identification
+		 * http://services.geopublisher.local/geoserver/Huurwoningen/wfs?service=wfs&version=2.0.0&request=GetFeature&typeName=Aantal_koop-_en_huurwoningen_per_buurt
+		 */ 
+
+		String baseServiceUrl = "http://services.geopublisher.local/"; // Waarschijnlijk uit een config file
+		String baseMetadataUrl = "http://services.geopublisher.local/"; // Waarschijnlijk uit een config file
+		// http://services.geodata-utrecht.nl
+
+		String geoserverUrl = "geoserver/";
+		String getFeatureURl = "/wfs?service=wfs&version=2.0.0&request=GetFeature&typeName=";
+
+		// String datasetIdent =  ds.get(dataset.identification);
+		String metadataIdent = ds.get(dataset.metadataFileIdentification);
+
+		String typeName = ds.get(publishedServiceDataset2.layerName).replaceAll(" ", "_");
+		String nameSpace = ds.get(genericLayer.name).replaceAll(" ", "_");
+
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+	
 		resultDataset.put("@type", "dcat:Dataset");
-		resultDataset.put("accessLevel", ds.get(sourceDatasetVersion.confidential) ? "confidential" : "public");
-		resultDataset.put("landingspage", baseUrl+"metadata/dataset/"+datasetIdent);
-		
-		
-		Map<String, String> distributionsTypes = new HashMap<>(); 
-		distributionsTypes.put("GML2", "application/gml+xml");
-		distributionsTypes.put("GML3", "application/gml+xml");
-		distributionsTypes.put("KML", "application/vnd.google-earth.kml+xml");
-		distributionsTypes.put("CSV", "text/csv");
-		distributionsTypes.put("ZIP-SHP", "application/zip");
-		distributionsTypes.put("GeoJSON", "application/vnd.geo+json");
-		
+	
+		// Distributions
+		// some info over the distributions formats
+		Map<String, String[]> distributionsTypes = new HashMap<>(); 
+		distributionsTypes.put("GML2", new String[] {"gml2", "text/xml; subtype=gml/2.1.2"});
+		distributionsTypes.put("GML3", new String[] {"gml3", "application/gml+xml; version=3.2"});
+		distributionsTypes.put("KML", new String[] {"kml", "application/vnd.google-earth.kml+xml"});
+		distributionsTypes.put("CSV", new String[] {"csv", "text/csv"});
+		distributionsTypes.put("SHAPE-ZIP", new String[] {"shape-zip", "application/zip"});
+		distributionsTypes.put("GeoJSON", new String[] {"application/json", "application/vnd.geo+json"});
+
 		for (String dt : distributionsTypes.keySet()) {
 			HashMap<String, String> distribution = new HashMap<>();
 			distribution.put("@type", "dcat:Distribution");
 			distribution.put("title", dt);
 			distribution.put("format", dt);
-			distribution.put("mediaType", distributionsTypes.get(dt));
-			distribution.put("downloadURL", baseUrl+geoserverUrl+"typeName:featuretype"+dt.toLowerCase().substring(0,3));
-		
+			distribution.put("mediaType", distributionsTypes.get(dt)[1]);
+			distribution.put("downloadURL", baseServiceUrl+geoserverUrl+nameSpace+getFeatureURl+typeName+"&outputFormat="+distributionsTypes.get(dt)[0]);
+
 			distributions.add(distribution);
 		}
-		
-		// http://services.geodataoverijssel.nl/geoserver/wfs?service=wfs&version=2.0.0&request=GetFeature&typeName=B24_spoorwegen:B2_Spoorwegen_NWB&outputFormat=csv
-		
-		// dataseturl = &typeName=B24_spoorwegen:B2_Spoorwegen_NWB
-		// format/url = &outputformat=csv
+		resultDataset.put("distribution", distributions);
 
-		//r01_4_ro_algemeen/Rode_contouren
-		//Rode_contouren
-		// https://services.geopublisher.local/geoserver/wfs?service=wfs&version=2.0.0&request=GetFeature&typeName=r01_4_ro_algemeen:Rode_contouren
-		
-		
-		// metadata/dataset/13e4e3d9-f3fa-4a51-ad98-445bf1d01b67.xml
-		// download url
-		
-		//https://admin.geopublisher.local/datasets/1273a264-1d79-4cdb-afed-f06aa353bf49 is dataset.identification
-		//https://metadata.geopublisher.local/metadata/dataset/85b0f332-b73f-4207-8518-b88e3fa710e1.xml is dataset.metadata_file_identification
-		
+		resultDataset.put("accessLevel", ds.get(sourceDatasetVersion.confidential) ? "confidential" : "public");
+		resultDataset.put("landingspage", baseMetadataUrl+"metadata/dataset/"+metadataIdent+".xml");
+
 		// All info from XML
 		try {
 			MetadataDocument metadataDocument = mdf.parseDocument(ds.get(sourceDatasetMetadata.document));
@@ -167,19 +174,19 @@ public class DatasetMetadataDCAT extends Controller{
 			try {
 				resultDataset.put("title", metadataDocument.getDatasetTitle());
 			} catch (NotFound nf) {
-				// TODO
+				resultDataset.put("title",  null);
 			}
 			try {
 				resultDataset.put("description", metadataDocument.getDatasetAbstract());
 			} catch (NotFound nf) {
-				// TODO
+				resultDataset.put("description", null);
 			}
 
 			try {
 				Date pubDate = metadataDocument.getDatasetPublicationDate();
 				resultDataset.put("issued", sdf.format(pubDate));
 			} catch (NotFound nf) {
-				// TODO
+
 				resultDataset.put("issued", null);
 			}
 
@@ -187,22 +194,36 @@ public class DatasetMetadataDCAT extends Controller{
 				Date modDate = metadataDocument.getDatasetRevisionDate();
 				resultDataset.put("modified", sdf.format(modDate));
 			} catch (NotFound nf) {
-				// TODO
+
 				resultDataset.put("modified", null);
 			}
 
 			try {
 				resultDataset.put("identifier", metadataDocument.getDatasetIdentifier());
 			} catch (NotFound nf) {
-				// TODO
+				resultDataset.put("identifier", null);
 			}
 
 
 			// keyword
+			// Do we have any?
 			List<String> keywords = new ArrayList<>();
-
+			keywords.add(null);
 			resultDataset.put("keyword", keywords);
-			
+
+			// Theme
+			List<String> themes = new ArrayList<>();
+			try {
+				for (MetadataDocument.Keywords k : metadataDocument.getDatasetKeywords()) {
+					for (String ks : k.getKeywords()) {
+						themes.add(ks);
+					}
+				}
+			} catch (NotFound nf) {
+				themes.add(null);
+			}
+			resultDataset.put("theme", themes);
+
 			// contactPoint
 			HashMap<String, String> contactPoint = new HashMap<String, String>();
 			contactPoint.put("@type", "vcard:Contact");
@@ -210,7 +231,13 @@ public class DatasetMetadataDCAT extends Controller{
 				contactPoint.put("fn", metadataDocument.getDatasetResponsiblePartyName("point of contact"));
 				contactPoint.put("hasEmail", metadataDocument.getDatasetResponsiblePartyEmail("point of contact"));	
 			} catch (NotFound nf) {
-				// 
+				try {
+					contactPoint.put("fn", metadataDocument.getDatasetResponsiblePartyName("pointOfContact"));
+					contactPoint.put("hasEmail", metadataDocument.getDatasetResponsiblePartyEmail("pointOfContact"));	
+				} catch (NotFound nff) {
+					contactPoint.put("fn", null);
+					contactPoint.put("hasEmail", null); 
+				}
 			}
 			resultDataset.put("contactPoint", contactPoint);
 
@@ -218,20 +245,23 @@ public class DatasetMetadataDCAT extends Controller{
 			try {
 				resultDataset.put("spatial", metadataDocument.getDatasetSpatialExtent());
 			} catch (NotFound nf) {
-				//TODO);
+				resultDataset.put("spatial", null); 
 			}
 
-			// Theme TODO
-			List<String> themes = new ArrayList<>();
-			resultDataset.put("theme", themes);
-			
 			// Get the publisher
-			HashMap<String, String> publisher = new HashMap<String, String>();
+			/*
+			 * The publisher is the party that publishes the data. It has the role of 'publisher'
+			 * In dutch "uitgever".
+			 */
+			HashMap<String, String> publisher = new HashMap<>();
 			try {
-				publisher.put("name", metadataDocument.getDatasetResponsiblePartyName("distributor"));	
+				publisher.put("name", metadataDocument.getDatasetResponsiblePartyName("publisher"));	
 			} catch (NotFound nf) {
-				// 
-				publisher.put("name", "Not supplied");
+				try {
+					publisher.put("name", metadataDocument.getDatasetResponsiblePartyName("uitgever"));	
+				} catch (NotFound nff) {// 
+					publisher.put("name", null);
+				}
 			}
 			resultDataset.put("publisher", publisher);
 
@@ -239,75 +269,6 @@ public class DatasetMetadataDCAT extends Controller{
 		} catch(Exception e) {
 			throw new RuntimeException(e);
 		}
-	}
-
-	private Dcat getDatasetMetadata(String identification) {
-		// See /publisher-commons/src/main/java/nl/idgis/publisher/metadata/MetadataDocument.java
-
-
-
-		String description = "Opendata Portaal geoinformatie Den Haag"; 
-		String[] theme = {"Geospatial"};
-		String landingPage = "myUrl"; 
-		String publisherName = "Utrecht"; 
-		String issued = "2017-01-01";
-
-		String modified = "2019-01-05";
-		String contactPointFn = "George Lucas"; 
-		String identifier = identification;
-		String title = "myTtile";
-
-		String accessLevel = "Public";
-		String contactPointHasEmail= "Yes"; 
-		String spatial = "4.5, 8, 52, 56";
-		String license = "GPL 2.0"; 
-		String[] keyword = {"Natuur"};
-
-
-		// Get the source xml data for this dataset
-
-
-
-		// create MD object from xml
-
-		// set the fields from xml
-
-		// set the fields from db
-
-		// set the fields with fixed values
-
-
-		// Set the distributions
-		//http://example.com/geoserver/wfs?service=wfs&version=1.1.0&request=GetCapabilities
-		// geoserver/wfs?service=wfs&version=1.1.0&request=GetFeature&outputFormat=json&UUID=f78389f8-a03d-4866-87dc-44b278b1858b 
-
-		return new Dcat(description, theme, landingPage, publisherName, issued,
-				modified, contactPointFn, identifier, title, accessLevel,
-				contactPointHasEmail, spatial, license, keyword);
-	}
-
-	private HashMap<String, Object> mapDcat(Dcat dataset) {
-
-		HashMap<String, Object> resultDataset = new HashMap<String, Object>();
-
-		// Get the publisher
-		HashMap<String, String> publisher = new HashMap<String, String>();
-		publisher.put("name", dataset.getPublisherName());
-		resultDataset.put("publisher", publisher);
-
-		// Get the contactPoint
-
-		// Get all other info
-		resultDataset.put("title", dataset.getTitle());
-
-
-
-		// Get acceslevel
-		resultDataset.put("accesslevel", dataset.getAccessLevel());
-
-		resultDataset.put("keyword", dataset.getKeyword());
-
-		return resultDataset;
 	}
 
 	public Result index() {
