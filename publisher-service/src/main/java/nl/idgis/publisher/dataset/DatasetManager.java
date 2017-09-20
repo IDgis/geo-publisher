@@ -354,7 +354,8 @@ public class DatasetManager extends UntypedActor {
 						sourceDatasetVersion.confidential,
 						sourceDatasetVersion.wmsOnly,
 						sourceDatasetVersion.metadataConfidential,
-						sourceDatasetVersion.physicalName))
+						sourceDatasetVersion.physicalName,
+						sourceDatasetVersion.refreshFrequency))
 			.collect(
 				tx.query().from(sourceDatasetVersionLog)
 				.where(sourceDatasetVersionLog.sourceDatasetVersionId.eq(versionId))
@@ -383,6 +384,7 @@ public class DatasetManager extends UntypedActor {
 						boolean wmsOnly = baseInfo.get(sourceDatasetVersion.wmsOnly);
 						byte[] metadataContent = baseInfo.get(sourceDatasetMetadata.document);
 						String physicalName = baseInfo.get(sourceDatasetVersion.physicalName);
+						String refreshFrequency = baseInfo.get(sourceDatasetVersion.refreshFrequency);
 						
 						MetadataDocument metadata;
 						if(metadataContent == null) {
@@ -443,7 +445,8 @@ public class DatasetManager extends UntypedActor {
 									wmsOnly,
 									metadata,
 									new Table(columnInfo.list()),
-									physicalName);
+									physicalName,
+									refreshFrequency);
 								break;
 							case "RASTER":
 								dataset = new RasterDataset(
@@ -457,7 +460,8 @@ public class DatasetManager extends UntypedActor {
 									metadataConfidential,
 									wmsOnly,
 									metadata,
-									physicalName);
+									physicalName,
+									refreshFrequency);
 								break;
 							default:
 								dataset = new UnavailableDataset(
@@ -471,7 +475,8 @@ public class DatasetManager extends UntypedActor {
 									metadataConfidential,
 									wmsOnly,
 									metadata,
-									physicalName);
+									physicalName,
+									refreshFrequency);
 								break;
 						}
 						
@@ -562,6 +567,7 @@ public class DatasetManager extends UntypedActor {
 			boolean metadataConfidential = dataset.isMetadataConfidential();
 			boolean wmsOnly = dataset.isWmsOnly();
 			String physicalName = dataset.getPhysicalName();
+			String refreshFrequency = dataset.getRefreshFrequency();
 			
 			return tx.insert(sourceDatasetVersion)
 				.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
@@ -574,6 +580,7 @@ public class DatasetManager extends UntypedActor {
 				.set(sourceDatasetVersion.metadataConfidential, metadataConfidential)
 				.set(sourceDatasetVersion.wmsOnly, wmsOnly)
 				.set(sourceDatasetVersion.physicalName, physicalName)
+				.set(sourceDatasetVersion.refreshFrequency, refreshFrequency)
 				.executeWithKey(sourceDatasetVersion.id);
 			}).thenCompose(sourceDatasetVersionId -> {
 				log.debug("sourceDatasetVersionId: {}", sourceDatasetVersionId);
