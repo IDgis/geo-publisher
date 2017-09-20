@@ -1,23 +1,33 @@
 package nl.idgis.publisher.job.creator;
 
 import static nl.idgis.publisher.database.QDataSource.dataSource;
+import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QDatasetStatus.datasetStatus;
+import static nl.idgis.publisher.database.QImportJob.importJob;
+import static nl.idgis.publisher.database.QJob.job;
+import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
+import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.stream.Stream;
+
+import com.mysema.query.sql.SQLSubQuery;
+import com.mysema.query.types.expr.BooleanExpression;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
+import nl.idgis.publisher.database.QImportJob;
+import nl.idgis.publisher.database.QSourceDatasetVersion;
 import nl.idgis.publisher.database.messages.JobInfo;
-
 import nl.idgis.publisher.domain.job.JobState;
-
 import nl.idgis.publisher.job.context.messages.JobFinished;
 import nl.idgis.publisher.job.creator.messages.CreateHarvestJobs;
 import nl.idgis.publisher.job.creator.messages.CreateImportJobs;
@@ -114,7 +124,7 @@ public class Creator extends UntypedActor {
 			throw new IllegalArgumentException("unknown create jobs message");
 		}
 	}
-
+	
 	private CompletableFuture<Object> handleCreateHarvestJobs(CreateHarvestJobs msg) {
 		return db.query().from(dataSource)		
 			.list(dataSource.identification).thenCompose(dataSourceIds ->
@@ -122,16 +132,42 @@ public class Creator extends UntypedActor {
 	}
 	
 	private CompletableFuture<Object> handleCreateImportJobs(CreateImportJobs msg) {
+		String now = LocalDate.now().format(DateTimeFormatter.ISO_DATE);
+		Timestamp ts = Timestamp.valueOf(now + " 00:00:00");
+		log.debug("timestamp to check if daily datasets need to be imported: " + ts.toString());
+		
+		BooleanExpression needsRefresh = datasetStatus.imported.isFalse()
+			.or(datasetStatus.sourceDatasetRevisionChanged.isTrue())
+			.or(datasetStatus.sourceDatasetColumnsChanged.isTrue())
+			.or(datasetStatus.columnsChanged.isTrue())
+			.or(datasetStatus.sourceDatasetChanged.isTrue())
+			.or(datasetStatus.filterConditionChanged.isTrue());
+		
+		needsRefresh = needsRefresh.or(sourceDatasetVersion.refreshFrequency.eq("daily")
+				.and(job.createTime.before(ts)));
+		
+		final QSourceDatasetVersion sourceDatasetVersionSub = new QSourceDatasetVersion("source_dataset_version_sub");
+		final QImportJob importJobSub = new QImportJob("import_job_sub");
+		
 		return db.query().from(datasetStatus)
-			.where(datasetStatus.sourceDatasetAvailable.isTrue().and(
-				datasetStatus.imported.isFalse()
-				.or(datasetStatus.sourceDatasetRevisionChanged.isTrue())
-				.or(datasetStatus.sourceDatasetColumnsChanged.isTrue())
-				.or(datasetStatus.columnsChanged.isTrue())
-				.or(datasetStatus.sourceDatasetChanged.isTrue())
-				.or(datasetStatus.filterConditionChanged.isTrue())))
-			.list(datasetStatus.identification).thenCompose(datasetIds ->
-				forEach(datasetIds.list().stream(), datasetId -> f.ask(jobManager, new CreateImportJob(datasetId))));
+			.join(dataset).on(dataset.identification.eq(datasetStatus.identification))
+			.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
+			.join(sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
+			.leftJoin(importJob).on(importJob.datasetId.eq(dataset.id))
+			.leftJoin(job).on(job.id.eq(importJob.jobId))
+			.where(sourceDatasetVersion.id.eq(new SQLSubQuery()
+					.from(sourceDatasetVersionSub)
+					.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDataset.id))
+					.unique(sourceDatasetVersionSub.id.max()))
+				.and(job.id.eq(new SQLSubQuery()
+						.from(importJobSub)
+						.where(importJobSub.datasetId.eq(dataset.id))
+						.unique(importJobSub.jobId.max()))
+					.or(job.id.isNull()))
+				.and(datasetStatus.sourceDatasetAvailable.isTrue())
+				.and(needsRefresh))
+				.list(datasetStatus.identification).thenCompose(datasetIds ->
+					forEach(datasetIds.list().stream(), datasetId -> f.ask(jobManager, new CreateImportJob(datasetId))));
 	}
 	
 	private CompletableFuture<Object> handleCreateServiceJobs(CreateServiceJobs msg) {
