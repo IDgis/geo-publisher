@@ -43,8 +43,8 @@ public class DatasetMetadataDCAT extends Controller{
 	private final QueryDSL q;
 	private final DatasetQueryBuilder dqb;
 
-	private final String licentie = "CC-BY-4.0";
-	
+	private final static String licentie = "CC-BY-4.0";
+
 	// The mapping which will be converted to JSON
 	private Map<String, Object> dcatResult = new HashMap<>();
 
@@ -131,19 +131,18 @@ public class DatasetMetadataDCAT extends Controller{
 		String geoserverUrl = "geoserver/";
 		String getFeatureURl = "/wfs?service=wfs&version=2.0.0&request=GetFeature&typeName=";
 
-		// String datasetIdent =  ds.get(dataset.identification);
 		String metadataIdent = ds.get(dataset.metadataFileIdentification);
 
 		String typeName = ds.get(publishedServiceDataset2.layerName).replaceAll(" ", "_");
 		String nameSpace = ds.get(genericLayer.name).replaceAll(" ", "_");
 
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-	
+
 		resultDataset.put("@type", "dcat:Dataset");
 		resultDataset.put("license", licentie);
 		resultDataset.put("landingspage", baseMetadataUrl+"metadata/dataset/"+metadataIdent+".xml");
 		resultDataset.put("accessLevel", ds.get(sourceDatasetVersion.confidential) ? "confidential" : "public");
-		
+
 		// Distributions
 		// some info over the distributions formats
 		Map<String, String[]> distributionsTypes = new HashMap<>(); 
@@ -166,7 +165,7 @@ public class DatasetMetadataDCAT extends Controller{
 		}
 		resultDataset.put("distribution", distributions);
 
-		
+
 		// All info from XML
 		try {
 			MetadataDocument metadataDocument = mdf.parseDocument(ds.get(sourceDatasetMetadata.document));
@@ -208,6 +207,7 @@ public class DatasetMetadataDCAT extends Controller{
 			// keyword
 			// Do we have any?
 			List<String> keywords = new ArrayList<>();
+			//keywords.add(metadataDocument.getTopicCategory());
 			keywords.add(null);
 			resultDataset.put("keyword", keywords);
 
@@ -225,20 +225,17 @@ public class DatasetMetadataDCAT extends Controller{
 			resultDataset.put("theme", themes);
 
 			// contactPoint
-			HashMap<String, String> contactPoint = new HashMap<String, String>();
+			// point of contact is in the contact node
+			Map<String, String> contactPoint = new HashMap<>();
 			contactPoint.put("@type", "vcard:Contact");
 			try {
-				contactPoint.put("fn", metadataDocument.getDatasetResponsiblePartyName("point of contact"));
-				contactPoint.put("hasEmail", metadataDocument.getDatasetResponsiblePartyEmail("point of contact"));	
+				contactPoint.put("fn", metadataDocument.getMetaDataPointOfContactName("pointOfContact"));
+				contactPoint.put("hasEmail", metadataDocument.getMetaDataPointOfContactEmail("pointOfContact"));	
 			} catch (NotFound nf) {
-				try {
-					contactPoint.put("fn", metadataDocument.getDatasetResponsiblePartyName("pointOfContact"));
-					contactPoint.put("hasEmail", metadataDocument.getDatasetResponsiblePartyEmail("pointOfContact"));	
-				} catch (NotFound nff) {
-					contactPoint.put("fn", null);
-					contactPoint.put("hasEmail", null); 
-				}
+				contactPoint.put("fn", null);
+				contactPoint.put("hasEmail", null); 
 			}
+
 			resultDataset.put("contactPoint", contactPoint);
 
 
@@ -251,18 +248,15 @@ public class DatasetMetadataDCAT extends Controller{
 			// Get the publisher
 			/*
 			 * The publisher is the party that publishes the data. It has the role of 'publisher'
-			 * In dutch "uitgever".
+			 * In dutch "uitgever". There is no publisher, so take distributor
 			 */
-			HashMap<String, String> publisher = new HashMap<>();
+			Map<String, String> publisher = new HashMap<>();
 			try {
-				publisher.put("name", metadataDocument.getDatasetResponsiblePartyName("publisher"));	
+				publisher.put("name", metadataDocument.getDistributionResponsiblePartyName("distributor"));	
 			} catch (NotFound nf) {
-				try {
-					publisher.put("name", metadataDocument.getDatasetResponsiblePartyName("uitgever"));	
-				} catch (NotFound nff) {
-					publisher.put("name", null);
-				}
+				publisher.put("name", null);
 			}
+
 			resultDataset.put("publisher", publisher);
 
 			return resultDataset;
