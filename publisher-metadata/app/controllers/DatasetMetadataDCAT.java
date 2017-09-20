@@ -43,6 +43,8 @@ public class DatasetMetadataDCAT extends Controller{
 	private final QueryDSL q;
 	private final DatasetQueryBuilder dqb;
 
+	private final String licentie = "CC-BY-4.0";
+	
 	// The mapping which will be converted to JSON
 	private Map<String, Object> dcatResult = new HashMap<>();
 
@@ -112,10 +114,7 @@ public class DatasetMetadataDCAT extends Controller{
 		Map<String, Object> resultDataset = new HashMap<>();
 		List<Object> distributions = new ArrayList<>();
 
-
 		/*
-		 * Constructing of the URL's was a bit of a search. 
-		 * 
 		 * For the GetFeature URL the nameSpace is the service name. It is stored in generic_layer.layerName. The typeName is stored in published_service_dataset.layerName
 		 * The UUID for the landingspage URL is the metadata for this dataset contained in the xml.
 		 * The UUID is from dataset.metadata_file_identification
@@ -126,7 +125,7 @@ public class DatasetMetadataDCAT extends Controller{
 		 */ 
 
 		String baseServiceUrl = "http://services.geopublisher.local/"; // Waarschijnlijk uit een config file
-		String baseMetadataUrl = "http://services.geopublisher.local/"; // Waarschijnlijk uit een config file
+		String baseMetadataUrl = "http://metadata.geopublisher.local/"; // Waarschijnlijk uit een config file
 		// http://services.geodata-utrecht.nl
 
 		String geoserverUrl = "geoserver/";
@@ -141,7 +140,10 @@ public class DatasetMetadataDCAT extends Controller{
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 	
 		resultDataset.put("@type", "dcat:Dataset");
-	
+		resultDataset.put("license", licentie);
+		resultDataset.put("landingspage", baseMetadataUrl+"metadata/dataset/"+metadataIdent+".xml");
+		resultDataset.put("accessLevel", ds.get(sourceDatasetVersion.confidential) ? "confidential" : "public");
+		
 		// Distributions
 		// some info over the distributions formats
 		Map<String, String[]> distributionsTypes = new HashMap<>(); 
@@ -164,9 +166,7 @@ public class DatasetMetadataDCAT extends Controller{
 		}
 		resultDataset.put("distribution", distributions);
 
-		resultDataset.put("accessLevel", ds.get(sourceDatasetVersion.confidential) ? "confidential" : "public");
-		resultDataset.put("landingspage", baseMetadataUrl+"metadata/dataset/"+metadataIdent+".xml");
-
+		
 		// All info from XML
 		try {
 			MetadataDocument metadataDocument = mdf.parseDocument(ds.get(sourceDatasetMetadata.document));
@@ -259,7 +259,7 @@ public class DatasetMetadataDCAT extends Controller{
 			} catch (NotFound nf) {
 				try {
 					publisher.put("name", metadataDocument.getDatasetResponsiblePartyName("uitgever"));	
-				} catch (NotFound nff) {// 
+				} catch (NotFound nff) {
 					publisher.put("name", null);
 				}
 			}
