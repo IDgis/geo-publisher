@@ -395,14 +395,14 @@ public class MetadataDocument {
 	 * Topic
 	 */
 	
-	public String getTopicCategory() throws NotFound {
-		return isoMetadata.getString(namespaces, 
-				"/gmd:MD_Metadata" +
-				"/gmd:identificationInfo" +	
-				"/gmd:MD_DataIdentification" +
-				"/gmd:topicCategory" +
-				"/gmd:MD_TopicCategoryCode" +
-				"/gco:CharacterString");
+	public List<String> getTopicCategories() throws NotFound {
+		return isoMetadata
+			.xpath(Optional.of(namespaces))
+			.strings("/gmd:MD_Metadata" +
+					"/gmd:identificationInfo" +	
+					"/gmd:MD_DataIdentification" +
+					"/gmd:topicCategory" +
+					"/gmd:MD_TopicCategoryCode");
 	}
 	
 	/*

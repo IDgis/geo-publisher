@@ -4,14 +4,19 @@ import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetMetadata.sourceDatasetMetadata;
 import static nl.idgis.publisher.database.QService.service;
+import static nl.idgis.publisher.database.QPublishedService.publishedService;
+import static nl.idgis.publisher.database.QEnvironment.environment;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 
 import play.mvc.*;
+import util.MetadataConfig;
 import util.QueryDSL;
+import play.api.Environment;
 import play.libs.Json;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -31,7 +36,7 @@ public class DatasetMetadataDCAT extends Controller{
 	/*
 	 * This class generates json with metadata according to the dcat specifications. 
 	 * 
-	 * Gebruik alleen geplubiceerde datasets
+	 * Gebruik alleen gepubliceerde datasets
 	 * 1 bestand met alle datasets erin.
 	 * Voorbeeld: https://geoportaal-ddh.opendata.arcgis.com/data.json
 	 * Referentie: https://www.w3.org/TR/vocab-dcat/
@@ -39,38 +44,33 @@ public class DatasetMetadataDCAT extends Controller{
 	 * CKAN - DCAT Mapping: https://github.com/ckan/ckanext-dcat#rdf-dcat-to-ckan-dataset-mapping
 	 * 
 	 */
+	private final MetadataConfig mdc;
 	private final MetadataDocumentFactory mdf;
 	private final QueryDSL q;
 	private final DatasetQueryBuilder dqb;
 
 	private final static String licentie = "CC-BY-4.0";
+	private final Map<String, String[]> distributionsTypes;
 
-	// The mapping which will be converted to JSON
-	private Map<String, Object> dcatResult = new HashMap<>();
 
 	@Inject
-	public DatasetMetadataDCAT(QueryDSL q, DatasetQueryBuilder dqb, MetadataDocumentFactory mdf) {
+	public DatasetMetadataDCAT(MetadataConfig mdc, QueryDSL q, DatasetQueryBuilder dqb, MetadataDocumentFactory mdf) {
+		this.mdc = mdc;
 		this.q = q;
 		this.dqb = dqb;
 		this.mdf = mdf;
-	}
 
-	/* The first four items on a DCAT/JSON  are standard. 
-	 * They are filled in here
-	 * See: https://project-open-data.cio.gov/v1.1/schema
-	 * and: https://geoportaal-ddh.opendata.arcgis.com/data.json.
-	 */
-	private void setHeader() {
-		String conformsTo = "https://project-open-data.cio.gov/v1.1/schema";
-		String context = "https://project-open-data1/schema/catalog.jsonld";
-		String type = "dcat:Catalog";
-		String describedBy = "https://project-open-data.cio.gov/v1.1/schema/catalog.json";
+		// Distributions
+		// some info over the distributions formats
+		Map<String, String[]> distributionsTypes = new HashMap<>(); 
+		distributionsTypes.put("GML2", new String[] {"gml2", "text/xml; subtype=gml/2.1.2"});
+		distributionsTypes.put("GML3", new String[] {"gml3", "application/gml+xml; version=3.2"});
+		distributionsTypes.put("KML", new String[] {"kml", "application/vnd.google-earth.kml+xml"});
+		distributionsTypes.put("CSV", new String[] {"csv", "text/csv"});
+		distributionsTypes.put("SHAPE-ZIP", new String[] {"shape-zip", "application/zip"});
+		distributionsTypes.put("GeoJSON", new String[] {"application/json", "application/vnd.geo+json"});
 
-		dcatResult.put("conformsTo", conformsTo);
-		dcatResult.put("@context", context);
-		dcatResult.put("@type", type);
-		dcatResult.put("describedBy", describedBy);	
-
+		this.distributionsTypes = Collections.unmodifiableMap(distributionsTypes);
 	}
 
 	/*
@@ -82,16 +82,37 @@ public class DatasetMetadataDCAT extends Controller{
 		final QPublishedServiceDataset publishedServiceDataset2 = new QPublishedServiceDataset("published_service_dataset2");
 
 		return q.withTransaction(tx -> 
-		dqb.fromPublishedDataset(tx)
-		.join(publishedServiceDataset2).on(publishedServiceDataset2.datasetId.eq(dataset.id))
-		.join(service).on(service.id.eq(publishedServiceDataset2.serviceId))
-		.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
-		.list(dataset.id, dataset.identification, dataset.metadataFileIdentification, dataset.name, sourceDatasetVersion.confidential, sourceDatasetMetadata.document, publishedServiceDataset2.layerName, genericLayer.name)
-				);
+			dqb.fromPublishedDataset(tx)
+				.join(publishedServiceDataset2).on(publishedServiceDataset2.datasetId.eq(dataset.id))
+				.join(service).on(service.id.eq(publishedServiceDataset2.serviceId))
+				.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
+				.join(publishedService).on(publishedService.serviceId.eq(publishedServiceDataset2.serviceId))
+				.join(environment).on(environment.id.eq(publishedService.environmentId))
+				.orderBy(dataset.id.asc(), service.id.asc())
+				.list(dataset.id, dataset.identification, dataset.metadataFileIdentification, dataset.name, sourceDatasetVersion.confidential, sourceDatasetMetadata.document, publishedServiceDataset2.layerName, genericLayer.name, environment.url)				);
 	}
 
 	// Fetch all published datasets and generate a hashmap for each. 
-	private void populateDcatResult() {
+	private Map<String, Object> buildDcatResult() {
+		// The mapping which will be converted to JSON
+		Map<String, Object> dcatResult = new HashMap<>();
+
+		/* The first four items on a DCAT/JSON  are standard. 
+		 * They are filled in here
+		 * See: https://project-open-data.cio.gov/v1.1/schema
+		 * and: https://geoportaal-ddh.opendata.arcgis.com/data.json.
+		 */
+
+		String conformsTo = "https://project-open-data.cio.gov/v1.1/schema";
+		String context = "https://project-open-data1/schema/catalog.jsonld";
+		String type = "dcat:Catalog";
+		String describedBy = "https://project-open-data.cio.gov/v1.1/schema/catalog.json";
+
+		dcatResult.put("conformsTo", conformsTo);
+		dcatResult.put("@context", context);
+		dcatResult.put("@type", type);
+		dcatResult.put("describedBy", describedBy);	
+
 
 		// A list of all datasets. A dataset is an 
 		List<Object> datasetsDcat = new ArrayList<>();
@@ -100,12 +121,20 @@ public class DatasetMetadataDCAT extends Controller{
 		List<Tuple> datasets = getPublishedDatasets();
 
 		// Loop over all dataset to generate correct dcat metadata
+		
+		Integer lastId = null;
 		for (Tuple ds : datasets) {
-			datasetsDcat.add(mapDcat(ds));
+			Integer currentId = ds.get(dataset.id);
+			if (currentId != lastId) {
+				datasetsDcat.add(mapDcat(ds));
+			}
+			lastId = currentId;
 		}
 
 		// Add hashmap with all datasets to our result
 		dcatResult.put("dataset", datasetsDcat);
+
+		return dcatResult;
 	}
 
 	private Map<String, Object> mapDcat(Tuple ds) {
@@ -118,17 +147,11 @@ public class DatasetMetadataDCAT extends Controller{
 		 * For the GetFeature URL the nameSpace is the service name. It is stored in generic_layer.layerName. The typeName is stored in published_service_dataset.layerName
 		 * The UUID for the landingspage URL is the metadata for this dataset contained in the xml.
 		 * The UUID is from dataset.metadata_file_identification
-		 *
-		 * Examples:
-		 * https://metadata.geopublisher.local/metadata/dataset/85b0f332-b73f-4207-8518-b88e3fa710e1.xml is dataset.metadata_file_identification
-		 * http://services.geopublisher.local/geoserver/Huurwoningen/wfs?service=wfs&version=2.0.0&request=GetFeature&typeName=Aantal_koop-_en_huurwoningen_per_buurt
 		 */ 
 
-		String baseServiceUrl = "http://services.geopublisher.local/"; // Waarschijnlijk uit een config file
-		String baseMetadataUrl = "http://metadata.geopublisher.local/"; // Waarschijnlijk uit een config file
-		// http://services.geodata-utrecht.nl
-
-		String geoserverUrl = "geoserver/";
+		String baseServiceUrl = ds.get(environment.url);
+		String baseMetadataUrl = mdc.getMetadataUrlPrefix();
+		
 		String getFeatureURl = "/wfs?service=wfs&version=2.0.0&request=GetFeature&typeName=";
 
 		String metadataIdent = ds.get(dataset.metadataFileIdentification);
@@ -140,26 +163,17 @@ public class DatasetMetadataDCAT extends Controller{
 
 		resultDataset.put("@type", "dcat:Dataset");
 		resultDataset.put("license", licentie);
-		resultDataset.put("landingspage", baseMetadataUrl+"metadata/dataset/"+metadataIdent+".xml");
+		resultDataset.put("landingspage", baseMetadataUrl+"dataset/"+metadataIdent+".xml");
 		resultDataset.put("accessLevel", ds.get(sourceDatasetVersion.confidential) ? "confidential" : "public");
 
-		// Distributions
-		// some info over the distributions formats
-		Map<String, String[]> distributionsTypes = new HashMap<>(); 
-		distributionsTypes.put("GML2", new String[] {"gml2", "text/xml; subtype=gml/2.1.2"});
-		distributionsTypes.put("GML3", new String[] {"gml3", "application/gml+xml; version=3.2"});
-		distributionsTypes.put("KML", new String[] {"kml", "application/vnd.google-earth.kml+xml"});
-		distributionsTypes.put("CSV", new String[] {"csv", "text/csv"});
-		distributionsTypes.put("SHAPE-ZIP", new String[] {"shape-zip", "application/zip"});
-		distributionsTypes.put("GeoJSON", new String[] {"application/json", "application/vnd.geo+json"});
 
-		for (String dt : distributionsTypes.keySet()) {
+		for (Map.Entry<String, String[]> entry : distributionsTypes.entrySet()) {
 			HashMap<String, String> distribution = new HashMap<>();
 			distribution.put("@type", "dcat:Distribution");
-			distribution.put("title", dt);
-			distribution.put("format", dt);
-			distribution.put("mediaType", distributionsTypes.get(dt)[1]);
-			distribution.put("downloadURL", baseServiceUrl+geoserverUrl+nameSpace+getFeatureURl+typeName+"&outputFormat="+distributionsTypes.get(dt)[0]);
+			distribution.put("title", entry.getKey());
+			distribution.put("format", entry.getKey());
+			distribution.put("mediaType", entry.getValue()[1]);
+			distribution.put("downloadURL", baseServiceUrl+nameSpace+getFeatureURl+typeName+"&outputFormat="+entry.getValue()[0]);
 
 			distributions.add(distribution);
 		}
@@ -204,11 +218,9 @@ public class DatasetMetadataDCAT extends Controller{
 			}
 
 
-			// keyword
-			// Do we have any?
+			// Keyword
 			List<String> keywords = new ArrayList<>();
-			//keywords.add(metadataDocument.getTopicCategory());
-			keywords.add(null);
+			keywords.addAll(metadataDocument.getTopicCategories());
 			resultDataset.put("keyword", keywords);
 
 			// Theme
@@ -220,7 +232,7 @@ public class DatasetMetadataDCAT extends Controller{
 					}
 				}
 			} catch (NotFound nf) {
-				themes.add(null);
+				
 			}
 			resultDataset.put("theme", themes);
 
@@ -266,8 +278,6 @@ public class DatasetMetadataDCAT extends Controller{
 	}
 
 	public Result index() {
-		setHeader();
-		populateDcatResult();
-		return ok(Json.toJson(dcatResult));
+		return ok(Json.toJson(buildDcatResult()));
 	}
 }
