@@ -238,7 +238,8 @@ public class DatasetMetadata extends AbstractMetadata {
 				final String existingAlternateTitle = metadataDocument.getDatasetAlternateTitle();
 				
 				if(physicalName != null) {
-					if(existingAlternateTitle.toLowerCase().trim().contains(physicalName.toLowerCase().trim())) {
+					if(existingAlternateTitle.toLowerCase().trim().contains(physicalName.toLowerCase().trim()) ||
+							physicalName.toLowerCase().trim().contains(existingAlternateTitle.toLowerCase().trim())) {
 						 // do nothing
 					} else {
 						metadataDocument.setDatasetAlternateTitle(existingAlternateTitle + " " + physicalName);
