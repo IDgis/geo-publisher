@@ -379,6 +379,29 @@ public class DatasetMetadata extends AbstractMetadata {
 					serviceQuery.where(environment.confidential.isFalse());
 				}
 				
+				Tuple datasetIdentificationType = tx.query().from(dataset)
+					.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
+					.join(sourceDatasetVersion)
+						.on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
+					.where(sourceDatasetVersion.id.eq(new SQLSubQuery()
+							.from(sourceDatasetVersionSub)
+							.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDataset.id))
+							.unique(sourceDatasetVersionSub.id.max()))
+						.and(sourceDataset.id.eq(sourceDatasetId)))
+					.uniqueResult(dataset.identification, sourceDatasetVersion.type);
+				
+				if("RASTER".equals(datasetIdentificationType.get(sourceDatasetVersion.type)) 
+						&& config.getRasterUrlDisplay()) {
+					config.getRasterUrlPrefix().ifPresent(rasterUrlPrefix -> {
+						try {
+							metadataDocument.addServiceLinkage(rasterUrlPrefix + 
+									datasetIdentificationType.get(dataset.identification) + ".tif", "download", null);
+						} catch(NotFound nf) {
+							throw new RuntimeException(nf);
+						}
+					});
+				}
+				
 				List<Tuple> serviceTuples = serviceQuery.where(publishedServiceDataset.datasetId.eq(datasetId))
 					.list(
 						publishedService.content,
