@@ -21,16 +21,18 @@ public class ProviderPropsFactory {
 	}
 	
 	private Props metadata(Config providerConfig) {
-		return Metadata.props(new File(providerConfig.getString("metadata.folder")));		
+		return Metadata.props(new File(providerConfig.getString("metadata.folder")));
 	}
 	
 	private ProviderProps sde(String name, Config providerConfig) {
-		Props database = Database.props(providerConfig.getConfig("database"), name);
+		Config databaseConfig = providerConfig.getConfig("database");
+		
+		Props database = Database.props(databaseConfig, name);
 		Props rasterFolder = Folder.props(providerConfig.getString("raster.folder"));
 		
 		log.info("creating sde provider: {}", name);
 		
-		return new ProviderProps(name, SDEProvider.props(database, rasterFolder));
+		return new ProviderProps(name, SDEProvider.props(database, rasterFolder, databaseConfig));
 	}
 
 	private ProviderProps vector(String name, Config providerConfig) {

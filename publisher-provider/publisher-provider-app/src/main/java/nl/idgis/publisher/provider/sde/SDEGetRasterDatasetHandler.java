@@ -5,6 +5,9 @@ import java.nio.file.Paths;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigException;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
@@ -34,17 +37,22 @@ public class SDEGetRasterDatasetHandler extends UntypedActor {
 	private final ActorRef rasterFolder;
 	
 	private ActorRef transaction;
+	
+	private String dbScheme;
 
 	private FutureUtils f;
+
+	private Config databaseConfig;
 	
-	public SDEGetRasterDatasetHandler(ActorRef originalSender, GetRasterDataset originalMsg, ActorRef rasterFolder) {
+	public SDEGetRasterDatasetHandler(ActorRef originalSender, GetRasterDataset originalMsg, ActorRef rasterFolder, Config databaseConfig) {
 		this.originalSender = originalSender;
 		this.originalMsg = originalMsg;
 		this.rasterFolder = rasterFolder;
+		this.databaseConfig = databaseConfig;
 	}
 	
-	public static Props props(ActorRef originalSender, GetRasterDataset originalMsg, ActorRef rasterFolder) {
-		return Props.create(SDEGetRasterDatasetHandler.class, originalSender, originalMsg, rasterFolder);
+	public static Props props(ActorRef originalSender, GetRasterDataset originalMsg, ActorRef rasterFolder, Config databaseConfig) {
+		return Props.create(SDEGetRasterDatasetHandler.class, originalSender, originalMsg, rasterFolder, databaseConfig);
 	}
 	
 	@Override
@@ -123,8 +131,16 @@ public class SDEGetRasterDatasetHandler extends UntypedActor {
 				SDEReceiveSingleItemInfo.props(getSelf()), 
 				"item-records-receiver");
 			
+			try {
+				dbScheme = databaseConfig.getString("scheme");
+			} catch(ConfigException.Missing cem) {
+				dbScheme = "sde";
+			}
+			
+			log.debug("database scheme before calling get fetch table: " + dbScheme);
+			
 			transaction.tell(
-				SDEUtils.getFetchTable(SDEUtils.getItemsFilter(originalMsg.getIdentification())),
+				SDEUtils.getFetchTable(SDEUtils.getItemsFilter(originalMsg.getIdentification()), dbScheme),
 				recordsReceiver);
 			getContext().become(onReceiveItemRecords());
 		} else if(msg instanceof StopDatasetImport) {

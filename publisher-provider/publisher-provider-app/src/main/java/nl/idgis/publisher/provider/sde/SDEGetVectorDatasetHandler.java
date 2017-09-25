@@ -6,6 +6,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigException;
+
 import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.protocol.messages.Ack;
@@ -42,13 +45,18 @@ public class SDEGetVectorDatasetHandler extends UntypedActor {
 	
 	private ActorRef transaction;
 	
+	private String dbScheme;
+	
 	private String tableName;
 
 	private FutureUtils f;
+
+	private Config databaseConfig;
 	
-	public SDEGetVectorDatasetHandler(ActorRef originalSender, GetVectorDataset originalMsg) {
+	public SDEGetVectorDatasetHandler(ActorRef originalSender, GetVectorDataset originalMsg, Config databaseConfig) {
 		this.originalSender = originalSender;
 		this.originalMsg = originalMsg;
+		this.databaseConfig = databaseConfig;
 	}
 	
 	@Override
@@ -57,8 +65,8 @@ public class SDEGetVectorDatasetHandler extends UntypedActor {
 		f = new FutureUtils(getContext());
 	}
 	
-	public static Props props(ActorRef originalSender, GetVectorDataset originalMsg) {
-		return Props.create(SDEGetVectorDatasetHandler.class, originalSender, originalMsg);
+	public static Props props(ActorRef originalSender, GetVectorDataset originalMsg, Config databaseConfig) {
+		return Props.create(SDEGetVectorDatasetHandler.class, originalSender, originalMsg, databaseConfig);
 	}
 	
 	private void sendUnavailableAndStop() {
@@ -214,8 +222,16 @@ public class SDEGetVectorDatasetHandler extends UntypedActor {
 				SDEReceiveSingleItemInfo.props(getSelf()), 
 				"item-records-receiver");
 			
+			try {
+				dbScheme = databaseConfig.getString("scheme");
+			} catch(ConfigException.Missing cem) {
+				dbScheme = "sde";
+			}
+			
+			log.debug("database scheme before calling get fetch table: " + dbScheme);
+			
 			transaction.tell(
-				SDEUtils.getFetchTable(SDEUtils.getItemsFilter(originalMsg.getIdentification())),
+				SDEUtils.getFetchTable(SDEUtils.getItemsFilter(originalMsg.getIdentification()), dbScheme),
 				recordsReceiver);
 			getContext().become(onReceiveItemRecords());
 		} else if(msg instanceof ReceiveTimeout) {

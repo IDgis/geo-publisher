@@ -2,6 +2,9 @@ package nl.idgis.publisher.provider.sde;
 
 import java.util.concurrent.TimeUnit;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigException;
+
 import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.protocol.messages.Ack;
@@ -30,11 +33,16 @@ public class SDEGetDatasetInfoHandler extends UntypedActor {
 	private final GetDatasetInfo originalMsg;
 	
 	private ActorRef transaction;
+	
+	private String dbScheme;
+
+	private Config databaseConfig;
 		
-	public SDEGetDatasetInfoHandler(ActorRef originalSender, GetDatasetInfo originalMsg, ActorRef rasterFolder) {
+	public SDEGetDatasetInfoHandler(ActorRef originalSender, GetDatasetInfo originalMsg, ActorRef rasterFolder, Config databaseConfig) {
 		this.originalSender = originalSender;
 		this.originalMsg = originalMsg;
 		this.rasterFolder = rasterFolder;
+		this.databaseConfig = databaseConfig;
 	}
 	
 	@Override
@@ -42,8 +50,8 @@ public class SDEGetDatasetInfoHandler extends UntypedActor {
 		getContext().setReceiveTimeout(Duration.create(30, TimeUnit.SECONDS));
 	}
 	
-	public static Props props(ActorRef originalSender, GetDatasetInfo originalMsg, ActorRef rasterFolder) {
-		return Props.create(SDEGetDatasetInfoHandler.class, originalSender, originalMsg, rasterFolder);
+	public static Props props(ActorRef originalSender, GetDatasetInfo originalMsg, ActorRef rasterFolder, Config databaseConfig) {
+		return Props.create(SDEGetDatasetInfoHandler.class, originalSender, originalMsg, rasterFolder, databaseConfig);
 	}
 	
 	private Procedure<Object> onReceiveCommitAck() {
@@ -106,15 +114,24 @@ public class SDEGetDatasetInfoHandler extends UntypedActor {
 						getSelf(), 
 						transaction, 
 						rasterFolder, 
-						originalMsg.getAttachmentTypes()),
+						originalMsg.getAttachmentTypes(),
+						databaseConfig),
 					"dataset-info-gatherer");
 			
 			ActorRef itemInfoReceiver = getContext().actorOf(
 				SDEReceiveSingleItemInfo.props(datasetInfoGatherer), 
 				"item-info-receiver");
 			
+			try {
+				dbScheme = databaseConfig.getString("scheme");
+			} catch(ConfigException.Missing cem) {
+				dbScheme = "sde";
+			}
+			
+			log.debug("database scheme before calling get fetch table: " + dbScheme);
+			
 			transaction.tell(
-				SDEUtils.getFetchTable(SDEUtils.getItemsFilter(originalMsg.getIdentification())), 
+				SDEUtils.getFetchTable(SDEUtils.getItemsFilter(originalMsg.getIdentification()), dbScheme), 
 				itemInfoReceiver);
 			
 			getContext().become(onReceiveDatasetInfo());

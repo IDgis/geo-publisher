@@ -2,6 +2,9 @@ package nl.idgis.publisher.provider.sde;
 
 import java.util.concurrent.TimeUnit;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigException;
+
 import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.protocol.messages.Ack;
@@ -39,14 +42,19 @@ public class SDEListDatasetInfoHandler extends UntypedActor {
 	
 	private ActorRef transaction;
 	
-	public SDEListDatasetInfoHandler(ActorRef originalSender, ListDatasetInfo originalMsg, ActorRef rasterFolder) {
+	private String dbScheme;
+	
+	private Config databaseConfig;
+	
+	public SDEListDatasetInfoHandler(ActorRef originalSender, ListDatasetInfo originalMsg, ActorRef rasterFolder, Config databaseConfig) {
 		this.originalSender = originalSender;
 		this.originalMsg = originalMsg;
 		this.rasterFolder = rasterFolder;
+		this.databaseConfig = databaseConfig;
 	}
 	
-	public static Props props(ActorRef originalSender, ListDatasetInfo originalMsg, ActorRef rasterFolder) {
-		return Props.create(SDEListDatasetInfoHandler.class, originalSender, originalMsg, rasterFolder);
+	public static Props props(ActorRef originalSender, ListDatasetInfo originalMsg, ActorRef rasterFolder, Config databaseConfig) {
+		return Props.create(SDEListDatasetInfoHandler.class, originalSender, originalMsg, rasterFolder, databaseConfig);
 	}
 	
 	@Override
@@ -59,8 +67,16 @@ public class SDEListDatasetInfoHandler extends UntypedActor {
 		if(msg instanceof TransactionCreated) {
 			log.debug("transaction created");
 			
+			try {
+				dbScheme = databaseConfig.getString("scheme");
+			} catch(ConfigException.Missing cem) {
+				dbScheme = "sde";
+			}
+			
+			log.debug("database scheme before calling get fetch table: " + dbScheme);
+			
 			transaction = ((TransactionCreated)msg).getActor();
-			transaction.tell(SDEUtils.getFetchTable(SDEUtils.getItemsFilter()), getSelf());
+			transaction.tell(SDEUtils.getFetchTable(SDEUtils.getItemsFilter(), dbScheme), getSelf());
 			
 			getContext().become(onReceiveStreaming());
 		} else if(msg instanceof ReceiveTimeout) {
@@ -124,7 +140,8 @@ public class SDEListDatasetInfoHandler extends UntypedActor {
 									getSelf(), 
 									transaction, 
 									rasterFolder, 
-									originalMsg.getAttachmentTypes()),
+									originalMsg.getAttachmentTypes(),
+									databaseConfig),
 								nameGenerator.getName(SDEGatherDatasetInfo.class));
 						
 						datasetInfoGatherer.tell(itemInfo, getSelf());

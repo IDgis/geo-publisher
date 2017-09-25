@@ -9,6 +9,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigException;
+
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.service.DatabaseLog;
@@ -66,6 +69,8 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 	
 	private String categoryId;
 	
+	private String dbScheme;
+	
 	private DatabaseTableInfo databaseTableInfo;
 
 	private Path rasterFile;
@@ -75,16 +80,19 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 	private Date revisionDate;
 	
 	private Map<String, String> attributeAliases;
+
+	private Config databaseConfig;
 	
-	public SDEGatherDatasetInfo(ActorRef target, ActorRef transaction, ActorRef rasterFolder, Set<AttachmentType> attachmentTypes) {
+	public SDEGatherDatasetInfo(ActorRef target, ActorRef transaction, ActorRef rasterFolder, Set<AttachmentType> attachmentTypes, Config databaseConfig) {
 		this.target = target;
 		this.transaction = transaction;
 		this.rasterFolder = rasterFolder;
 		this.attachmentTypes = attachmentTypes;
+		this.databaseConfig = databaseConfig;
 	}
 	
-	public static Props props(ActorRef target, ActorRef transaction, ActorRef rasterFolder, Set<AttachmentType> attachmentTypes) {
-		return Props.create(SDEGatherDatasetInfo.class, target, transaction, rasterFolder, attachmentTypes);
+	public static Props props(ActorRef target, ActorRef transaction, ActorRef rasterFolder, Set<AttachmentType> attachmentTypes, Config databaseConfig) {
+		return Props.create(SDEGatherDatasetInfo.class, target, transaction, rasterFolder, attachmentTypes, databaseConfig);
 	}
 	
 	@Override
@@ -144,6 +152,14 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 			
 			title = physicalname;
 			
+			try {
+				dbScheme = databaseConfig.getString("scheme");
+			} catch(ConfigException.Missing cem) {
+				dbScheme = "sde";
+			}
+			
+			log.debug("database scheme in sde gather dataset info: " + dbScheme);
+			
 			itemInfo.getDocumentation().ifPresent(documentation -> {
 				try {
 					MetadataDocumentFactory mdf = new MetadataDocumentFactory();
@@ -156,14 +172,14 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 					
 					if(attachmentTypes.contains(AttachmentType.METADATA)) {
 						attachments.add(new Attachment(
-							"gdb_items_vw.documentation", 
+							dbScheme + ".gdb_items_vw.documentation", 
 							AttachmentType.METADATA,
 							md.getContent()));
 					}
 					
 					if(attachmentTypes.contains(AttachmentType.PHYSICAL_NAME)) {
 						attachments.add(new Attachment(
-							"gdb_items_vw.physicalname", 
+							dbScheme + ".gdb_items_vw.physicalname", 
 							AttachmentType.PHYSICAL_NAME,
 							physicalname));
 					}
