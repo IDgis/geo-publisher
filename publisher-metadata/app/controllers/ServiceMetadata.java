@@ -38,6 +38,7 @@ import nl.idgis.publisher.xml.exceptions.NotFound;
 import play.libs.Json;
 import util.MetadataConfig;
 import util.QueryDSL;
+import util.Security;
 import util.QueryDSL.Transaction;
 
 public class ServiceMetadata extends AbstractMetadata {
@@ -51,12 +52,12 @@ public class ServiceMetadata extends AbstractMetadata {
 	private final MetadataDocument template;
 	
 	@Inject
-	public ServiceMetadata(MetadataConfig config, QueryDSL q) throws Exception {
-		this(config, q, getTemplate(), "/");
+	public ServiceMetadata(MetadataConfig config, QueryDSL q, Security s) throws Exception {
+		this(config, q, s, getTemplate(), "/");
 	}
 	
-	public ServiceMetadata(MetadataConfig config, QueryDSL q, MetadataDocument template, String prefix) {
-		super(config, q, prefix);
+	public ServiceMetadata(MetadataConfig config, QueryDSL q, Security s, MetadataDocument template, String prefix) {
+		super(config, q, s, prefix);
 		
 		this.template = template;
 	}
@@ -72,7 +73,7 @@ public class ServiceMetadata extends AbstractMetadata {
 	
 	@Override
 	public ServiceMetadata withPrefix(String prefix) {
-		return new ServiceMetadata(config, q, template, prefix);
+		return new ServiceMetadata(config, q, s, template, prefix);
 	}
 	
 	private SQLQuery fromService(Transaction tx) {
@@ -80,7 +81,7 @@ public class ServiceMetadata extends AbstractMetadata {
 			.join(publishedService).on(publishedService.serviceId.eq(service.id))
 			.join(environment).on(environment.id.eq(publishedService.environmentId));
 		
-		if(!isTrusted()) {
+		if(!s.isTrusted()) {
 			query.where(environment.confidential.isFalse());
 		}
 		
@@ -142,7 +143,7 @@ public class ServiceMetadata extends AbstractMetadata {
 			SQLQuery serviceDatasetQuery = tx.query().from(publishedServiceDataset)
 				.join(dataset).on(dataset.id.eq(publishedServiceDataset.datasetId));
 			
-			if(!isTrusted()) {
+			if(!s.isTrusted()) {
 				// do not generate links to confidential (= inaccessible) metadata documents.
 				
 				serviceDatasetQuery

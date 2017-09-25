@@ -392,6 +392,20 @@ public class MetadataDocument {
 	}
 	
 	/*
+	 * Topic
+	 */
+	
+	public List<String> getTopicCategories() throws NotFound {
+		return isoMetadata
+			.xpath(Optional.of(namespaces))
+			.strings("/gmd:MD_Metadata" +
+					"/gmd:identificationInfo" +	
+					"/gmd:MD_DataIdentification" +
+					"/gmd:topicCategory" +
+					"/gmd:MD_TopicCategoryCode");
+	}
+	
+	/*
 	 * Responsible Party
 	 *  - name
 	 *  - email
@@ -653,6 +667,55 @@ public class MetadataDocument {
 				"/gmd:transferOptions" + 
 				"/gmd:MD_DigitalTransferOptions" ;
 	}
+	
+	/**
+	 * Dataset Distribution
+	 * : distributor
+	 */	
+	protected String getDistributionResponsiblePartyPath(String role){
+		return
+				"/gmd:MD_Metadata" + 
+				"/gmd:distributionInfo" + 
+				"/gmd:MD_Distribution" + 
+				"/gmd:distributor" + 
+				"/gmd:MD_Distributor" + 
+				"/gmd:distributorContact" +
+				"/gmd:CI_ResponsibleParty" + 
+
+			"[gmd:role" +
+			"/gmd:CI_RoleCode" +
+			"/@codeListValue" +
+				"='" + role + "']"
+			;
+	}
+	
+	protected String getDistributionResponsiblePartyEmailPath(String role) {
+		return getDistributionResponsiblePartyPath(role) + 
+				"/gmd:contactInfo" +
+				"/gmd:CI_Contact" +
+				"/gmd:address" +
+				"/gmd:CI_Address" +
+				"/gmd:electronicMailAddress" +
+				"/gco:CharacterString";
+	}
+	
+	protected String getDistributionResponsiblePartyNamePath(String role) {
+		return getDistributionResponsiblePartyPath(role) + 
+			"/gmd:organisationName" +
+			"/gco:CharacterString";
+	}
+	
+	public String getDistributionResponsiblePartyEmail(String role) throws Exception{
+		return isoMetadata.getString(namespaces, getDistributionResponsiblePartyEmailPath(role));
+	}
+	
+	public String getDistributionResponsiblePartyName(String role) throws Exception{
+		return isoMetadata.getString(namespaces, getDistributionResponsiblePartyNamePath(role));
+	}
+	
+	
+	
+	
 	
 	protected String getServiceLinkagePath() {
 		return getDigitalTransferOptionsPath() + "/gmd:onLine";
@@ -1272,5 +1335,29 @@ public class MetadataDocument {
 					+ "/gmd:MD_SpatialRepresentationTypeCode"
 					+ "/@codeListValue")
 			.get();
+	}
+	
+	public Double getDatasetSpatialExtentSide(String side) throws NotFound {
+		// side must be west, east, north or south
+		return Double.valueOf(xpath()
+				.string("/gmd:MD_Metadata"
+						+ "/gmd:identificationInfo"
+						+ "/gmd:MD_DataIdentification"
+						+ "/gmd:extent"
+						+ "/gmd:EX_Extent"
+						+ "/gmd:geographicElement"
+						+ "/gmd:EX_GeographicBoundingBox"
+						+ "/gmd:"+side+"Bound"+((side == "west" || side == "east") ? "Longitude" : "Latitude") 
+						+ "/gco:Decimal")
+				.get());
+	}
+	
+	public String getDatasetSpatialExtent() throws NotFound {
+		String west = String.valueOf(getDatasetSpatialExtentSide("west"));
+		String east = String.valueOf(getDatasetSpatialExtentSide("east"));
+		String north = String.valueOf(getDatasetSpatialExtentSide("north"));
+		String south = String.valueOf(getDatasetSpatialExtentSide("south"));
+		
+		return west+","+south+","+east+","+north;
 	}
 }
