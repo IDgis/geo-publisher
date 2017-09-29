@@ -12,11 +12,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-
-import com.google.common.base.Objects;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -41,16 +38,12 @@ import nl.idgis.publisher.service.geoserver.messages.EnsureStyle;
 import nl.idgis.publisher.service.geoserver.messages.EnsureWorkspace;
 import nl.idgis.publisher.service.geoserver.messages.Ensured;
 import nl.idgis.publisher.service.geoserver.messages.FinishEnsure;
-import nl.idgis.publisher.service.geoserver.rest.Attribute;
-import nl.idgis.publisher.service.geoserver.rest.Coverage;
 import nl.idgis.publisher.service.geoserver.rest.CoverageStore;
 import nl.idgis.publisher.service.geoserver.rest.DataStore;
 import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRest;
-import nl.idgis.publisher.service.geoserver.rest.FeatureType;
 import nl.idgis.publisher.service.geoserver.rest.GeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.GroupRef;
 import nl.idgis.publisher.service.geoserver.rest.Layer;
-import nl.idgis.publisher.service.geoserver.rest.LayerGroup;
 import nl.idgis.publisher.service.geoserver.rest.LayerRef;
 import nl.idgis.publisher.service.geoserver.rest.PublishedRef;
 import nl.idgis.publisher.service.geoserver.rest.ServiceSettings;
@@ -381,129 +374,17 @@ public class GeoServerService extends UntypedActor {
 	}
 	
 	private Procedure<Object> layers(
-			ActorRef initiator,
-			Workspace workspace, 
-			DataStore dataStore,
-			Map<String, FeatureType> featureTypes,
-			Map<String, CoverageStore> coverageStores,
-			Map<String, Coverage> coverages,
-			Map<String, LayerGroup> layerGroups,
-			Map<String, TiledLayerInfo> tiledLayers,
-			Map<String, Layer> layers) {
-		
-		return layers(null, initiator, workspace, dataStore, featureTypes, coverageStores, coverages, layerGroups, tiledLayers, layers);
-	}
-	
-	private Procedure<Object> layers(
 			EnsureGroupLayer groupLayer, 
 			ActorRef initiator,
 			Workspace workspace, 
 			DataStore dataStore,
-			Map<String, FeatureType> featureTypes,
-			Map<String, CoverageStore> coverageStores,
-			Map<String, Coverage> coverages,
-			Map<String, LayerGroup> layerGroups,
-			Map<String, TiledLayerInfo> tiledLayers,
-			Map<String, Layer> layers) {
+			Map<String, TiledLayerInfo> tiledLayers) {
 		
 		List<PublishedRef> groupLayerContent = new ArrayList<>();
 		
 		log.debug("-> layers {}", groupLayer == null ? "" : null);
 		
 		return new Procedure<Object>() {
-			
-			private boolean unchanged(Layer restLayer, EnsureDatasetLayer ensure) {
-				log.debug("checking if layer is changed");
-				
-				String currentDefaultStyleName = Optional.ofNullable(restLayer.getDefaultStyle())
-						.map(styleRef -> styleRef.getStyleName())
-						.orElse(null);
-				
-				if(!Objects.equal(currentDefaultStyleName, ensure.getDefaultStyleName())) {
-					log.debug("new default style: {}, was{}", ensure.getDefaultStyleName(), currentDefaultStyleName);
-					
-					return false;
-				}
-				
-				List<String> currentAdditionalStyleNames = restLayer.getAdditionalStyles().stream()
-					.map(styleRef -> styleRef.getStyleName())
-					.collect(Collectors.toList());
-				
-				if(!Objects.equal(currentAdditionalStyleNames, ensure.getAdditionalStyleNames())) {
-					log.debug("new additional styles: {}, was {}", ensure.getAdditionalStyleNames(), currentAdditionalStyleNames);
-					
-					return false;
-				}
-				
-				return true;
-			}
-			
-			private boolean unchanged(FeatureType rest, EnsureFeatureTypeLayer ensure) {
-				log.debug("checking if feature type is changed");
-				
-				if(!Objects.equal(rest.getNativeName(), ensure.getTableName())) {
-					log.debug("new table name: {}, was {}", ensure.getTableName(), rest.getNativeName());
-					
-					return false;
-				}
-				
-				List<String> restColumnNames = rest.getAttributes().stream()
-					.map(Attribute::getName)
-					.collect(Collectors.toList());
-				
-				if(!Objects.equal(restColumnNames, ensure.getColumnNames())) {					
-					log.debug("new column names: {}, was {}", ensure.getColumnNames(), restColumnNames);
-					
-					return false;
-				}
-				
-				if(!Objects.equal(rest.getTitle(), ensure.getTitle())) {
-					log.debug("new title: {}, was {}", ensure.getTitle(), rest.getTitle());
-					
-					return false;
-				}
-				
-				if(!Objects.equal(rest.getAbstract(), ensure.getAbstract())) {
-					log.debug("new abstract: {}, was {}", ensure.getAbstract(), rest.getAbstract());
-					
-					return false;
-				}
-				
-				if (!Objects.equal (rest.getMetadataLinks (), ensure.getMetadataLinks ())) {
-					log.debug ("new metadataLinks: {}, was {}", ensure.getMetadataLinks (), rest.getMetadataLinks ());
-					
-					return false;
-				}
-				
-				return true;
-			}
-			
-			private boolean unchanged(LayerGroup rest) {
-				log.debug("checking if layer group is changed");
-				
-				if(!Objects.equal(rest.getTitle(), groupLayer.getTitle())) {
-					log.debug("new title: {}, was {}", groupLayer.getTitle(), rest.getTitle());
-					return false;
-				}
-				
-				if(!Objects.equal(rest.getAbstract(), groupLayer.getAbstract())) {
-					log.debug("new abstract: {}, was {}", groupLayer.getAbstract(), rest.getAbstract());
-					return false;
-				}
-				
-				if(!rest.getLayers().equals(groupLayerContent)) {
-					log.debug("new layer content: {}, was {}", groupLayerContent, rest.getLayers());
-					return false;
-				}
-				
-				return true;
-			}
-			
-			private boolean unchanged(Coverage coverage, EnsureCoverageLayer ensureLayer) {
-				// TODO: actually compare something
-				
-				return false;
-			}
 			
 			URL getRasterUrl(String fileName) throws MalformedURLException {
 				log.debug("creating raster url for fileName: {}, rasterFolder: {}", fileName, rasterFolder);
@@ -512,22 +393,13 @@ public class GeoServerService extends UntypedActor {
 			}
 			
 			String getCoverageStoreName(EnsureCoverageLayer ensureLayer) {
-				return "publisher-raster-" + ensureLayer.getNativeName(); 
-			}
-			
-			void putCoverage(CoverageStore coverageStore, EnsureCoverageLayer ensureLayer) {
-				toSelf(
-					rest.putCoverage(workspace, coverageStore, ensureLayer.getCoverage()).thenApply(v -> {
-						log.debug("coverage created");
-						
-						return new CoverageEnsured(ensureLayer);
-				}));
+				return "publisher-raster-" + ensureLayer.getNativeName();
 			}
 			
 			void postCoverageStore(EnsureCoverageLayer ensureLayer) throws MalformedURLException {
 				String fileName = ensureLayer.getFileName();
 				
-				String name = getCoverageStoreName(ensureLayer);			
+				String name = getCoverageStoreName(ensureLayer);
 				URL url = getRasterUrl(fileName);
 				
 				CoverageStore coverageStore = new CoverageStore(name, url);
@@ -549,33 +421,13 @@ public class GeoServerService extends UntypedActor {
 				}));
 			}
 			
-			void putFeatureType(EnsureFeatureTypeLayer ensureLayer) {
-				log.debug("putting feature type");
-				
-				toSelf(
-					rest.putFeatureType(workspace, dataStore, ensureLayer.getFeatureType()).thenApply(v -> {								
-						log.debug("feature type updated");									
-						return new FeatureTypeEnsured(ensureLayer);
-				}));
-			}
-			
 			void postFeatureType(EnsureFeatureTypeLayer ensureLayer) {
 				log.debug("posting feature type");
 				
 				toSelf(
-					rest.postFeatureType(workspace, dataStore, ensureLayer.getFeatureType()).thenApply(v -> {								
-						log.debug("feature type created");									
+					rest.postFeatureType(workspace, dataStore, ensureLayer.getFeatureType()).thenApply(v -> {
+						log.debug("feature type created");
 						return new FeatureTypeEnsured(ensureLayer);
-				}));
-			}
-			
-			void putLayerGroup() {
-				log.debug("putting layer group");
-				
-				toSelf(
-					rest.putLayerGroup(workspace, groupLayer.getLayerGroup(groupLayerContent)).thenApply(v -> {
-						log.debug("layer group updated");									
-						return new GroupEnsured();
 				}));
 			}
 			
@@ -584,7 +436,7 @@ public class GeoServerService extends UntypedActor {
 				
 				toSelf(
 					rest.postLayerGroup(workspace, groupLayer.getLayerGroup(groupLayerContent)).thenApply(v -> {
-						log.debug("layer group created");									
+						log.debug("layer group created");
 						return new GroupEnsured();
 				}));
 			}
@@ -613,6 +465,8 @@ public class GeoServerService extends UntypedActor {
 						log.debug("tiling settings found for layer: {}", ensureLayer.getLayerId());
 						
 						tiledLayers.put(ensureLayer.getLayerId(), new TiledLayerInfo(tiledLayerOptional.get(), ensureLayer.isReimported()));
+					} else {
+						log.debug("no tiling settings found for layer: {}", ensureLayer.getLayerId());
 					}
 				}
 				
@@ -622,9 +476,9 @@ public class GeoServerService extends UntypedActor {
 					ensured(initiator);
 					groupLayerContent.add(new GroupRef(ensureLayer.getLayerId()));
 					getContext().become(layers(ensureLayer, initiator, 
-						workspace, dataStore, featureTypes, coverageStores, coverages, layerGroups, tiledLayers, layers), false);
+						workspace, dataStore, tiledLayers), false);
 				} else if(msg instanceof EnsureFeatureTypeLayer) {
-					EnsureFeatureTypeLayer ensureLayer = (EnsureFeatureTypeLayer)msg;					
+					EnsureFeatureTypeLayer ensureLayer = (EnsureFeatureTypeLayer)msg;
 					String layerId = ensureLayer.getLayerId();
 					
 					String groupStyleName = ensureLayer.getGroupStyleName();
@@ -634,107 +488,50 @@ public class GeoServerService extends UntypedActor {
 						groupLayerContent.add(new LayerRef(layerId, groupStyleName));
 					}
 					
-					if(featureTypes.containsKey(layerId)) {
-						log.debug("existing feature type found: {}", layerId);
+					log.debug("feature type missing: {}", layerId);
 						
-						FeatureType featureType = featureTypes.get(layerId);
-						if(unchanged(featureType, ensureLayer)) {
-							log.debug("feature type unchanged");
-							toSelf(new FeatureTypeEnsured(ensureLayer));
-						} else {
-							log.debug("feature type changed");
-							putFeatureType(ensureLayer);
-						}
-						
-						featureTypes.remove(layerId);
-					} else {
-						log.debug("feature type missing: {}", layerId);
-						
-						postFeatureType(ensureLayer);
-					}
+					postFeatureType(ensureLayer);
 				} else if(msg instanceof EnsureCoverageLayer) {
 					EnsureCoverageLayer ensureLayer = (EnsureCoverageLayer)msg;
 					String layerId = ensureLayer.getLayerId();
-					String coveragStoreName = getCoverageStoreName(ensureLayer);					
+					String coveragStoreName = getCoverageStoreName(ensureLayer);
 					
 					String groupStyleName = ensureLayer.getGroupStyleName();
-					if(groupStyleName == null) {					
+					if(groupStyleName == null) {
 						groupLayerContent.add(new LayerRef(layerId));
 					} else {
 						groupLayerContent.add(new LayerRef(layerId, groupStyleName));
 					}
 					
-					if(coverageStores.containsKey(coveragStoreName)) {
-						log.debug("existing coverage store found: {}", coveragStoreName);
+					log.debug("coverage store missing: {}", coveragStoreName);
 						
-						CoverageStore coverageStore = coverageStores.get(coveragStoreName);
-						coverageStores.remove(coveragStoreName);
-						
-						toSelf(new CoverageStoreEnsured(ensureLayer, coverageStore));
-					} else {
-						log.debug("coverage store missing: {}", coveragStoreName);
-						
-						postCoverageStore(ensureLayer);
-					}
+					postCoverageStore(ensureLayer);
 				} else if(msg instanceof CoverageStoreEnsured) {
 					CoverageStoreEnsured ensured = (CoverageStoreEnsured)msg;
 					
 					CoverageStore coverageStore = ensured.getCoverageStore();
-					EnsureCoverageLayer ensureLayer = ensured.getEnsure();					
-					String layerId = ensureLayer.getLayerId();
+					EnsureCoverageLayer ensureLayer = ensured.getEnsure();
 					
-					if(coverages.containsKey(layerId)) {
-						log.debug("existing coverage found: {}", layerId);
-						
-						Coverage coverage = coverages.get(layerId);
-						if(unchanged(coverage, ensureLayer)) {
-							log.debug("coverage unchanged");
-							toSelf(new CoverageEnsured(ensureLayer));
-						} else {
-							log.debug("coverage changed");
-							putCoverage(coverageStore, ensureLayer);
-						}
-						
-						coverages.remove(layerId);
-					} else {
-						log.debug("coverage missing: {}", layerId);
-						
-						postCoverage(coverageStore, ensureLayer);
-					}
+					postCoverage(coverageStore, ensureLayer);
 				} else if(msg instanceof DatasetEnsured) {
-					EnsureDatasetLayer ensureLayer = ((DatasetEnsured<?>)msg).getEnsure();										
-					String layerId = ensureLayer.getLayerId();
-					
-					if(layers.containsKey(layerId)) {
-						if(unchanged(layers.get(layerId), ensureLayer)) {
-							log.debug("layer unchanged");
-							
-							toSelf(new LayerEnsured());
-						} else {							
-							log.debug("layer changed");
-							
-							putLayer(ensureLayer);
-						}
-					} else {
-						log.debug("layer not exists");
+					EnsureDatasetLayer ensureLayer = ((DatasetEnsured<?>)msg).getEnsure();
 						
-						// we don't have to use post because putFeatureType 
-						// implicitly created this layer
-						putLayer(ensureLayer);
-					}
+					// we don't have to use post because putFeatureType 
+					// implicitly created this layer
+					putLayer(ensureLayer);
 				} else if(msg instanceof LayerEnsured) {
-					ensured(initiator);				
+					ensured(initiator);
 				} else if(msg instanceof FinishEnsure) {
 					if(groupLayer == null) {
 						toSelf(
 							rest.getTiledLayerNames(workspace).thenCompose(tiledLayerNames -> {
 								List<Supplier<CompletableFuture<Void>>> futures = new ArrayList<>();
 								
-								/* We can't use the usual 'ensure' strategy for tiled layers because 
+								/* We can't use the usual strategy for tiled layers because 
 								 creating layers (feature types / coverages) implicitly creates
-								 a tiled layer that we have to delete when we are done.
+								 a tiled layer that we have to delete when we don't need it.
 								
-								N.B. post and put are used the other way around in GWC*/
+								N.B. post and put are used the other way around in GWC */
 								log.debug("configuring tiled layers");
 								for(Map.Entry<String, TiledLayerInfo> entry : tiledLayers.entrySet()) {
 									if(!tiledLayerNames.contains(entry.getKey())) {
@@ -751,13 +548,13 @@ public class GeoServerService extends UntypedActor {
 								
 								for(String tiledLayerName : tiledLayerNames) {
 									if(tiledLayers.containsKey(tiledLayerName)) { // still used tiled layers
-										log.debug("posting tiled layer {}", tiledLayerName);										
+										log.debug("posting tiled layer {}", tiledLayerName);
 										
 										TiledLayerInfo tiledLayerInfo = tiledLayers.get(tiledLayerName);
 										
 										futures.add(() -> rest.postTiledLayer(workspace, tiledLayerName, tiledLayerInfo.tiledLayer));
 										
-										if(tiledLayerInfo.reimported) {										
+										if(tiledLayerInfo.reimported) {
 											log.debug("reseeding tiled layer {}", tiledLayerName);
 											futures.add(() -> rest.reseedTiledLayer(workspace, tiledLayerName, tiledLayerInfo.tiledLayer, SEED_ZOOM_START, SEED_ZOOM_STOP));
 										} else {
@@ -769,48 +566,14 @@ public class GeoServerService extends UntypedActor {
 									}
 								}
 								
-								log.debug("deleting removed items");
-								
-								/* Remove layer groups first because it is not allowed to
-								remove a feature type or a coverage that is still part of a group. */
-								for(LayerGroup layerGroup : layerGroups.values()) {
-									log.debug("deleting layer group {}", layerGroup.getName());
-									futures.add(() -> rest.deleteLayerGroup(workspace, layerGroup));
-								}
-								
-								for(FeatureType featureType : featureTypes.values()) {
-									log.debug("deleting feature type {}", featureType.getName());
-									futures.add(() -> rest.deleteFeatureType(workspace, dataStore, featureType));
-								}
-
-								for(CoverageStore coverageStore : coverageStores.values()) {
-									log.debug("deleting coverage store {}", coverageStore.getName());
-									futures.add(() -> rest.deleteCoverageStore(workspace, coverageStore));
-								}
-								
-								return f.supplierSequence(futures).thenApply(v -> new WorkspaceEnsured());									
+								return f.supplierSequence(futures).thenApply(v -> new WorkspaceEnsured());
 							}));
 					} else {
 						String groupLayerId = groupLayer.getLayerId();
 						
 						log.debug("unbecome group {}, groupLayers {}", groupLayerId, groupLayerContent);
 						
-						if(layerGroups.containsKey(groupLayerId)) {
-							log.debug("existing layer group found: " + groupLayerId);
-							
-							LayerGroup layerGroup = layerGroups.get(groupLayerId);
-							if(unchanged(layerGroup)) {
-								log.debug("layer group unchanged");
-								toSelf(new GroupEnsured());
-							} else {
-								log.debug("layer group changed");
-								putLayerGroup();
-							}
-							
-							layerGroups.remove(groupLayerId);
-						} else {
-							postLayerGroup();
-						}
+						postLayerGroup();
 					}
 				} else if(msg instanceof WorkspaceEnsured) {
 					log.debug("workspace ensured");
@@ -834,44 +597,10 @@ public class GeoServerService extends UntypedActor {
 		
 		private final DataStore dataStore;
 		
-		private final Map<String, FeatureType> featureTypes;
-		
-		private final Map<String, CoverageStore> coverageStores;
-		
-		private final Map<String, Coverage> coverages;
-		
-		private final Map<String, LayerGroup> layerGroups;
-		
-		private final Map<String, Layer> layers;
 		
 		EnsuringWorkspace(Workspace workspace, DataStore dataStore) {
-			this(workspace, dataStore, Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
-		}
-		
-		EnsuringWorkspace(Workspace workspace, DataStore dataStore, List<FeatureType> featureTypes, List<CoverageStore> coverageStores,
-				List<Coverage> coverages, List<LayerGroup> layerGroups, List<Layer> layers) {
 			this.workspace = workspace;
-			this.dataStore = dataStore;			
-			this.featureTypes = featureTypes.stream()
-				.collect(Collectors.toMap(
-					featureType -> featureType.getName(),
-					Function.identity()));
-			this.coverageStores = coverageStores.stream()
-				.collect(Collectors.toMap(
-					coverageStore -> coverageStore.getName(),
-					Function.identity()));
-			this.coverages = coverages.stream()
-				.collect(Collectors.toMap(
-					coverage -> coverage.getName(),
-					Function.identity()));
-			this.layerGroups = layerGroups.stream()
-				.collect(Collectors.toMap(
-					layerGroup -> layerGroup.getName(),
-					Function.identity()));			
-			this.layers = layers.stream()
-				.collect(Collectors.toMap(
-					layer -> layer.getName(),
-					Function.identity()));
+			this.dataStore = dataStore;
 		}
 		
 		Workspace getWorkspace() {
@@ -882,25 +611,6 @@ public class GeoServerService extends UntypedActor {
 			return dataStore;
 		}
 		
-		Map<String, FeatureType> getFeatureTypes() {
-			return featureTypes;
-		}
-		
-		Map<String, LayerGroup> getLayerGroups() {
-			return layerGroups;
-		}
-		
-		Map<String, Layer> getLayers() {
-			return layers;
-		}
-		
-		Map<String, CoverageStore> getCoverageStores() {
-			return coverageStores;
-		}
-
-		Map<String, Coverage> getCoverages() {
-			return coverages;
-		}
 	};
 	
 	private Procedure<Object> ensuring(ActorRef initiator) {
@@ -917,13 +627,7 @@ public class GeoServerService extends UntypedActor {
 					log.debug("ensuring workspace content");
 					Workspace workspace = workspaceEnsured.getWorkspace();
 					DataStore dataStore = workspaceEnsured.getDataStore();
-					Map<String, FeatureType> featureTypes = workspaceEnsured.getFeatureTypes();
-					Map<String, CoverageStore> coverageStores = workspaceEnsured.getCoverageStores();
-					Map<String, Coverage> coverages = workspaceEnsured.getCoverages();
-					Map<String, LayerGroup> layerGroups = workspaceEnsured.getLayerGroups();
-					Map<String, TiledLayerInfo> tiledLayers = new HashMap<>();
-					Map<String, Layer> layers = workspaceEnsured.getLayers();
-					getContext().become(layers(initiator, workspace, dataStore, featureTypes, coverageStores, coverages, layerGroups, tiledLayers, layers));
+					getContext().become(layers(null, initiator, workspace, dataStore, new HashMap<>()));
 				} else if(msg instanceof StyleEnsured) {
 					log.debug("style ensured");
 					ensured(initiator);
