@@ -60,7 +60,6 @@ import nl.idgis.publisher.service.geoserver.rest.Workspace;
 import nl.idgis.publisher.service.geoserver.rest.WorkspaceSettings;
 import nl.idgis.publisher.service.manager.messages.ServiceIndex;
 import nl.idgis.publisher.utils.FutureUtils;
-import nl.idgis.publisher.utils.StreamUtils;
 import nl.idgis.publisher.utils.XMLUtils;
 
 public class GeoServerService extends UntypedActor {
@@ -191,69 +190,55 @@ public class GeoServerService extends UntypedActor {
 			
 			getContext().become(ensuring(initiator));
 		} else if(msg instanceof EnsureWorkspace) {
-			log.debug("ensure workspace: {}", msg);
-			
-			EnsureWorkspace ensureWorkspace = (EnsureWorkspace)msg;
-			
-			String workspaceId = ensureWorkspace.getWorkspaceId();
-			
-			toSelf(
-				rest.reset().thenCompose(reset -> 
-				rest.getWorkspace(workspaceId).thenCompose(optionalWorkspace -> {
-					if(optionalWorkspace.isPresent()) {
-						log.debug("existing workspace found: {}", workspaceId);
-						
-						Workspace workspace = optionalWorkspace.get();
-						
-						return rest.getDataStore(workspace, "publisher-geometry").thenCompose(optionalDataStore -> {
-							if(optionalDataStore.isPresent()) {
-								log.debug("existing data store found: publisher-geometry");
-								
-								DataStore dataStore = optionalDataStore.get();										
-								return 
-									rest.getFeatureTypes(workspace, dataStore).thenCompose(featureTypes ->
-									rest.getCoverages(workspace).thenCompose(allCoverages ->
-									rest.getLayerGroups(workspace).thenCompose(layerGroups ->
-										f.sequence(featureTypes.stream()
-											.map(featureType -> rest.getLayer(workspace, featureType))
-											.collect(Collectors.toList())).thenCompose(layers -> {
-										
-									log.debug("feature types and layer groups retrieved");
-									
-									List<CoverageStore> coverageStores = 
-										allCoverages.keySet().stream()
-											.collect(Collectors.toList());
-									
-									List<Coverage> coverages = 
-										allCoverages.values().stream()
-											.flatMap(List::stream)
-											.collect(Collectors.toList());
-																				
-									return ensureWorkspace(workspace, ensureWorkspace).thenApply(vEnsure ->											
-										new EnsuringWorkspace(workspace, dataStore, featureTypes, coverageStores, coverages, layerGroups, layers));
-								}))));
-							}
-							
-							throw new IllegalStateException("publisher-geometry data store is missing");
-						});
-					}
-					
-					Workspace workspace = new Workspace(workspaceId);
-					return rest.postWorkspace(workspace).thenCompose(vWorkspace -> {								
-						log.debug("workspace created: {}", workspaceId);
-						DataStore dataStore = new DataStore("publisher-geometry", databaseConnectionParameters);
-						return rest.postDataStore(workspace, dataStore).thenCompose(vDataStore -> {									
-							log.debug("data store created: publisher-geometry");
-							return ensureWorkspace(workspace, ensureWorkspace).thenApply(vEnsure ->
-								new EnsuringWorkspace(workspace, dataStore));
-						});
-					});
-				})));
-			
-			getContext().become(ensuring(initiator));
+			handleEnsureWorkspace((EnsureWorkspace)msg, initiator);
 		} else {
 			unhandled(msg);
 		}
+	}
+
+	private void handleEnsureWorkspace(EnsureWorkspace ensureWorkspace, ActorRef initiator) {
+		log.debug("ensure workspace: {}", ensureWorkspace);
+		
+		DataStore dataStore = new DataStore("publisher-geometry", databaseConnectionParameters);
+		
+		String workspaceId = ensureWorkspace.getWorkspaceId();
+		Workspace workspace = new Workspace(workspaceId);
+		WorkspaceSettings workspaceSettings = ensureWorkspace.getWorkspaceSettings();
+		ServiceSettings serviceSettings = ensureWorkspace.getServiceSettings();
+		
+		toSelf(
+			rest.reset().thenCompose(reset ->
+			rest.getWorkspace(workspaceId).thenCompose(existingWorkspace -> {
+				if(existingWorkspace.isPresent()) {
+					return rest.deleteWorkspace(workspace).thenRun(() -> {
+						log.debug("workspace deleted: {}", workspaceId);
+					});
+				} else {
+					log.debug("workspace does not exist: {}", workspaceId);
+					return f.successful(null);
+				}
+			}).thenCompose(delete -> {
+				return rest.postWorkspace(workspace).thenCompose(vWorkspace -> {
+					log.debug("workspace created: {}", workspaceId);
+					return rest.postDataStore(workspace, dataStore).thenCompose(vDataStore -> {
+						log.debug("data store created: publisher-geometry");
+						return rest.putWorkspaceSettings(workspace, workspaceSettings).thenCompose(vWorkspaceSettings -> {
+							log.debug("workspace settings changed: {}", workspaceId);
+							return f.supplierSequence(() ->
+									SERVICE_TYPES.stream()
+										.<Supplier<CompletableFuture<Void>>>map(serviceType ->
+											() -> rest.putServiceSettings(workspace, serviceType, serviceSettings))
+										.iterator())
+								.thenApply(vServiceSettings -> {
+									log.debug("service settings changed: {}", workspaceId);
+									return new EnsuringWorkspace(workspace, dataStore);
+								});
+						});
+					});
+				});
+			})));
+		
+		getContext().become(ensuring(initiator));
 	}
 	
 	private static class Vacuumed {}
@@ -917,52 +902,6 @@ public class GeoServerService extends UntypedActor {
 			return coverages;
 		}
 	};
-	
-	private CompletableFuture<Void> ensureWorkspace(Workspace workspace, EnsureWorkspace ensureWorkspace) {
-		return ensureServiceSettings(workspace, ensureWorkspace.getServiceSettings())
-			.thenCompose(v -> ensureWorkspaceSettings(workspace, ensureWorkspace.getWorkspaceSettings()));					
-	}
-	
-	private CompletableFuture<Void> ensureWorkspaceSettings(Workspace workspace, WorkspaceSettings ensureWorkspaceSettings) {
-		return rest.getWorkspaceSettings(workspace).thenCompose(workspaceSettings -> {
-			if(workspaceSettings.equals(ensureWorkspaceSettings)) {
-				log.debug("workspace settings unchanged");						
-				return f.successful(null);
-			} else {
-				log.debug("workspace settings changed");
-				return rest.putWorkspaceSettings(workspace, ensureWorkspaceSettings);
-			}
-		});
-	}
-	
-	private CompletableFuture<List<Void>> ensureServiceSettings(Workspace workspace, ServiceSettings ensureServiceSettings) {
-		return f.sequence(SERVICE_TYPES.stream()
-			.map(serviceType -> rest.getServiceSettings(workspace, serviceType))
-			.collect(Collectors.toList())).thenCompose(optionalServiceSettings -> {
-				return f.supplierSequence(StreamUtils
-					.zip(
-						SERVICE_TYPES.stream(),
-						optionalServiceSettings.stream())
-					.<Supplier<CompletableFuture<Void>>>map(entry -> {
-						ServiceType serviceType = entry.getFirst();
-						Optional<ServiceSettings> optionalServiceSettigns = entry.getSecond();								
-						if(optionalServiceSettigns.isPresent()) {													
-							ServiceSettings serviceSettings = optionalServiceSettigns.get();
-							if(serviceSettings.equals(ensureServiceSettings)) {
-								log.debug("service settings service type {} unchanged", serviceType);														
-								return () -> f.<Void>successful(null);
-							} else {
-								log.debug("service settings service type {} changed, was: {}, ensure: {}", serviceType, serviceSettings, ensureServiceSettings);														
-								return () -> rest.putServiceSettings(workspace, serviceType, ensureServiceSettings);										
-							}
-						} else {
-							log.debug("service settings for service type {} not found", serviceType);
-							return () -> rest.putServiceSettings(workspace, serviceType, ensureServiceSettings);									
-						}
-					})
-					.collect(Collectors.toList()));
-			});
-	}
 	
 	private Procedure<Object> ensuring(ActorRef initiator) {
 		log.debug("-> ensuring");
