@@ -69,7 +69,7 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 	
 	private String categoryId;
 	
-	private String dbScheme;
+	private String databaseScheme;
 	
 	private DatabaseTableInfo databaseTableInfo;
 
@@ -153,12 +153,12 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 			title = physicalname;
 			
 			try {
-				dbScheme = databaseConfig.getString("scheme");
+				databaseScheme = databaseConfig.getString("scheme");
 			} catch(ConfigException.Missing cem) {
-				dbScheme = "sde";
+				databaseScheme = "SDE";
 			}
 			
-			log.debug("database scheme in sde gather dataset info: " + dbScheme);
+			log.debug("database scheme in sde gather dataset info: " + databaseScheme);
 			
 			itemInfo.getDocumentation().ifPresent(documentation -> {
 				try {
@@ -172,14 +172,14 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 					
 					if(attachmentTypes.contains(AttachmentType.METADATA)) {
 						attachments.add(new Attachment(
-							dbScheme + ".gdb_items_vw.documentation", 
+							databaseScheme + ".gdb_items_vw.documentation", 
 							AttachmentType.METADATA,
 							md.getContent()));
 					}
 					
 					if(attachmentTypes.contains(AttachmentType.PHYSICAL_NAME)) {
 						attachments.add(new Attachment(
-							dbScheme + ".gdb_items_vw.physicalname", 
+							databaseScheme + ".gdb_items_vw.physicalname", 
 							AttachmentType.PHYSICAL_NAME,
 							physicalname));
 					}

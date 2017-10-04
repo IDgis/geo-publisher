@@ -52,7 +52,7 @@ final class SDEUtils {
 					Objects.requireNonNull(uuid, "uuid should not be null")));
 	}
 	
-	static FetchTable getFetchTable(Filter filter, String dbScheme) {
+	static FetchTable getFetchTable(Filter filter, String databaseScheme) {
 		List<DatabaseColumnInfo> columns = new ArrayList<>();
 		columns.add(new DatabaseColumnInfo("UUID", "CHAR"));
 		columns.add(new DatabaseColumnInfo("TYPE", "CHAR"));
@@ -60,7 +60,7 @@ final class SDEUtils {
 		columns.add(new DatabaseColumnInfo("DOCUMENTATION", "CLOB"));
 		
 		return new FetchTable(
-			dbScheme + ".GDB_ITEMS_VW", 
+			databaseScheme + ".GDB_ITEMS_VW", 
 			columns, 
 			1 /* messageSize */, 
 			Objects.requireNonNull(filter, "filter should not be null"));
