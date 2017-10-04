@@ -34,7 +34,7 @@ public class SDEGetDatasetInfoHandler extends UntypedActor {
 	
 	private ActorRef transaction;
 	
-	private String dbScheme;
+	private String databaseScheme;
 
 	private Config databaseConfig;
 		
@@ -123,15 +123,15 @@ public class SDEGetDatasetInfoHandler extends UntypedActor {
 				"item-info-receiver");
 			
 			try {
-				dbScheme = databaseConfig.getString("scheme");
+				databaseScheme = databaseConfig.getString("scheme");
 			} catch(ConfigException.Missing cem) {
-				dbScheme = "sde";
+				databaseScheme = "SDE";
 			}
 			
-			log.debug("database scheme before calling get fetch table: " + dbScheme);
+			log.debug("database scheme before calling get fetch table: " + databaseScheme);
 			
 			transaction.tell(
-				SDEUtils.getFetchTable(SDEUtils.getItemsFilter(originalMsg.getIdentification()), dbScheme), 
+				SDEUtils.getFetchTable(SDEUtils.getItemsFilter(originalMsg.getIdentification()), databaseScheme), 
 				itemInfoReceiver);
 			
 			getContext().become(onReceiveDatasetInfo());

@@ -45,7 +45,7 @@ public class SDEGetVectorDatasetHandler extends UntypedActor {
 	
 	private ActorRef transaction;
 	
-	private String dbScheme;
+	private String databaseScheme;
 	
 	private String tableName;
 
@@ -223,15 +223,15 @@ public class SDEGetVectorDatasetHandler extends UntypedActor {
 				"item-records-receiver");
 			
 			try {
-				dbScheme = databaseConfig.getString("scheme");
+				databaseScheme = databaseConfig.getString("scheme");
 			} catch(ConfigException.Missing cem) {
-				dbScheme = "sde";
+				databaseScheme = "SDE";
 			}
 			
-			log.debug("database scheme before calling get fetch table: " + dbScheme);
+			log.debug("database scheme before calling get fetch table: " + databaseScheme);
 			
 			transaction.tell(
-				SDEUtils.getFetchTable(SDEUtils.getItemsFilter(originalMsg.getIdentification()), dbScheme),
+				SDEUtils.getFetchTable(SDEUtils.getItemsFilter(originalMsg.getIdentification()), databaseScheme),
 				recordsReceiver);
 			getContext().become(onReceiveItemRecords());
 		} else if(msg instanceof ReceiveTimeout) {

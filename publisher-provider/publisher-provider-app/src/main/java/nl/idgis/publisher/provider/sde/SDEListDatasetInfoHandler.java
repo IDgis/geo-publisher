@@ -42,7 +42,7 @@ public class SDEListDatasetInfoHandler extends UntypedActor {
 	
 	private ActorRef transaction;
 	
-	private String dbScheme;
+	private String databaseScheme;
 	
 	private Config databaseConfig;
 	
@@ -68,15 +68,15 @@ public class SDEListDatasetInfoHandler extends UntypedActor {
 			log.debug("transaction created");
 			
 			try {
-				dbScheme = databaseConfig.getString("scheme");
+				databaseScheme = databaseConfig.getString("scheme");
 			} catch(ConfigException.Missing cem) {
-				dbScheme = "sde";
+				databaseScheme = "SDE";
 			}
 			
-			log.debug("database scheme before calling get fetch table: " + dbScheme);
+			log.debug("database scheme before calling get fetch table: " + databaseScheme);
 			
 			transaction = ((TransactionCreated)msg).getActor();
-			transaction.tell(SDEUtils.getFetchTable(SDEUtils.getItemsFilter(), dbScheme), getSelf());
+			transaction.tell(SDEUtils.getFetchTable(SDEUtils.getItemsFilter(), databaseScheme), getSelf());
 			
 			getContext().become(onReceiveStreaming());
 		} else if(msg instanceof ReceiveTimeout) {
