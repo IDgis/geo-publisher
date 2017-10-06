@@ -343,7 +343,7 @@ public class DatasetMetadata extends AbstractMetadata {
 							.from(sourceDatasetVersionSub)
 							.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDataset.id))
 							.unique(sourceDatasetVersionSub.id.max()))
-						.and(sourceDataset.id.eq(sourceDatasetId)))
+						.and(dataset.id.eq(datasetId)))
 					.uniqueResult(dataset.identification, sourceDatasetVersion.type);
 				
 				if("RASTER".equals(datasetIdentificationType.get(sourceDatasetVersion.type)) 
