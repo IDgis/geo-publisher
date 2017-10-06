@@ -188,6 +188,7 @@ public class ServiceManager extends UntypedActor {
 					.where(jobState2.createTime.after(jobState.createTime))
 					.notExists())
 				.exists())
+			.distinct()
 			.list(dataset.identification).thenCompose(datasetIds ->
 				f.supplierSequence(
 					datasetIds.asCollection().stream()

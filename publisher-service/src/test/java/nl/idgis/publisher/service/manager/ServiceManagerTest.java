@@ -8,6 +8,7 @@ import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
+import static nl.idgis.publisher.database.QDatasetView.datasetView;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QImportJob.importJob;
 import static nl.idgis.publisher.database.QImportJobColumn.importJobColumn;
@@ -1583,13 +1584,23 @@ public class ServiceManagerTest extends AbstractServiceTest {
 				.set(genericLayer.name, "group-layer-name")
 				.executeWithKey(genericLayer.id);
 		
-		int vectorLayerId = insert(genericLayer)
-				.set(genericLayer.identification, "vector-layer")
-				.set(genericLayer.name, "vector-layer-name")
+		int firstVectorLayerId = insert(genericLayer)
+				.set(genericLayer.identification, "vector-layer-0")
+				.set(genericLayer.name, "vector-layer-name-0")
 				.executeWithKey(genericLayer.id);
 		
 		insert(leafLayer)
-			.set(leafLayer.genericLayerId, vectorLayerId)
+			.set(leafLayer.genericLayerId, firstVectorLayerId)
+			.set(leafLayer.datasetId, vectorDatasetId)
+			.execute();
+		
+		int secondVectorLayerId = insert(genericLayer)
+				.set(genericLayer.identification, "vector-layer-1")
+				.set(genericLayer.name, "vector-layer-name-1")
+				.executeWithKey(genericLayer.id);
+		
+		insert(leafLayer)
+			.set(leafLayer.genericLayerId, secondVectorLayerId)
 			.set(leafLayer.datasetId, vectorDatasetId)
 			.execute();
 		
@@ -1610,14 +1621,20 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		insert(layerStructure)
 			.set(layerStructure.parentLayerId, groupLayerId)
-			.set(layerStructure.childLayerId, vectorLayerId)
+			.set(layerStructure.childLayerId, firstVectorLayerId)
 			.set(layerStructure.layerOrder, 0)
 			.execute();
 		
 		insert(layerStructure)
 			.set(layerStructure.parentLayerId, groupLayerId)
-			.set(layerStructure.childLayerId, vectorLayerId)
+			.set(layerStructure.childLayerId, firstVectorLayerId)
 			.set(layerStructure.layerOrder, 1)
+			.execute();
+		
+		insert(layerStructure)
+			.set(layerStructure.parentLayerId, groupLayerId)
+			.set(layerStructure.childLayerId, secondVectorLayerId)
+			.set(layerStructure.layerOrder, 2)
 			.execute();
 		
 		insert(layerStructure)
@@ -1689,11 +1706,12 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		assertFalse(publishedServiceEnvironmentItr.hasNext());
 		
-		// 'vector-layer-name' should appear once in published_service_dataset, 
+		// 'vector-layer-name-0' should appear once in published_service_dataset, 
 		// despite being included twice in the service
 		assertEquals(
 			Arrays.asList(
-				"service:dataset0:vector-layer-name", 
+				"service:dataset0:vector-layer-name-0",
+				"service:dataset0:vector-layer-name-1",
 				"service:dataset1:raster-layer-name"),
 			query()
 				.from(publishedServiceDataset)
@@ -1713,6 +1731,8 @@ public class ServiceManagerTest extends AbstractServiceTest {
 							+ t.get(dataset.identification) + ":"
 							+ t.get(publishedServiceDataset.layerName))
 						.collect(Collectors.toList()));
+		
+		assertEquals(vectorDatasetId, query().from(datasetView).singleResult(datasetView.datasetId).longValue());
 		
 		assertService(
 			f.ask(serviceManager, new GetService("service"), Service.class).get(), 
