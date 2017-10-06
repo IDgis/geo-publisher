@@ -1,5 +1,6 @@
 package util;
 
+import java.util.ArrayList;
 import java.util.Optional;
 
 import javax.inject.Inject;
@@ -73,9 +74,15 @@ public class MetadataConfig {
 		
 		viewerUrlSecurePrefix = metadata.getString("viewer-url-prefix-secure");
 		
+		Integer fixedWidth = 600;
+		String bbox = metadata.getString("bbox", "180000,459000,270000,540000");
+		Integer height = getBrowseGraphicHeight(fixedWidth, bbox);
+		
 		browseGraphicWmsRequest = "?request=GetMap&service=WMS&SRS=EPSG:28992&CRS=EPSG:28992&bbox=" 
-			+ metadata.getString("bbox", "180000,459000,270000,540000")
-			+ "&width=600&height=662&format=image/png&styles=&layers=";
+			+ bbox
+			+ "&width=" + fixedWidth
+			+ "&height=" + height
+			+ "&format=image/png&styles=&layers=";
 		
 		metadataStylesheetPrefix = metadata.getString("stylesheet-url-prefix");
 		
@@ -140,6 +147,21 @@ public class MetadataConfig {
 	
 	public Optional<String> getViewerUrlSecurePrefix() {
 		return Optional.ofNullable(viewerUrlSecurePrefix);
+	}
+	
+	public Integer getBrowseGraphicHeight(Integer fixedWidth, String bbox) {
+		ArrayList<Double> bboxItems = new ArrayList<>();
+		
+		for(String item : bbox.split(",")) {
+			bboxItems.add(Double.parseDouble(item));
+		}
+		
+		Double widthBbox = bboxItems.get(2) - bboxItems.get(0);
+		Double heightBbox = bboxItems.get(3) - bboxItems.get(1);
+		Double aspectRatio = widthBbox / heightBbox;
+		Double height = fixedWidth / aspectRatio;
+		
+		return height.intValue();
 	}
 	
 	public String getBrowseGraphicWmsRequest() {
