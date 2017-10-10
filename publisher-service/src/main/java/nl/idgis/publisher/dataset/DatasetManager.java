@@ -956,6 +956,21 @@ public class DatasetManager extends UntypedActor {
 			return 
 				f.sequence(
 					Arrays.asList(
+						tx.delete(importJob)
+						.where(new SQLSubQuery().from(sourceDataset)
+							.join(sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
+							.leftJoin(dataset).on(dataset.sourceDatasetId.eq(sourceDataset.id))
+							.where(
+								sourceDatasetVersion.id.eq(importJob.sourceDatasetVersionId)
+								.and(sourceDataset.deleteTime.isNotNull())
+								.and(dataset.id.isNull())
+								.and(new SQLSubQuery().from(harvestNotification)
+										.where(harvestNotification.sourceDatasetId.eq(sourceDataset.id)
+											.and(harvestNotification.done.eq(false)))
+										.notExists()))
+							.exists())
+						.execute(),
+							
 						tx.delete(sourceDatasetVersionLog)
 						.where(new SQLSubQuery().from(sourceDataset)
 							.join(sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
