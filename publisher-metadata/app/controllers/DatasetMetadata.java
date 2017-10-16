@@ -424,7 +424,7 @@ public class DatasetMetadata extends AbstractMetadata {
 					String serviceName = serviceInfo.get("name").asText();
 					String scopedName = serviceTuples.get(i).get(publishedServiceDataset.layerName);
 					
-					if(i == serviceTupleIndex) {
+					if(config.getViewerUrlDisplay() && i == serviceTupleIndex) {
 						if(environmentConfidential) {
 							config.getViewerUrlSecurePrefix().ifPresent(viewerUrlPrefix -> {
 								try {

@@ -21,6 +21,8 @@ public class MetadataConfig {
 	
 	private final String trustedHeader;
 	
+	private final Boolean viewerUrlDisplay;
+	
 	private final Boolean downloadUrlDisplay;
 	
 	private final Boolean rasterUrlDisplay;
@@ -55,6 +57,8 @@ public class MetadataConfig {
 		zooKeeperNamespace = config.getString("zooKeeper.namespace");
 		
 		trustedHeader = metadata.getString("trusted-header");
+		
+		viewerUrlDisplay = metadata.getBoolean("viewer-url-display");
 		
 		downloadUrlDisplay = metadata.getBoolean("download-url-display");
 		
@@ -115,6 +119,10 @@ public class MetadataConfig {
 	
 	public String getTrustedHeader() {
 		return trustedHeader;
+	}
+	
+	public Boolean getViewerUrlDisplay() {
+		return viewerUrlDisplay;
 	}
 	
 	public Boolean getDownloadUrlDisplay() {
