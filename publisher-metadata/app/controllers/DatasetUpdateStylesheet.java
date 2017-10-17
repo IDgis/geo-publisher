@@ -104,7 +104,7 @@ public class DatasetUpdateStylesheet extends Controller {
 				}
 			});
 		} else {
-			return Promise.pure(unauthorized("404 Not Found: url doesn't belong to accepted domains"));
+			return Promise.pure(forbidden("403 Forbidden: url doesn't belong to accepted domains"));
 		}
 	}
 }
