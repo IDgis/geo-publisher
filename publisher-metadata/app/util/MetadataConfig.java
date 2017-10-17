@@ -45,6 +45,8 @@ public class MetadataConfig {
 	
 	private final boolean includeSourceDatasetMetadata;
 	
+	private final String acceptedDomainsUpdateStylesheet;
+	
 	@Inject
 	public MetadataConfig(Configuration config) {
 
@@ -91,6 +93,8 @@ public class MetadataConfig {
 		metadataStylesheetPrefix = metadata.getString("stylesheet-url-prefix");
 		
 		includeSourceDatasetMetadata = metadata.getBoolean("include-source-dataset-metadata", true);
+		
+		acceptedDomainsUpdateStylesheet = metadata.getString("accepted-domains-update-stylesheet");
 	}
 	
 	public String getHost() {
@@ -178,5 +182,9 @@ public class MetadataConfig {
 	
 	public boolean getIncludeSourceDatasetMetadata() {
 		return includeSourceDatasetMetadata;
+	}
+	
+	public Optional<String> getAcceptedDomainsUpdateStylesheet() {
+		return Optional.ofNullable(acceptedDomainsUpdateStylesheet);
 	}
 }
