@@ -485,9 +485,14 @@ public class MetadataDocument {
 	protected String getMetaDataIdentifierPath() {
 		return 
 				"/gmd:MD_Metadata" +
-				"/gmd:fileIdentifier" +				
+				"/gmd:fileIdentifier" +
 				"/gco:CharacterString"
 				;
+	}
+	
+	public String getMetadataStandardName() throws NotFound {
+		return isoMetadata.getString(namespaces, 
+				"/gmd:MD_Metadata/gmd:metadataStandardName/gco:CharacterString");
 	}
 	
 	public String getMetaDataIdentifier() throws Exception{
@@ -1142,7 +1147,7 @@ public class MetadataDocument {
 	}
 
 	public void addCoupledResource(String uuidref, String href) throws NotFound {
-		addOperatesOn(uuidref, href); 		
+		addOperatesOn(uuidref, href);
 	}
 	
 	public void removeStylesheet() {
