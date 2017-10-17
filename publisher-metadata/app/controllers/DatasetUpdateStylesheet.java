@@ -24,60 +24,87 @@ public class DatasetUpdateStylesheet extends Controller {
 	
 	private final WSClient ws;
 	
+	private String[] acceptedDomains;
+	
 	@Inject
 	public DatasetUpdateStylesheet(MetadataConfig config, MetadataDocumentFactory mdf, WSClient ws) {
 		this.config = config;
 		this.mdf = mdf;
 		this.ws = ws;
+		
+		config.getAcceptedDomainsUpdateStylesheet().ifPresent(domains -> {
+			this.acceptedDomains = domains.split(",");
+		});
 	}
 	
 	public Promise<Result> update(String url) {
 		
-		WSRequest request = ws.url(url).setFollowRedirects(true).setRequestTimeout(10000);
+		String protocol = url.substring(0, url.indexOf("://") + 3);
+		boolean allowedUrl = false;
 		
-		for(Entry<String, String[]> e : request().queryString().entrySet()) {
+		for(String domain : acceptedDomains) {
 			
-			int i = 0;
-			for(String s : e.getValue()) {
+			if(domain.trim().isEmpty()) {
+				// do nothing
+			} else {
+				String urlCondition = protocol + domain;
 				
-				if("url".equals(e.getKey()) && i == 0) {
-					i++;
-					continue;
+				if(url.startsWith(urlCondition)) {
+					allowedUrl = true;
+					break;
 				}
-				
-				request = request.setQueryParameter(e.getKey(), s);
-				i++;
 			}
 		}
 		
-		return request.get().map(response -> {
+		WSRequest request = ws.url(url).setFollowRedirects(true).setRequestTimeout(10000);
+		
+		for(Entry<String, String[]> entry : request().queryString().entrySet()) {
 			
-			try {
-				MetadataDocument md = mdf.parseDocument(response.getBodyAsStream());
+			int i = 0;
+			for(String value : entry.getValue()) {
 				
-				if(!"ISO 19115".equals(md.getMetadataStandardName())) {
-					return internalServerError("This is not an ISO 19115 document");
+				if("url".equals(entry.getKey()) && i == 0) {
+					i++;
+					continue;
+				} else {
+					request = request.setQueryParameter(entry.getKey(), value);
+					i++;
 				}
-				
-				response().setContentType("application/xml");
-				md.removeStylesheet();
-				
-				Optional<String> stylesheetUrl = config.getMetadataStylesheetPrefix().map(prefix -> {
-					return prefix + "datasets/extern/metadata.xsl";
-				});
-				
-				stylesheetUrl.ifPresent(s -> {
-					md.setStylesheet(s);
-				});
-				
-				return ok(md.getContent()).as("UTF-8");
-			} catch(NotParseable np) {
-				return internalServerError("This is not an XML document");
-			} catch(IllegalArgumentException iae) {
-				return internalServerError("XML document doesn't start with /gmd:MD_Metadata");
-			} catch(NotFound nf) {
-				return internalServerError("This is not an ISO 19115 document");
 			}
-		});
+		}
+		
+		if(allowedUrl) {
+			return request.get().map(response -> {
+				
+				try {
+					MetadataDocument md = mdf.parseDocument(response.getBodyAsStream());
+					
+					if(!"ISO 19115".equals(md.getMetadataStandardName())) {
+						return internalServerError("500 Internal Server Error: response is not an ISO 19115 document");
+					}
+					
+					response().setContentType("application/xml");
+					md.removeStylesheet();
+					
+					Optional<String> stylesheetUrl = config.getMetadataStylesheetPrefix().map(prefix -> {
+						return prefix + "datasets/extern/metadata.xsl";
+					});
+					
+					stylesheetUrl.ifPresent(stylesheet -> {
+						md.setStylesheet(stylesheet);
+					});
+					
+					return ok(md.getContent()).as("UTF-8");
+				} catch(NotParseable np) {
+					return internalServerError("500 Internal Server Error: response is not an XML document");
+				} catch(IllegalArgumentException iae) {
+					return internalServerError("500 Internal Server Error: response doesn't start with /gmd:MD_Metadata");
+				} catch(NotFound nf) {
+					return internalServerError("500 Internal Server Error: response is not an ISO 19115 document");
+				}
+			});
+		} else {
+			return Promise.pure(unauthorized("404 Not Found: url doesn't belong to accepted domains"));
+		}
 	}
 }
