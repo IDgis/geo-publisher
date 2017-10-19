@@ -335,7 +335,15 @@ public class DatasetMetadata extends AbstractMetadata {
 					serviceQuery.where(environment.confidential.isFalse());
 				}
 				
-				Tuple datasetIdentificationType = tx.query().from(dataset)
+				boolean sourceDatasetConfidential = tx.query().from(sourceDataset)
+						.join(sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
+						.where(sourceDatasetVersion.id.eq(
+								new SQLSubQuery().from(sourceDatasetVersion)
+									.where(sourceDatasetVersion.sourceDatasetId.eq(sourceDatasetId))
+									.unique(sourceDatasetVersion.id.max())))
+						.uniqueResult(sourceDatasetVersion.confidential);
+				
+				String datasetType = tx.query().from(dataset)
 					.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
 					.join(sourceDatasetVersion)
 						.on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
@@ -344,18 +352,30 @@ public class DatasetMetadata extends AbstractMetadata {
 							.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDataset.id))
 							.unique(sourceDatasetVersionSub.id.max()))
 						.and(dataset.id.eq(datasetId)))
-					.uniqueResult(dataset.identification, sourceDatasetVersion.type);
+					.uniqueResult(sourceDatasetVersion.type);
 				
-				if("RASTER".equals(datasetIdentificationType.get(sourceDatasetVersion.type)) 
+				if("RASTER".equals(datasetType) 
 						&& config.getRasterUrlDisplay()) {
-					config.getRasterUrlPrefix().ifPresent(rasterUrlPrefix -> {
-						try {
-							metadataDocument.addServiceLinkage(rasterUrlPrefix + 
-									datasetIdentificationType.get(dataset.identification) + ".tif", "download", null);
-						} catch(NotFound nf) {
-							throw new RuntimeException(nf);
-						}
-					});
+					
+					if(sourceDatasetConfidential) {
+						config.getDownloadUrlPrefixInternal().ifPresent(downloadUrlPrefix -> {
+							try {
+								metadataDocument.addServiceLinkage(downloadUrlPrefix
+										+ "raster/" + fileIdentifier, "download", null);
+							} catch(NotFound nf) {
+								throw new RuntimeException(nf);
+							}
+						});
+					} else {
+						config.getDownloadUrlPrefixExternal().ifPresent(downloadUrlPrefix -> {
+							try {
+								metadataDocument.addServiceLinkage(downloadUrlPrefix
+										+ "raster/" + fileIdentifier, "download", null);
+							} catch(NotFound nf) {
+								throw new RuntimeException(nf);
+							}
+						});
+					}
 				}
 				
 				List<Tuple> serviceTuples = serviceQuery.where(publishedServiceDataset.datasetId.eq(datasetId))
@@ -368,34 +388,32 @@ public class DatasetMetadata extends AbstractMetadata {
 						publishedServiceDataset.layerName);
 				
 				if(!serviceTuples.isEmpty()) {
-					boolean sourceDatasetConfidential = tx.query().from(sourceDataset)
-						.join(sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
-						.where(sourceDatasetVersion.id.eq(
-								new SQLSubQuery().from(sourceDatasetVersion)
-									.where(sourceDatasetVersion.sourceDatasetId.eq(sourceDatasetId))
-									.unique(sourceDatasetVersion.id.max())))
-						.uniqueResult(sourceDatasetVersion.confidential);
-					
-					if(sourceDatasetConfidential) {
-						config.getDownloadUrlPrefixInternal().ifPresent(downloadUrlPrefix -> {
-							if(config.getDownloadUrlDisplay()) {
-								try {
-									metadataDocument.addServiceLinkage(downloadUrlPrefix + fileIdentifier, "download", null);
-								} catch(NotFound nf) {
-									throw new RuntimeException(nf);
+					if("VECTOR".equals(datasetType)) {
+						if(sourceDatasetConfidential) {
+							config.getDownloadUrlPrefixInternal().ifPresent(downloadUrlPrefix -> {
+								if(config.getDownloadUrlDisplay()) {
+									try {
+										metadataDocument.addServiceLinkage(downloadUrlPrefix 
+												+ "vector/"
+												+ fileIdentifier, "download", null);
+									} catch(NotFound nf) {
+										throw new RuntimeException(nf);
+									}
 								}
-							}
-						});
-					} else {
-						config.getDownloadUrlPrefixExternal().ifPresent(downloadUrlPrefix -> {
-							if(config.getDownloadUrlDisplay()) {
-								try {
-									metadataDocument.addServiceLinkage(downloadUrlPrefix + fileIdentifier, "download", null);
-								} catch(NotFound nf) {
-									throw new RuntimeException(nf);
+							});
+						} else {
+							config.getDownloadUrlPrefixExternal().ifPresent(downloadUrlPrefix -> {
+								if(config.getDownloadUrlDisplay()) {
+									try {
+										metadataDocument.addServiceLinkage(downloadUrlPrefix 
+												+ "vector/"
+												+ fileIdentifier, "download", null);
+									} catch(NotFound nf) {
+										throw new RuntimeException(nf);
+									}
 								}
-							}
-						});
+							});
+						}
 					}
 				}
 				
