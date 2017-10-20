@@ -38,7 +38,7 @@
 					@if(task.active){
 						@Domain.message(task.message, nl.idgis.publisher.domain.web.MessageContext.ACTIVE)
 					}else{
-						@{new org.joda.time.LocalDateTime(task.time.getTime()).toString("dd-MM-yyyy HH:mm:ss")} : @Domain.message(task.getStatusString())
+						@{new org.joda.time.LocalDateTime(task.time.getTime(), org.joda.time.DateTimeZone.forID("CET")).toString("dd-MM-yyyy HH:mm:ss")} : @Domain.message(task.getStatusString())
 					}
 					@if(task.published() != null){
 						@if(task.published()){
