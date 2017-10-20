@@ -59,7 +59,7 @@
 							</div>
 							<div class="col-lg-2">
 								@if(task.time() != null) {
-									@{new org.joda.time.LocalDateTime(task.time().getTime()).toString("dd-MM-yyyy HH:mm:ss")}
+									@{new org.joda.time.LocalDateTime(task.time().getTime(), org.joda.time.DateTimeZone.forID("CET")).toString("dd-MM-yyyy HH:mm:ss")}
 								}else{
 									@Domain.message("web.application.log.tasks.list.now")
 								}
