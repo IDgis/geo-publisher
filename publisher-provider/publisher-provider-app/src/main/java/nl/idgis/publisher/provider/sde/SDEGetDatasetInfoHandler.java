@@ -37,12 +37,15 @@ public class SDEGetDatasetInfoHandler extends UntypedActor {
 	private String databaseScheme;
 
 	private Config databaseConfig;
+
+	private Config rasterConfig;
 		
-	public SDEGetDatasetInfoHandler(ActorRef originalSender, GetDatasetInfo originalMsg, ActorRef rasterFolder, Config databaseConfig) {
+	public SDEGetDatasetInfoHandler(ActorRef originalSender, GetDatasetInfo originalMsg, ActorRef rasterFolder, Config databaseConfig, Config rasterConfig) {
 		this.originalSender = originalSender;
 		this.originalMsg = originalMsg;
 		this.rasterFolder = rasterFolder;
 		this.databaseConfig = databaseConfig;
+		this.rasterConfig = rasterConfig;
 	}
 	
 	@Override
@@ -50,8 +53,8 @@ public class SDEGetDatasetInfoHandler extends UntypedActor {
 		getContext().setReceiveTimeout(Duration.create(30, TimeUnit.SECONDS));
 	}
 	
-	public static Props props(ActorRef originalSender, GetDatasetInfo originalMsg, ActorRef rasterFolder, Config databaseConfig) {
-		return Props.create(SDEGetDatasetInfoHandler.class, originalSender, originalMsg, rasterFolder, databaseConfig);
+	public static Props props(ActorRef originalSender, GetDatasetInfo originalMsg, ActorRef rasterFolder, Config databaseConfig, Config rasterConfig) {
+		return Props.create(SDEGetDatasetInfoHandler.class, originalSender, originalMsg, rasterFolder, databaseConfig, rasterConfig);
 	}
 	
 	private Procedure<Object> onReceiveCommitAck() {
@@ -115,7 +118,8 @@ public class SDEGetDatasetInfoHandler extends UntypedActor {
 						transaction, 
 						rasterFolder, 
 						originalMsg.getAttachmentTypes(),
-						databaseConfig),
+						databaseConfig,
+						rasterConfig),
 					"dataset-info-gatherer");
 			
 			ActorRef itemInfoReceiver = getContext().actorOf(

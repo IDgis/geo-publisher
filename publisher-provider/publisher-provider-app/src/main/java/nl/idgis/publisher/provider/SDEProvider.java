@@ -38,14 +38,17 @@ public class SDEProvider extends UntypedActor {
 	
 	private Config databaseConfig;
 	
-	public SDEProvider(Props databaseProps, Props rasterFolderProps, Config databaseConfig) {
+	private Config rasterConfig;
+	
+	public SDEProvider(Props databaseProps, Props rasterFolderProps, Config databaseConfig, Config rasterConfig) {
 		this.databaseProps = databaseProps;
 		this.rasterFolderProps = rasterFolderProps;
 		this.databaseConfig = databaseConfig;
+		this.rasterConfig = rasterConfig;
 	}
 	
-	public static Props props(Props databaseProps, Props rasterFolderProps, Config databaseConfig) {
-		return Props.create(SDEProvider.class, databaseProps, rasterFolderProps, databaseConfig);
+	public static Props props(Props databaseProps, Props rasterFolderProps, Config databaseConfig, Config rasterConfig) {
+		return Props.create(SDEProvider.class, databaseProps, rasterFolderProps, databaseConfig, rasterConfig);
 	}
 	
 	@Override
@@ -97,7 +100,7 @@ public class SDEProvider extends UntypedActor {
 		log.debug("get dataset info");
 		
 		ActorRef handler = getContext().actorOf(
-			SDEGetDatasetInfoHandler.props(getSender(), msg, rasterFolder, databaseConfig),
+			SDEGetDatasetInfoHandler.props(getSender(), msg, rasterFolder, databaseConfig, rasterConfig),
 			nameGenerator.getName(SDEGetDatasetInfoHandler.class));
 			
 		database.tell(new StartTransaction(), handler);
@@ -107,7 +110,7 @@ public class SDEProvider extends UntypedActor {
 		log.debug("list dataset info");
 		
 		ActorRef handler = getContext().actorOf(
-			SDEListDatasetInfoHandler.props(getSender(), msg, rasterFolder, databaseConfig),
+			SDEListDatasetInfoHandler.props(getSender(), msg, rasterFolder, databaseConfig, rasterConfig),
 			nameGenerator.getName(SDEListDatasetInfoHandler.class));
 		
 		database.tell(new StartTransaction(), handler);
