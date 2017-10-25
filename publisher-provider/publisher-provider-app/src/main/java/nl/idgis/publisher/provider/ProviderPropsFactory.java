@@ -26,13 +26,14 @@ public class ProviderPropsFactory {
 	
 	private ProviderProps sde(String name, Config providerConfig) {
 		Config databaseConfig = providerConfig.getConfig("database");
+		Config rasterConfig = providerConfig.getConfig("raster");
 		
 		Props database = Database.props(databaseConfig, name);
 		Props rasterFolder = Folder.props(providerConfig.getString("raster.folder"));
 		
 		log.info("creating sde provider: {}", name);
 		
-		return new ProviderProps(name, SDEProvider.props(database, rasterFolder, databaseConfig));
+		return new ProviderProps(name, SDEProvider.props(database, rasterFolder, databaseConfig, rasterConfig));
 	}
 
 	private ProviderProps vector(String name, Config providerConfig) {

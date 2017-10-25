@@ -1,14 +1,10 @@
 package nl.idgis.publisher.folder;
 
-import java.io.IOException;
 import java.nio.channels.AsynchronousFileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.function.Consumer;
 
 import akka.actor.ActorRef;
@@ -16,14 +12,12 @@ import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import nl.idgis.publisher.folder.messages.FetchEntireFile;
 import nl.idgis.publisher.folder.messages.FetchFile;
 import nl.idgis.publisher.folder.messages.FileNotExists;
 import nl.idgis.publisher.folder.messages.FileReceiver;
 import nl.idgis.publisher.folder.messages.FileSize;
 import nl.idgis.publisher.folder.messages.GetFileReceiver;
 import nl.idgis.publisher.folder.messages.GetFileSize;
-import nl.idgis.publisher.folder.messages.StopDatasetImport;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
@@ -48,8 +42,6 @@ public class Folder extends UntypedActor {
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof FetchFile) {
 			handleFetchFile((FetchFile)msg);
-		} else if(msg instanceof FetchEntireFile) {
-			handleFetchEntireFile((FetchEntireFile)msg);
 		} else if(msg instanceof GetFileSize) {
 			handleGetFileSize((GetFileSize)msg);
 		} else if(msg instanceof GetFileReceiver) {
@@ -148,39 +140,6 @@ public class Folder extends UntypedActor {
 					nameGenerator.getName(ChannelCursor.class));
 				cursor.tell(new NextItem(), sender);
 			} catch(Exception e) {
-				sender.tell(new Failure(e), getSelf());
-			}
-		});
-	}
-	
-	private void handleFetchEntireFile(FetchEntireFile msg) throws Exception {
-		Path file = msg.getFile();
-		log.debug("fetching entire file: {}", file);
-		
-		ActorRef sender = getSender();
-		
-		resolveFile(msg, file, resolvedFile -> {
-			try {
-				byte[] fileContent = Files.readAllBytes(resolvedFile);
-				
-				StringBuilder sb = new StringBuilder(new String(fileContent));
-				String dateString = sb.substring(0, 10);
-				
-				LocalDate dateFile = LocalDate.parse(dateString, DateTimeFormatter.ISO_DATE);
-				LocalDate dateMetadata = msg.getMetadataRevisionDate()
-						.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-				
-				if(dateFile.isEqual(dateMetadata)) {
-					Path fileRaster = Paths.get(msg.getPhysicalName() + ".tif");
-					log.debug("fetching fileRaster: {}", fileRaster);
-					
-					getSelf().tell(new FetchFile(fileRaster), getSender());
-				} else {
-					getSender().tell(new StopDatasetImport(), getSelf());
-				}
-			} catch (IOException e) {
-				log.debug("handle fetch entire file failed, content not found for {}", file.getFileName());
-				
 				sender.tell(new Failure(e), getSelf());
 			}
 		});

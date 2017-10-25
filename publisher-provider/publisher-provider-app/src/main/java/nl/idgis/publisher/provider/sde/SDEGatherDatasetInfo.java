@@ -1,7 +1,12 @@
 package nl.idgis.publisher.provider.sde;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -12,6 +17,11 @@ import java.util.Set;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 
+import akka.actor.ActorRef;
+import akka.actor.Props;
+import akka.actor.UntypedActor;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.service.DatabaseLog;
@@ -38,12 +48,6 @@ import nl.idgis.publisher.provider.protocol.TableInfo;
 import nl.idgis.publisher.provider.protocol.UnavailableDatasetInfo;
 import nl.idgis.publisher.provider.protocol.VectorDatasetInfo;
 import nl.idgis.publisher.xml.exceptions.NotFound;
-
-import akka.actor.ActorRef;
-import akka.actor.Props;
-import akka.actor.UntypedActor;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
 
 public class SDEGatherDatasetInfo extends UntypedActor {
 	
@@ -82,17 +86,20 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 	private Map<String, String> attributeAliases;
 
 	private Config databaseConfig;
+
+	private Config rasterConfig;
 	
-	public SDEGatherDatasetInfo(ActorRef target, ActorRef transaction, ActorRef rasterFolder, Set<AttachmentType> attachmentTypes, Config databaseConfig) {
+	public SDEGatherDatasetInfo(ActorRef target, ActorRef transaction, ActorRef rasterFolder, Set<AttachmentType> attachmentTypes, Config databaseConfig, Config rasterConfig) {
 		this.target = target;
 		this.transaction = transaction;
 		this.rasterFolder = rasterFolder;
 		this.attachmentTypes = attachmentTypes;
 		this.databaseConfig = databaseConfig;
+		this.rasterConfig = rasterConfig;
 	}
 	
-	public static Props props(ActorRef target, ActorRef transaction, ActorRef rasterFolder, Set<AttachmentType> attachmentTypes, Config databaseConfig) {
-		return Props.create(SDEGatherDatasetInfo.class, target, transaction, rasterFolder, attachmentTypes, databaseConfig);
+	public static Props props(ActorRef target, ActorRef transaction, ActorRef rasterFolder, Set<AttachmentType> attachmentTypes, Config databaseConfig, Config rasterConfig) {
+		return Props.create(SDEGatherDatasetInfo.class, target, transaction, rasterFolder, attachmentTypes, databaseConfig, rasterConfig);
 	}
 	
 	@Override
@@ -125,6 +132,31 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 			getContext().stop(getSelf());
 		} else if(msg instanceof FileSize) {
 			log.debug("file size received: {}", msg);
+			
+			try {
+				String rasterPath = rasterConfig.getString("folder");
+				
+				Path root = Paths.get(rasterPath);
+				Path dateFile = root.resolve(Paths.get(physicalname + "_date.txt"));
+				
+				byte[] dateFileContent = Files.readAllBytes(dateFile);
+				
+				StringBuilder sb = new StringBuilder(new String(dateFileContent));
+				String dateString = sb.substring(0, 10);
+				
+				SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+				revisionDate = dateFormat.parse(dateString);
+			} catch(ConfigException ce) {
+				log.debug("no or wrong raster folder in config");
+			} catch(InvalidPathException ipe) {
+				log.debug("something went wrong in getting path of sde raster date file");
+			} catch(IOException ioe) {
+				log.debug("couldn't read sde raster date file");
+			} catch(ParseException pe) {
+				log.debug("couldn't parse sde raster date to date object");
+			} catch(Exception e) {
+				log.debug("setting of sde raster date went wrong because of unknown reason");
+			}
 			
 			RasterDatasetInfo rasterDatasetInfo = new RasterDatasetInfo(
 					identification, 

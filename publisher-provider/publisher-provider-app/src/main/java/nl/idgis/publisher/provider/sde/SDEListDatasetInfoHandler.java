@@ -46,15 +46,18 @@ public class SDEListDatasetInfoHandler extends UntypedActor {
 	
 	private Config databaseConfig;
 	
-	public SDEListDatasetInfoHandler(ActorRef originalSender, ListDatasetInfo originalMsg, ActorRef rasterFolder, Config databaseConfig) {
+	private Config rasterConfig;
+	
+	public SDEListDatasetInfoHandler(ActorRef originalSender, ListDatasetInfo originalMsg, ActorRef rasterFolder, Config databaseConfig, Config rasterConfig) {
 		this.originalSender = originalSender;
 		this.originalMsg = originalMsg;
 		this.rasterFolder = rasterFolder;
 		this.databaseConfig = databaseConfig;
+		this.rasterConfig = rasterConfig;
 	}
 	
-	public static Props props(ActorRef originalSender, ListDatasetInfo originalMsg, ActorRef rasterFolder, Config databaseConfig) {
-		return Props.create(SDEListDatasetInfoHandler.class, originalSender, originalMsg, rasterFolder, databaseConfig);
+	public static Props props(ActorRef originalSender, ListDatasetInfo originalMsg, ActorRef rasterFolder, Config databaseConfig, Config rasterConfig) {
+		return Props.create(SDEListDatasetInfoHandler.class, originalSender, originalMsg, rasterFolder, databaseConfig, rasterConfig);
 	}
 	
 	@Override
@@ -141,7 +144,8 @@ public class SDEListDatasetInfoHandler extends UntypedActor {
 									transaction, 
 									rasterFolder, 
 									originalMsg.getAttachmentTypes(),
-									databaseConfig),
+									databaseConfig,
+									rasterConfig),
 								nameGenerator.getName(SDEGatherDatasetInfo.class));
 						
 						datasetInfoGatherer.tell(itemInfo, getSelf());
