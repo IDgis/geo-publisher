@@ -2,7 +2,6 @@ package nl.idgis.publisher.provider.sde;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 import com.typesafe.config.Config;
@@ -17,10 +16,7 @@ import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
 import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.TransactionCreated;
-import nl.idgis.publisher.folder.messages.FetchEntireFile;
-import nl.idgis.publisher.folder.messages.StopDatasetImport;
-import nl.idgis.publisher.metadata.MetadataDocument;
-import nl.idgis.publisher.metadata.MetadataDocumentFactory;
+import nl.idgis.publisher.folder.messages.FetchFile;
 import nl.idgis.publisher.provider.protocol.DatasetNotAvailable;
 import nl.idgis.publisher.provider.protocol.GetRasterDataset;
 import nl.idgis.publisher.utils.FutureUtils;
@@ -87,39 +83,20 @@ public class SDEGetRasterDatasetHandler extends UntypedActor {
 					SDEItemInfo itemInfo = (SDEItemInfo)msg;
 					SDEItemInfoType type = itemInfo.getType();
 					if(SDEItemInfoType.RASTER_DATASET == type) {
-						itemInfo.getDocumentation().ifPresent(documentation -> {
-							
-							try {
-								MetadataDocumentFactory mdf = new MetadataDocumentFactory();
-								MetadataDocument md = mdf.parseDocument(documentation.getBytes("utf-8"));
-								
-								Path fileDate = Paths.get(itemInfo.getPhysicalname() + "_date.txt");
-								log.debug("fetching fileDate: {}", fileDate);
-								Date revisionDate = md.getDatasetRevisionDate();
-								
-								rasterFolder.tell(new FetchEntireFile(revisionDate, fileDate, 
-										itemInfo.getPhysicalname()), originalSender);
-								
-								getContext().stop(getSelf());
-							} catch (Exception e) {
-								log.error(e, "couldn't process documentation content");
-								
-								getContext().stop(getSelf());
-							}
-						});
+						Path file = Paths.get(itemInfo.getPhysicalname() + ".tif");
+						
+						log.debug("fetching file: {}", file);
+						rasterFolder.tell(new FetchFile(file), originalSender);
+						getContext().stop(getSelf());
 					} else {
 						log.error("wrong item type: {}", type);
 						unavailable();
 					}
-				} else if(msg instanceof StopDatasetImport) {
-					log.debug("stop requested");
-					unavailable();
 				} else if(msg instanceof ReceiveTimeout) {
 					log.debug("timeout received");
 					unavailable();
 				}
 			}
-			
 		};
 	}
 
@@ -143,9 +120,6 @@ public class SDEGetRasterDatasetHandler extends UntypedActor {
 				SDEUtils.getFetchTable(SDEUtils.getItemsFilter(originalMsg.getIdentification()), databaseScheme),
 				recordsReceiver);
 			getContext().become(onReceiveItemRecords());
-		} else if(msg instanceof StopDatasetImport) {
-			log.debug("stop requested");
-			unavailable();
 		} else if(msg instanceof ReceiveTimeout) {
 			log.error("timeout received");
 			unavailable();
