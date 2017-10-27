@@ -1,9 +1,13 @@
 package controllers;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Map.Entry;
 import java.util.Optional;
 
 import javax.inject.Inject;
+
+import org.apache.commons.lang3.StringUtils;
 
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
@@ -39,7 +43,27 @@ public class DatasetUpdateStylesheet extends Controller {
 	
 	public Promise<Result> update(String url) {
 		
-		String protocol = url.substring(0, url.indexOf("://") + 3);
+		if(!url.startsWith("http://") && !url.startsWith("https://")) {
+			return Promise.pure(internalServerError("500 Internal Server Error: url must start with either http:// or https://"));
+		}
+		
+		String mainDomainUrl = url; // default
+		
+		try {
+			URL urlObject = new URL(url);
+			String host = urlObject.getHost();
+			int count = StringUtils.countMatches(host, ".");
+			String[] urlParts = host.split("\\.");
+			
+			if(count != 0 && urlParts.length != 1) {
+				mainDomainUrl = urlParts[count-1] + "." + urlParts[count];
+			} else {
+				// do nothing
+			}
+		} catch (MalformedURLException e) {
+			return Promise.pure(internalServerError("500 Internal Server Error: url is not correct"));
+		}
+		
 		boolean allowedUrl = false;
 		
 		for(String domain : acceptedDomains) {
@@ -47,33 +71,31 @@ public class DatasetUpdateStylesheet extends Controller {
 			if(domain.trim().isEmpty()) {
 				// do nothing
 			} else {
-				String urlCondition = protocol + domain;
-				
-				if(url.startsWith(urlCondition)) {
+				if(mainDomainUrl.startsWith(domain.trim())) {
 					allowedUrl = true;
 					break;
 				}
 			}
 		}
 		
-		WSRequest request = ws.url(url).setFollowRedirects(true).setRequestTimeout(10000);
-		
-		for(Entry<String, String[]> entry : request().queryString().entrySet()) {
+		if(allowedUrl) {
+			WSRequest request = ws.url(url).setFollowRedirects(true).setRequestTimeout(10000);
 			
-			int i = 0;
-			for(String value : entry.getValue()) {
+			for(Entry<String, String[]> entry : request().queryString().entrySet()) {
 				
-				if("url".equals(entry.getKey()) && i == 0) {
-					i++;
-					continue;
-				} else {
-					request = request.setQueryParameter(entry.getKey(), value);
-					i++;
+				int i = 0;
+				for(String value : entry.getValue()) {
+					
+					if("url".equals(entry.getKey()) && i == 0) {
+						i++;
+						continue;
+					} else {
+						request = request.setQueryParameter(entry.getKey(), value);
+						i++;
+					}
 				}
 			}
-		}
-		
-		if(allowedUrl) {
+			
 			return request.get().map(response -> {
 				
 				try {
