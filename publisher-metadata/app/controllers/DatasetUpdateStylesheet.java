@@ -79,7 +79,9 @@ public class DatasetUpdateStylesheet extends Controller {
 		}
 		
 		if(allowedUrl) {
-			WSRequest request = ws.url(url).setFollowRedirects(true).setRequestTimeout(10000);
+			String encodedUrl = url.replaceAll(" ", "%20");
+			
+			WSRequest request = ws.url(encodedUrl).setFollowRedirects(true).setRequestTimeout(10000);
 			
 			for(Entry<String, String[]> entry : request().queryString().entrySet()) {
 				
