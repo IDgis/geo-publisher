@@ -38,7 +38,7 @@ ext {
 	guavaVersion = '17.0'
 	h2Version = '1.4.180'
 	jodatimeVersion = '2.3'
-	geoserverVersion = '2.6.1-gpo-4'
+	geoserverVersion = '2.12.0'
 	commonsIOVersion = '2.4'
 	deegreeVersion = '3.4-RC1'
 	logbackVersion= '1.1.2'
@@ -73,7 +73,7 @@ subprojects {
 	version = rootProject.version
 
 	repositories {	
-		mavenCentral artifactUrls: ['http://maven.geotoolkit.org/']
+		mavenCentral artifactUrls: ['http://maven.geotoolkit.org/', 'https://repo.boundlessgeo.com/release/']
 		maven {
 			name "idgis-public"
 			url "http://nexus.idgis.eu/content/groups/public/"
