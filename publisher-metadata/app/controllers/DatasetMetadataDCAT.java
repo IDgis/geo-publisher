@@ -49,7 +49,6 @@ public class DatasetMetadataDCAT extends Controller{
 	private final QueryDSL q;
 	private final DatasetQueryBuilder dqb;
 
-	private final static String licentie = "CC-BY-4.0";
 	private final Map<String, String[]> distributionsTypes;
 
 
@@ -172,10 +171,10 @@ public class DatasetMetadataDCAT extends Controller{
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 
 		resultDataset.put("@type", "dcat:Dataset");
-		resultDataset.put("license", licentie);
+		
 		resultDataset.put("landingspage", baseMetadataUrl+"dataset/"+metadataIdent+".xml");
 		resultDataset.put("accessLevel", ds.get(sourceDatasetVersion.confidential) ? "confidential" : "public");
-
+		
 
 		for (Map.Entry<String, String[]> entry : distributionsTypes.entrySet()) {
 			HashMap<String, String> distribution = new HashMap<>();
