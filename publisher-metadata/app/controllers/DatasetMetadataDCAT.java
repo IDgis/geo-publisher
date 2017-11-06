@@ -218,23 +218,23 @@ public class DatasetMetadataDCAT extends Controller{
 			}
 
 
-			// Keyword
-			List<String> keywords = new ArrayList<>();
-			keywords.addAll(metadataDocument.getTopicCategories());
-			resultDataset.put("keyword", keywords);
-
 			// Theme
 			List<String> themes = new ArrayList<>();
+			themes.addAll(metadataDocument.getTopicCategories());
+			resultDataset.put("themes", themes);
+
+			// Keyword
+			List<String> keywords = new ArrayList<>();
 			try {
 				for (MetadataDocument.Keywords k : metadataDocument.getDatasetKeywords()) {
 					for (String ks : k.getKeywords()) {
-						themes.add(ks);
+						keywords.add(ks);
 					}
 				}
 			} catch (NotFound nf) {
 				
 			}
-			resultDataset.put("theme", themes);
+			resultDataset.put("keyword", keywords);
 
 			// contactPoint
 			// point of contact is in the contact node
