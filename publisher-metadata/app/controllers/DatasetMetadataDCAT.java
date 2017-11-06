@@ -233,8 +233,27 @@ public class DatasetMetadataDCAT extends Controller{
 				resultDataset.put("rights", null);
 			}
 			
+			try {
+				/*
+				 * There could be several constraints.
+				 * Pick the first one not containing "geen beperkingen"
+				 */
+				List<String> otherConstraints = new ArrayList<>();
+				otherConstraints.addAll(metadataDocument.getOtherConstraints());
+				String constraint = null;
+				for (String c : otherConstraints) {
+					if ("geen beperkingen" != c) {
+						constraint = c;
+						break;
+					} else {
+						continue;
+					}
+				}
+				resultDataset.put("license", constraint);
+			} catch (NotFound nf) {
+				resultDataset.put("license", null);
+			}
 			
-
 			// Theme
 			List<String> themes = new ArrayList<>();
 			themes.addAll(metadataDocument.getTopicCategories());
