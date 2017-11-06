@@ -1365,4 +1365,37 @@ public class MetadataDocument {
 		
 		return west+","+south+","+east+","+north;
 	}
+	
+	public String getDatasetTemporalExtentPath() {
+		return "/gmd:MD_Metadata"
+				+ "/gmd:identificationInfo"
+				+ "/gmd:MD_DataIdentification"
+				+ "/gmd:extent"
+				+ "/gmd:EX_Extent"
+				+ "/gmd:temporalElement"
+				+ "/gmd:EX_TemporalExtent"
+				+ "/gmd:extent"
+				+ "/gmd:gml:TimePeriod[@gml:id=tp1]"
+				+ "/gmd:extent"
+				;
+	}
+	
+	public String getDatasetTemporalExtentBegin( ) {
+		String path = getDatasetTemporalExtentPath()
+				+ "/gmd:begin"
+				+ "/gmd:TimeInstant[@gml:id=ti1]"
+				+ "/gmd:timePosition";
+				
+		return isoMetadata.getString(namespaces, path);
+	}
+	
+	public String getDatasetTemporalExtentEnd( ) {
+		String path = getDatasetTemporalExtentPath()
+				+ "/gmd:end"
+				+ "/gmd:TimeInstant[@gml:id=ti2]"
+				+ "/gmd:timePosition";
+				
+		return isoMetadata.getString(namespaces, path);
+	}
+	
 }

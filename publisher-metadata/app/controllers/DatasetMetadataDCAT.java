@@ -234,6 +234,12 @@ public class DatasetMetadataDCAT extends Controller{
 			}
 			
 			try {
+				resultDataset.put("spatial", metadataDocument.getDatasetTemporalExtentPath());
+			} catch (NotFound nf) {
+				resultDataset.put("spatial", null);
+			}
+			
+			try {
 				/*
 				 * There could be several constraints.
 				 * Pick the first one not containing "geen beperkingen"
