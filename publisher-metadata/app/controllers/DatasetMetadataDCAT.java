@@ -227,6 +227,13 @@ public class DatasetMetadataDCAT extends Controller{
 				resultDataset.put("identifier", null);
 			}
 
+			try {
+				resultDataset.put("rights", metadataDocument.getUseLimitations());
+			} catch (NotFound nf) {
+				resultDataset.put("rights", null);
+			}
+			
+			
 
 			// Theme
 			List<String> themes = new ArrayList<>();
