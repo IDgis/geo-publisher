@@ -234,9 +234,13 @@ public class DatasetMetadataDCAT extends Controller{
 			
 			try {
 				resultDataset.put("spatial", metadataDocument.getDatasetTemporalExtentPath());
-			} catch (NotFound nf) {
-				resultDataset.put("spatial", null);
+			}// catch (NotFound nf) {
+			//	resultDataset.put("spatial", null);
+			//}
+			finally {
+				
 			}
+			
 			
 			try {
 				/*
@@ -261,9 +265,13 @@ public class DatasetMetadataDCAT extends Controller{
 			
 			// Keyword
 			List<String> keywords = new ArrayList<>();
-			keywords.addAll(metadataDocument.getTopicCategories());
-			resultDataset.put("keyword", keywords);
-
+			try {
+				keywords.addAll(metadataDocument.getTopicCategories());
+				resultDataset.put("keyword", keywords);
+			} catch (NotFound nf) {
+				resultDataset.put("keyword", null);
+			}
+			
 			// Theme
 			List<String> themes = new ArrayList<>();
 			try {
@@ -272,10 +280,11 @@ public class DatasetMetadataDCAT extends Controller{
 						themes.add(ks);
 					}
 				}
+				resultDataset.put("theme", themes);
 			} catch (NotFound nf) {
-				
+				resultDataset.put("theme", null);
 			}
-			resultDataset.put("theme", themes);
+			
 
 			// contactPoint
 			// point of contact is in the contact node

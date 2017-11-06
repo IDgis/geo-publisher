@@ -1366,7 +1366,7 @@ public class MetadataDocument {
 		return west+","+south+","+east+","+north;
 	}
 	
-	public String getDatasetTemporalExtentPath() {
+	public String getDatasetTemporalExtentPath()  {
 		return "/gmd:MD_Metadata"
 				+ "/gmd:identificationInfo"
 				+ "/gmd:MD_DataIdentification"
@@ -1380,22 +1380,22 @@ public class MetadataDocument {
 				;
 	}
 	
-	public String getDatasetTemporalExtentBegin( ) {
+	public String getDatasetTemporalExtentBegin() throws NotFound {
 		String path = getDatasetTemporalExtentPath()
 				+ "/gmd:begin"
 				+ "/gmd:TimeInstant[@gml:id=ti1]"
 				+ "/gmd:timePosition";
 				
-		return isoMetadata.getString(namespaces, path);
+		return xpath().string(path).get();
 	}
 	
-	public String getDatasetTemporalExtentEnd( ) {
+	public String getDatasetTemporalExtentEnd() throws NotFound {
 		String path = getDatasetTemporalExtentPath()
 				+ "/gmd:end"
 				+ "/gmd:TimeInstant[@gml:id=ti2]"
 				+ "/gmd:timePosition";
 				
-		return isoMetadata.getString(namespaces, path);
+		return xpath().string(path).get();
 	}
 	
 }
