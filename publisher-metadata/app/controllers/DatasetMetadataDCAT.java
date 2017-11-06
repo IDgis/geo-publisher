@@ -50,7 +50,7 @@ public class DatasetMetadataDCAT extends Controller{
 	private final DatasetQueryBuilder dqb;
 
 	private final Map<String, String[]> distributionsTypes;
-
+	private final String language = "dut";
 
 	@Inject
 	public DatasetMetadataDCAT(MetadataConfig mdc, QueryDSL q, DatasetQueryBuilder dqb, MetadataDocumentFactory mdf) {
@@ -174,7 +174,7 @@ public class DatasetMetadataDCAT extends Controller{
 		
 		resultDataset.put("landingspage", baseMetadataUrl+"dataset/"+metadataIdent+".xml");
 		resultDataset.put("accessLevel", ds.get(sourceDatasetVersion.confidential) ? "confidential" : "public");
-		
+		resultDataset.put("language", language);
 
 		for (Map.Entry<String, String[]> entry : distributionsTypes.entrySet()) {
 			HashMap<String, String> distribution = new HashMap<>();
