@@ -233,30 +233,35 @@ public class DatasetMetadataDCAT extends Controller{
 			}
 			
 			try {
-				resultDataset.put("spatial", metadataDocument.getDatasetTemporalExtentPath());
-			}// catch (NotFound nf) {
-			//	resultDataset.put("spatial", null);
-			//}
-			finally {
+				String begin = metadataDocument.getDatasetTemporalExtentBegin();
+				String end = metadataDocument.getDatasetTemporalExtentEnd();
 				
+				if (!begin.equals("") && !end.equals("")) {
+					resultDataset.put("temporal", begin + "/" + end);
+				} else {
+					resultDataset.put("temporal", null);
+				}
+			} catch (NotFound nf) {
+				resultDataset.put("temporal", null);
 			}
-			
 			
 			try {
 				/*
 				 * There could be several constraints.
-				 * Pick the first one not containing "geen beperkingen"
+				 * Pick the first one not containing "geen beperkingen" or "geen beperking"
 				 */
 				List<String> otherConstraints = new ArrayList<>();
 				otherConstraints.addAll(metadataDocument.getOtherConstraints());
 				String constraint = null;
+				
 				for (String c : otherConstraints) {
-					if ("geen beperkingen" != c) {
+					if ("geen beperkingen".equals(c.toLowerCase().trim()) || "geen beperking".equals(c.toLowerCase().trim())) {
+						continue;
+					} else {
 						constraint = c;
 						break;
-					} else {
-						continue;
 					}
+					
 				}
 				resultDataset.put("license", constraint);
 			} catch (NotFound nf) {
@@ -285,7 +290,6 @@ public class DatasetMetadataDCAT extends Controller{
 				resultDataset.put("theme", null);
 			}
 			
-
 			// contactPoint
 			// point of contact is in the contact node
 			Map<String, String> contactPoint = new HashMap<>();
@@ -299,7 +303,6 @@ public class DatasetMetadataDCAT extends Controller{
 			}
 
 			resultDataset.put("contactPoint", contactPoint);
-
 
 			try {
 				resultDataset.put("spatial", metadataDocument.getDatasetSpatialExtent());

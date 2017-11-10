@@ -58,6 +58,7 @@ public class MetadataDocument {
 		namespaces.put("gco", "http://www.isotc211.org/2005/gco");
 		namespaces.put("srv", "http://www.isotc211.org/2005/srv");
 		namespaces.put("xlink", "http://www.w3.org/1999/xlink");
+		namespaces.put("gml", "http://www.opengis.net/gml");
 		
 		String rootNode = "/gmd:MD_Metadata";
 		if(xmlDocument.xpath(Optional.of(namespaces)).node(rootNode).isPresent()) {
@@ -1375,27 +1376,24 @@ public class MetadataDocument {
 				+ "/gmd:temporalElement"
 				+ "/gmd:EX_TemporalExtent"
 				+ "/gmd:extent"
-				+ "/gmd:gml:TimePeriod[@gml:id=tp1]"
-				+ "/gmd:extent"
+				+ "/gml:TimePeriod[1]"
 				;
 	}
 	
 	public String getDatasetTemporalExtentBegin() throws NotFound {
 		String path = getDatasetTemporalExtentPath()
-				+ "/gmd:begin"
-				+ "/gmd:TimeInstant[@gml:id=ti1]"
-				+ "/gmd:timePosition";
-				
-		return xpath().string(path).get();
+				+ "/gml:begin"
+				+ "/gml:TimeInstant"
+				+ "/gml:timePosition";
+		return xpath().string(path).orElse("");
 	}
 	
 	public String getDatasetTemporalExtentEnd() throws NotFound {
 		String path = getDatasetTemporalExtentPath()
-				+ "/gmd:end"
-				+ "/gmd:TimeInstant[@gml:id=ti2]"
-				+ "/gmd:timePosition";
-				
-		return xpath().string(path).get();
+				+ "/gml:end"
+				+ "/gml:TimeInstant"
+				+ "/gml:timePosition";
+		return xpath().string(path).orElse("");
 	}
 	
 }
