@@ -49,9 +49,8 @@ public class DatasetMetadataDCAT extends Controller{
 	private final QueryDSL q;
 	private final DatasetQueryBuilder dqb;
 
-	private final static String licentie = "CC-BY-4.0";
 	private final Map<String, String[]> distributionsTypes;
-
+	private final String language = "dut";
 
 	@Inject
 	public DatasetMetadataDCAT(MetadataConfig mdc, QueryDSL q, DatasetQueryBuilder dqb, MetadataDocumentFactory mdf) {
@@ -63,13 +62,23 @@ public class DatasetMetadataDCAT extends Controller{
 		// Distributions
 		// some info over the distributions formats
 		Map<String, String[]> distributionsTypes = new HashMap<>(); 
-		distributionsTypes.put("GML2", new String[] {"gml2", "text/xml; subtype=gml/2.1.2"});
-		distributionsTypes.put("GML3", new String[] {"gml3", "application/gml+xml; version=3.2"});
-		distributionsTypes.put("KML", new String[] {"kml", "application/vnd.google-earth.kml+xml"});
-		distributionsTypes.put("CSV", new String[] {"csv", "text/csv"});
+		
+		/* Create a map with name, outputFormat and mime type
+		 * For GML it should be "Application/gml+xml" with a version indication.
+		 * See: http://portal.opengeospatial.org/files/?artifact_id=37743
+		 * http://docs.geoserver.org/latest/en/user/services/wfs/webadmin.html
+		 * http://docs.geoserver.org/latest/en/user/services/wfs/outputformats.html
+		 */
+		
+		distributionsTypes.put("GML2", new String[] {"GML2", "text/xml; subtype=gml/2.1.2"}); // Advertised in getCapabilities 
+		// distributionsTypes.put("GML2", new String[] {"GML2", "application/gml+xml; version=2.1"});
+		distributionsTypes.put("GML3", new String[] {"GML32", "application/gml+xml; version=3.2"}); // GML3 returns gml version 3.1.1
 		distributionsTypes.put("SHAPE-ZIP", new String[] {"shape-zip", "application/zip"});
 		distributionsTypes.put("GeoJSON", new String[] {"application/json", "application/vnd.geo+json"});
-
+		distributionsTypes.put("CSV", new String[] {"csv", "text/csv"});
+		
+		distributionsTypes.put("KML", new String[] {"kml", "application/vnd.google-earth.kml+xml"});
+		
 		this.distributionsTypes = Collections.unmodifiableMap(distributionsTypes);
 	}
 
@@ -162,10 +171,10 @@ public class DatasetMetadataDCAT extends Controller{
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 
 		resultDataset.put("@type", "dcat:Dataset");
-		resultDataset.put("license", licentie);
+		
 		resultDataset.put("landingspage", baseMetadataUrl+"dataset/"+metadataIdent+".xml");
 		resultDataset.put("accessLevel", ds.get(sourceDatasetVersion.confidential) ? "confidential" : "public");
-
+		resultDataset.put("language", language);
 
 		for (Map.Entry<String, String[]> entry : distributionsTypes.entrySet()) {
 			HashMap<String, String> distribution = new HashMap<>();
@@ -217,12 +226,57 @@ public class DatasetMetadataDCAT extends Controller{
 				resultDataset.put("identifier", null);
 			}
 
-
+			try {
+				resultDataset.put("rights", metadataDocument.getUseLimitations());
+			} catch (NotFound nf) {
+				resultDataset.put("rights", null);
+			}
+			
+			try {
+				String begin = metadataDocument.getDatasetTemporalExtentBegin();
+				String end = metadataDocument.getDatasetTemporalExtentEnd();
+				
+				if (!begin.equals("") && !end.equals("")) {
+					resultDataset.put("temporal", begin + "/" + end);
+				} else {
+					resultDataset.put("temporal", null);
+				}
+			} catch (NotFound nf) {
+				resultDataset.put("temporal", null);
+			}
+			
+			try {
+				/*
+				 * There could be several constraints.
+				 * Pick the first one not containing "geen beperkingen" or "geen beperking"
+				 */
+				List<String> otherConstraints = new ArrayList<>();
+				otherConstraints.addAll(metadataDocument.getOtherConstraints());
+				String constraint = null;
+				
+				for (String c : otherConstraints) {
+					if ("geen beperkingen".equals(c.toLowerCase().trim()) || "geen beperking".equals(c.toLowerCase().trim())) {
+						continue;
+					} else {
+						constraint = c;
+						break;
+					}
+					
+				}
+				resultDataset.put("license", constraint);
+			} catch (NotFound nf) {
+				resultDataset.put("license", null);
+			}
+			
 			// Keyword
 			List<String> keywords = new ArrayList<>();
-			keywords.addAll(metadataDocument.getTopicCategories());
-			resultDataset.put("keyword", keywords);
-
+			try {
+				keywords.addAll(metadataDocument.getTopicCategories());
+				resultDataset.put("keyword", keywords);
+			} catch (NotFound nf) {
+				resultDataset.put("keyword", null);
+			}
+			
 			// Theme
 			List<String> themes = new ArrayList<>();
 			try {
@@ -231,11 +285,11 @@ public class DatasetMetadataDCAT extends Controller{
 						themes.add(ks);
 					}
 				}
+				resultDataset.put("theme", themes);
 			} catch (NotFound nf) {
-				
+				resultDataset.put("theme", null);
 			}
-			resultDataset.put("theme", themes);
-
+			
 			// contactPoint
 			// point of contact is in the contact node
 			Map<String, String> contactPoint = new HashMap<>();
@@ -249,7 +303,6 @@ public class DatasetMetadataDCAT extends Controller{
 			}
 
 			resultDataset.put("contactPoint", contactPoint);
-
 
 			try {
 				resultDataset.put("spatial", metadataDocument.getDatasetSpatialExtent());
@@ -271,6 +324,13 @@ public class DatasetMetadataDCAT extends Controller{
 
 			resultDataset.put("publisher", publisher);
 
+			// Frequency
+			try {
+				resultDataset.put("accrualPeriodicity", metadataDocument.getMaintenanceFrequencyCodeListValue()) ;
+			} catch (NotFound nf) {
+				resultDataset.put("accrualPeriodicity", null);
+			}
+			
 			return resultDataset;
 		} catch(Exception e) {
 			throw new RuntimeException(e);
