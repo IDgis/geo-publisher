@@ -324,6 +324,13 @@ public class DatasetMetadataDCAT extends Controller{
 
 			resultDataset.put("publisher", publisher);
 
+			// Frequency
+			try {
+				resultDataset.put("accrualPeriodicity", metadataDocument.getMaintenanceFrequencyCodeListValue()) ;
+			} catch (NotFound nf) {
+				resultDataset.put("accrualPeriodicity", null);
+			}
+			
 			return resultDataset;
 		} catch(Exception e) {
 			throw new RuntimeException(e);
