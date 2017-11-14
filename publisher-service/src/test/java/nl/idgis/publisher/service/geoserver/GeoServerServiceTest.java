@@ -253,7 +253,7 @@ public class GeoServerServiceTest {
 		h = new GeoServerTestHelper();
 		h.start();
 		
-		Connection connection = DriverManager.getConnection("jdbc:postgresql://localhost:" + GeoServerTestHelper.PG_PORT + "/test", "postgres", "postgres");
+		Connection connection = DriverManager.getConnection("jdbc:postgresql://" + h.getDbHost() + ":" + h.getDbPort() + "/test", "postgres", "postgres");
 		
 		Statement stmt = connection.createStatement();
 		stmt.execute("create schema \"staging_data\"");
