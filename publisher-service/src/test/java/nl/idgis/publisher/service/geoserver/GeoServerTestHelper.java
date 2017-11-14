@@ -9,12 +9,13 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import javax.xml.namespace.NamespaceContext;
 import javax.xml.parsers.DocumentBuilder;
@@ -32,8 +33,6 @@ import org.eclipse.jetty.plus.jndi.Resource;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.webapp.Configuration.ClassList;
 import org.eclipse.jetty.webapp.WebAppContext;
-import org.h2.api.AggregateFunction;
-import org.h2.server.pg.PgServer;
 import org.postgresql.jdbc2.AbstractJdbc2Connection;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -43,8 +42,11 @@ import org.xml.sax.SAXException;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import com.ning.http.util.Base64;
-import com.vividsolutions.jts.geom.Geometry;
+import com.spotify.docker.client.DefaultDockerClient;
+import com.spotify.docker.client.messages.ContainerConfig;
+import com.spotify.docker.client.messages.ContainerInfo;
+import com.spotify.docker.client.messages.HostConfig;
+import com.spotify.docker.client.messages.PortBinding;
 
 import akka.event.LoggingAdapter;
 
@@ -57,18 +59,23 @@ import nl.idgis.publisher.utils.FutureUtils;
 
 public class GeoServerTestHelper {
 	
+	private static final String POSTGIS_IMAGE = "mdillon/postgis:9.6";
+
 	public static final int JETTY_PORT = 7000;
-	public static final int PG_PORT = PgServer.DEFAULT_PORT;
-	
-	private Thread pgListenThread;
-	
-	private PgServer pgServer;
-	
+			
 	private Server jettyServer;
 	
 	private DocumentBuilder documentBuilder;
 	
 	private XPath xpath;
+
+	private DefaultDockerClient dockerClient;
+
+	private String dbPort;
+
+	private String containerId;
+
+	private String dbHost;
 	
 	public GeoServerTestHelper() throws Exception {
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
@@ -101,107 +108,51 @@ public class GeoServerTestHelper {
 		});
 	}
 	
-	public static String PostGIS_Lib_Version() {
-		return "2.1.5";
-	}
-	
-	public static Geometry ST_Force_2D(Geometry geometry) {
-		return geometry;
-	}
-	
-	public static String encode(byte[] b, String method) {
-		if(b == null) {
-			return null;
-		}
-		
-		return Base64.encode(b);
-	}
-	
-	public static byte[] ST_Estimated_Extent(String schemaName, String tableName, String geocolumnName) {
-		return null;
-	}
-	
-	public static class ST_Extent implements AggregateFunction {
-
-		@Override
-		public void init(Connection conn) throws SQLException {
-			
-		}
-
-		@Override
-		public int getType(int[] inputTypes) throws SQLException {
-			return Types.BLOB;
-		}
-
-		@Override
-		public void add(Object value) throws SQLException {
-			
-		}
-
-		@Override
-		public Object getResult() throws SQLException {			
-			return null;
-		}
-		
-	}
-
 	public void start() throws Exception {
-		pgServer = new PgServer();
+		dockerClient = DefaultDockerClient.fromEnv().build();
 		
-		File baseDir = new File("build/geoserver-database");
+		dockerClient.pull(POSTGIS_IMAGE);
 		
-		if(baseDir.exists()) {
-			FileUtils.delete(baseDir);
-		}
+		Map<String, List<PortBinding>> portBindings = new HashMap<>();
+		portBindings.put("5432", Arrays.asList(PortBinding.randomPort("0.0.0.0")));
+		HostConfig hostConfig = HostConfig.builder()
+				.portBindings(portBindings)
+				.build();
 		
-		pgServer.init(/*"-trace", */"-pgPort", "" + PG_PORT, "-baseDir", baseDir.getAbsolutePath());
+		ContainerConfig dbContainerConfig = ContainerConfig.builder()
+				.hostConfig(hostConfig)
+				.image(POSTGIS_IMAGE)
+				.exposedPorts("5432")
+				.build();
 		
-		pgServer.start();
+		containerId = dockerClient.createContainer(dbContainerConfig).id();
+		dockerClient.startContainer(containerId);
 		
-		pgListenThread = new Thread() {
+		ContainerInfo dbContainerInfo = dockerClient.inspectContainer(containerId);
+		dbPort = dbContainerInfo.networkSettings().ports().get("5432/tcp").get(0).hostPort();
+		
+		dbHost = dockerClient.getHost();
+		
+		for(int i = 5; i >= 0; i--) {
+			Thread.sleep(1000);
 			
-			@Override
-			public void run() {
-				pgServer.listen();
+			try(Connection c = DriverManager.getConnection("jdbc:postgresql://" + dbHost + ":" + dbPort + "/postgres", "postgres", "postgres");
+				Statement stmt = c.createStatement()) {
+				stmt.execute("create database \"test\"");
+				break;
+			} catch(Exception e) { 
+				if(i == 0) {
+					throw new IllegalStateException("Failed to create test database", e);
+				}
 			}
-		};
-		
-		pgListenThread.start();
-		
-		// enable GeoDB
-		Connection connection = DriverManager.getConnection("jdbc:postgresql://localhost:" + GeoServerTestHelper.PG_PORT + "/test", "postgres", "postgres");		
-		Statement stmt = connection.createStatement();		
-		stmt.execute("create alias if not exists init_geo_db for \"geodb.GeoDB.InitGeoDB\"");
-		stmt.execute("call init_geo_db()");
-		
-		// add missing PostGIS functions
-		for(String function : new String[]{"PostGIS_Lib_Version", "ST_Force_2D", "ST_Estimated_Extent", "encode"}) {
-			stmt.execute("create alias " + function + " for \"" + getClass().getCanonicalName() + "." + function + "\"");
 		}
-
-		// disable ST_Extent
-		stmt.execute("drop aggregate ST_Extent");		
-		stmt.execute("create aggregate ST_Extent for \"" + getClass().getCanonicalName() + "$ST_Extent\"");
 		
-		// add 'geometry' type to pg_type 
-		stmt.execute("merge into pg_catalog.pg_type select 705 oid, 'geometry' typname, "
-				+ "(select oid from pg_catalog.pg_namespace where nspname = 'pg_catalog') typnamespace, "
-				+ "-1 typlen, 'c' typtype, 0 typbasetype, -1 typtypmod, false typnotnull, null typinput "
-				+ "from INFORMATION_SCHEMA.type_info where pos = 0");
-		
-		// create missing geography_columns table
-		stmt.execute("create table geography_columns ("
-				+ "f_table_catalog text, "
-				+ "f_table_schema text, "
-				+ "f_table_name text, "
-				+ "f_geography_column text, "
-				+ "coord_dimension integer, "
-				+ "srid integer, "
-				+ "type text "
-				+ ")");
-
-		stmt.close();		
-		connection.close();
+		try(Connection c = DriverManager.getConnection("jdbc:postgresql://" + dbHost + ":" + dbPort + "/test", "postgres", "postgres");
+			Statement stmt = c.createStatement()) {
+			stmt.execute("create extension postgis");
+		} catch(Exception e) { 
+			throw new IllegalStateException("Failed to create postgis extention", e);
+		}
 		
 		File dataDir = new File("build/geoserver-data");
 		
@@ -267,7 +218,7 @@ public class GeoServerTestHelper {
 			}
 		};
 		ds.setDriverClassName("org.postgresql.Driver");		
-		ds.setUrl("jdbc:postgresql://localhost:" + GeoServerTestHelper.PG_PORT + "/test");
+		ds.setUrl("jdbc:postgresql://" + dbHost + ":" + dbPort + "/test");
 		ds.setUsername("postgres");
 		ds.setPassword("postgres");
 		
@@ -279,10 +230,9 @@ public class GeoServerTestHelper {
 	
 	public void stop() throws Exception {
 		jettyServer.stop();
-		pgServer.stop();
 		
-		pgListenThread.interrupt();
-		pgListenThread.join();
+		dockerClient.stopContainer(containerId, 5);
+		dockerClient.removeContainer(containerId);
 	}
 	
 	public void processNodeList(NodeList nodeList, Collection<String> retval) {
@@ -367,5 +317,17 @@ public class GeoServerTestHelper {
 			.forEach(service::deleteStyle);
 		
 		service.close();
+	}
+
+	public String getDbPort() {
+		return dbPort;
+	}
+
+	public String getDbHost() {
+		return dbHost;
+	}
+
+	public void setDbHost(String dbHost) {
+		this.dbHost = dbHost;
 	}
 }
