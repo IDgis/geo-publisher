@@ -801,6 +801,14 @@ project(':publisher-geoserver') {
 	}
 }
 
+project(':publisher-console') {
+	
+	dependencies {
+		compile "org.jolokia:jolokia-client-java:${jolokiaVersion}"
+		compile 'commons-logging:commons-logging:1.2'
+	}
+}
+
 // measure task execution time
 if(!gradle.startParameter.continuous) {
 	gradle.addListener(new TimingListener())
