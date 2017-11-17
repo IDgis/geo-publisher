@@ -10,4 +10,5 @@ include 'publisher-test',
 	'publisher-service',
 	'publisher-metadata',
 	'publisher-geoserver',
-	'publisher-monitor'
+	'publisher-monitor',
+	'publisher-console'
