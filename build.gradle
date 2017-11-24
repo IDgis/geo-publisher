@@ -34,7 +34,7 @@ ext {
 	junitVersion = '4.11'
 	scalaAbiVersion = '2.11'
 	akkaVersion = '2.3.9'
-	jacksonVersion = '2.3.3'
+	jacksonVersion = '2.8.8'
 	guavaVersion = '17.0'
 	h2Version = '1.4.180'
 	jodatimeVersion = '2.3'
