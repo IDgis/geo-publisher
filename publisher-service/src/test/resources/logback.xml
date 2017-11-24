@@ -11,9 +11,9 @@
 	<logger name="nl.idgis.publisher.service.geoserver.EnsureService" level="debug"/>
   -->
   
-   <!--
+   
   <logger name="nl.idgis.publisher.service.geoserver.GeoServerService" level="debug"/>
-  -->
+  
   
   <!--
   <logger name="nl.idgis.publisher.service.provisioning" level="debug"/>

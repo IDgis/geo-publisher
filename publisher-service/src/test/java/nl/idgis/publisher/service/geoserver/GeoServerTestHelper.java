@@ -5,6 +5,8 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
@@ -213,6 +215,21 @@ public class GeoServerTestHelper {
 		
 		jettyServer.setHandler(context);
 		jettyServer.start();
+		
+		for(int i = 25; i >= 0; i--) {
+			Thread.sleep(1000);
+			
+			try {
+				HttpURLConnection connection = (HttpURLConnection)(new URL("http://localhost:" + JETTY_PORT + "/rest/workspaces.xml").openConnection());
+				if(connection.getResponseCode() == 200) {
+					break;
+				}
+			} catch(Exception e) { 
+				if(i == 0) {
+					throw new IllegalStateException("Failed to start GeoServer", e);
+				}
+			}
+		}
 	}
 	
 	public void stop() throws Exception {
