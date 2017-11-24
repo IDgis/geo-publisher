@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -269,7 +270,7 @@ public class JsonService implements Service {
 		}
 
 		@Override
-		protected BeanSerializerBase withFilterId(Object filterId) {
+		public BeanSerializerBase withFilterId(Object filterId) {
 			return new ServiceSerializer(this, _objectIdWriter, filterId);
 		}
 
@@ -279,6 +280,11 @@ public class JsonService implements Service {
 			jgen.writeNumberField("formatRevision", 1);
             serializeFields(bean, jgen, provider);             
             jgen.writeEndObject();
+		}
+
+		@Override
+		protected BeanSerializerBase withIgnorals(Set<String> toIgnore) {
+			return new ServiceSerializer(this, _objectIdWriter, toIgnore);
 		}
 		
 	}
@@ -317,7 +323,7 @@ public class JsonService implements Service {
 		}
 
 		@Override
-		protected BeanSerializerBase withFilterId(Object filterId) {
+		public BeanSerializerBase withFilterId(Object filterId) {
 			return new DatasetLayerSerializer(this, _objectIdWriter, filterId);
 		}
 
@@ -345,6 +351,11 @@ public class JsonService implements Service {
             serializeFields(bean, jgen, provider);
             
             jgen.writeEndObject();
+		}
+
+		@Override
+		protected BeanSerializerBase withIgnorals(Set<String> toIgnore) {
+			return new DatasetLayerSerializer(this, _objectIdWriter, toIgnore);
 		}
 		
 	}
