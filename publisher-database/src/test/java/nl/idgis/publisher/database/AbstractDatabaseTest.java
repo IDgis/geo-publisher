@@ -110,7 +110,7 @@ public abstract class AbstractDatabaseTest {
 			.withValue("akka.loglevel", ConfigValueFactory.fromAnyRef("DEBUG"));
 		
 		system = ActorSystem.create("test", akkaConfig);
-		f = new FutureUtils(system);
+		f = new FutureUtils(system, 45000);
 		
 		database = actorOf(PublisherDatabase.props(databaseConfig), "database");
 	}
