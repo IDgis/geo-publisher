@@ -7,7 +7,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,7 +32,6 @@ import org.eclipse.jetty.plus.jndi.Resource;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.webapp.Configuration.ClassList;
 import org.eclipse.jetty.webapp.WebAppContext;
-import org.postgresql.jdbc2.AbstractJdbc2Connection;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -205,18 +203,7 @@ public class GeoServerTestHelper {
 		context.setContextPath("/");
 		context.setParentLoaderPriority(false);
 		
-		BasicDataSource ds = new BasicDataSource() {
-			
-			@Override
-			public Connection getConnection() throws SQLException {
-				Connection c = super.getConnection();
-				
-				AbstractJdbc2Connection unwrapped = c.unwrap(AbstractJdbc2Connection.class);
-				unwrapped.getTypeInfo().addCoreType("geometry", 705, 0, "java.lang.String", 0);
-				
-				return c;
-			}
-		};
+		BasicDataSource ds = new BasicDataSource();
 		ds.setDriverClassName("org.postgresql.Driver");		
 		ds.setUrl("jdbc:postgresql://" + dbHost + ":" + dbPort + "/test");
 		ds.setUsername("postgres");
