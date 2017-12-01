@@ -569,10 +569,8 @@ public class DefaultGeoServerRestTest {
 		
 		assertEquals("#00FF00", h.getText("//sld:CssParameter", service.getStyle("green").get().get().getSld()));
 		
-		h.getNodeList("//sld:CssParameter", sld).item(0).setTextContent("#FF0000");		
-		// TODO: kijken wat hier mis gaat. postStyle vervangen door putStyle slaagt de test wel
-		//service.postStyle(new Style("red", sld)).get();
-		service.putStyle(new Style("red", sld)).get();
+		h.getNodeList("//sld:CssParameter", sld).item(0).setTextContent("#FF0000");
+		service.postStyle(new Style("red", sld)).get();
 		
 		Workspace workspace = new Workspace("workspace");
 		service.postWorkspace(workspace).get();
