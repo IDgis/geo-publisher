@@ -14,7 +14,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.BeanDescription;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -27,6 +26,7 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.BeanSerializerModifier;
 import com.fasterxml.jackson.databind.ser.impl.ObjectIdWriter;
 import com.fasterxml.jackson.databind.ser.std.BeanSerializerBase;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 
 import nl.idgis.publisher.domain.web.tree.DatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DatasetLayerRef;
@@ -214,29 +214,9 @@ public class JsonService implements Service {
 		
 	}
 	
-	@SuppressWarnings("rawtypes")
-	private static class OptionalJsonSerializer extends JsonSerializer<Optional> {		
-
-		@Override
-		public boolean isEmpty(Optional value) {
-			return !value.isPresent();
-		}
-
-		@Override
-		public Class<Optional> handledType() {
-			return Optional.class;
-		}		
-
-		@Override
-		public void serialize(Optional value, JsonGenerator jgen, SerializerProvider provider) 
-			throws IOException, JsonProcessingException {
-			
-			jgen.writeObject(value.get());
-		}
-		
-	}
-	
 	private static class ServiceSerializer extends BeanSerializerBase {
+		
+		private static final long serialVersionUID = 7685190819553841569L;
 
 		ServiceSerializer(BeanSerializerBase src) {
 			super(src);
@@ -246,10 +226,6 @@ public class JsonService implements Service {
             super(src, objectIdWriter);
         }
 		
-		ServiceSerializer(BeanSerializerBase src, String[] toIgnore) {
-            super(src, toIgnore);
-        }
-		
 		ServiceSerializer(BeanSerializerBase src, ObjectIdWriter objectIdWriter, Object filterId) {
 			super(src, objectIdWriter, filterId);
 		}
@@ -257,12 +233,7 @@ public class JsonService implements Service {
 		@Override
 		public BeanSerializerBase withObjectIdWriter(ObjectIdWriter objectIdWriter) {
 			return new ServiceSerializer(this, objectIdWriter);
-		}
-
-		@Override
-		protected BeanSerializerBase withIgnorals(String[] toIgnore) {
-			return new ServiceSerializer(this, toIgnore);
-		}
+		}		
 
 		@Override
 		protected BeanSerializerBase asArraySerializer() {			
@@ -290,6 +261,8 @@ public class JsonService implements Service {
 	}
 	
 	private static class DatasetLayerSerializer extends BeanSerializerBase {
+		
+		private static final long serialVersionUID = 7837502906419222795L;
 
 		DatasetLayerSerializer(BeanSerializerBase src) {
 			super(src);
@@ -299,10 +272,6 @@ public class JsonService implements Service {
             super(src, objectIdWriter);
         }
 		
-		DatasetLayerSerializer(BeanSerializerBase src, String[] toIgnore) {
-            super(src, toIgnore);
-        }
-		
 		DatasetLayerSerializer(BeanSerializerBase src, ObjectIdWriter objectIdWriter, Object filterId) {
 			super(src, objectIdWriter, filterId);
 		}
@@ -310,12 +279,7 @@ public class JsonService implements Service {
 		@Override
 		public BeanSerializerBase withObjectIdWriter(ObjectIdWriter objectIdWriter) {
 			return new DatasetLayerSerializer(this, objectIdWriter);
-		}
-
-		@Override
-		protected BeanSerializerBase withIgnorals(String[] toIgnore) {
-			return new DatasetLayerSerializer(this, toIgnore);
-		}
+		}		
 
 		@Override
 		protected BeanSerializerBase asArraySerializer() {			
@@ -374,9 +338,6 @@ public class JsonService implements Service {
 					@Override
 					public JsonSerializer<?> modifySerializer(SerializationConfig config, BeanDescription beanDesc, JsonSerializer<?> serializer) {
 						Class<?> handledType = serializer.handledType();
-						if(Optional.class.equals(handledType)) {
-							return new OptionalJsonSerializer();
-						}
 						
 						if(serializer instanceof BeanSerializerBase) {
 							BeanSerializerBase beanSerializerBase = (BeanSerializerBase)serializer;
@@ -395,18 +356,19 @@ public class JsonService implements Service {
 				});
 			}		
 		};
-				
+			
+		objectMapper.registerModule(new Jdk8Module());
 		objectMapper.registerModule(module);
 		
 		objectMapper.setSerializationInclusion(Include.NON_EMPTY);
 		
-		objectMapper.addMixInAnnotations(Service.class, ServiceMixin.class);
-		objectMapper.addMixInAnnotations(DatasetLayerRef.class, DatasetLayerRefMixin.class);
-		objectMapper.addMixInAnnotations(VectorDatasetLayer.class, VectorDatasetLayerMixin.class);
-		objectMapper.addMixInAnnotations(GroupLayerRef.class, GroupLayerRefMixin.class);
-		objectMapper.addMixInAnnotations(GroupLayer.class, GroupLayerMixin.class);
-		objectMapper.addMixInAnnotations(StyleRef.class, StyleRefMixin.class);		
-		objectMapper.addMixInAnnotations(Tiling.class, TilingMixin.class);
+		objectMapper.addMixIn(Service.class, ServiceMixin.class);
+		objectMapper.addMixIn(DatasetLayerRef.class, DatasetLayerRefMixin.class);
+		objectMapper.addMixIn(VectorDatasetLayer.class, VectorDatasetLayerMixin.class);
+		objectMapper.addMixIn(GroupLayerRef.class, GroupLayerRefMixin.class);
+		objectMapper.addMixIn(GroupLayer.class, GroupLayerMixin.class);
+		objectMapper.addMixIn(StyleRef.class, StyleRefMixin.class);		
+		objectMapper.addMixIn(Tiling.class, TilingMixin.class);
 		
 		try {
 			return objectMapper.writeValueAsString(service);
