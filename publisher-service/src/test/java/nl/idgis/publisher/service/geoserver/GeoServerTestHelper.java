@@ -17,6 +17,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.xml.namespace.NamespaceContext;
 import javax.xml.parsers.DocumentBuilder;
@@ -45,6 +47,7 @@ import com.google.common.collect.HashBiMap;
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.messages.ContainerConfig;
 import com.spotify.docker.client.messages.ContainerInfo;
+import com.spotify.docker.client.messages.ContainerMount;
 import com.spotify.docker.client.messages.HostConfig;
 import com.spotify.docker.client.messages.PortBinding;
 
@@ -235,8 +238,18 @@ public class GeoServerTestHelper {
 	public void stop() throws Exception {
 		jettyServer.stop();
 		
+		ContainerInfo containerInfo = dockerClient.inspectContainer(containerId);
+		Set<String> volumeIds = containerInfo.mounts().stream()
+			.filter(containerMount -> "volume".equals(containerMount.type()))
+			.map(ContainerMount::name)
+			.collect(Collectors.toSet());
+		
 		dockerClient.stopContainer(containerId, 5);
 		dockerClient.removeContainer(containerId);
+		
+		for(String volumeId : volumeIds) {
+			dockerClient.removeVolume(volumeId);
+		}
 	}
 	
 	public void processNodeList(NodeList nodeList, Collection<String> retval) {
