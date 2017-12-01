@@ -199,6 +199,7 @@ project(':publisher-commons') {
 		testCompile "com.h2database:h2:${h2Version}"
 	
 		compile "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
+		compile "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:${jacksonVersion}"
 		compile "com.typesafe.akka:akka-actor_${scalaAbiVersion}:${akkaVersion}"
 		compile 'org.apache.commons:commons-lang3:3.3.2'
 		compile "com.google.guava:guava:${guavaVersion}"
