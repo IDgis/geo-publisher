@@ -62,6 +62,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	
 	private static final Set<String> DEFAULT_STYLE_NAMES = Collections.unmodifiableSet(
 		new HashSet<>(Arrays.asList(
+			"generic",
 			"line",
 			"point",
 			"polygon",
