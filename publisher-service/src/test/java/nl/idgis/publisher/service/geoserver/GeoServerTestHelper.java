@@ -236,19 +236,23 @@ public class GeoServerTestHelper {
 	}
 	
 	public void stop() throws Exception {
-		jettyServer.stop();
+		if (jettyServer != null) {
+			jettyServer.stop();
+		}
 		
-		ContainerInfo containerInfo = dockerClient.inspectContainer(containerId);
-		Set<String> volumeIds = containerInfo.mounts().stream()
-			.filter(containerMount -> "volume".equals(containerMount.type()))
-			.map(ContainerMount::name)
-			.collect(Collectors.toSet());
-		
-		dockerClient.stopContainer(containerId, 5);
-		dockerClient.removeContainer(containerId);
-		
-		for(String volumeId : volumeIds) {
-			dockerClient.removeVolume(volumeId);
+		if (dockerClient != null) {
+			ContainerInfo containerInfo = dockerClient.inspectContainer(containerId);
+			Set<String> volumeIds = containerInfo.mounts().stream()
+				.filter(containerMount -> "volume".equals(containerMount.type()))
+				.map(ContainerMount::name)
+				.collect(Collectors.toSet());
+			
+			dockerClient.stopContainer(containerId, 5);
+			dockerClient.removeContainer(containerId);
+			
+			for(String volumeId : volumeIds) {
+				dockerClient.removeVolume(volumeId);
+			}
 		}
 	}
 	
