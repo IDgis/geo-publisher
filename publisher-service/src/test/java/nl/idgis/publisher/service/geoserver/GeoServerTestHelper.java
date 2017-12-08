@@ -53,6 +53,9 @@ import com.spotify.docker.client.messages.PortBinding;
 
 import akka.event.LoggingAdapter;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.GeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.ServiceType;
@@ -61,6 +64,8 @@ import nl.idgis.publisher.utils.FileUtils;
 import nl.idgis.publisher.utils.FutureUtils;
 
 public class GeoServerTestHelper {
+	
+	private static final Logger LOGGER = LoggerFactory.getLogger(GeoServerTestHelper.class);
 	
 	private static final String POSTGIS_IMAGE = "mdillon/postgis:9.6";
 
@@ -112,7 +117,13 @@ public class GeoServerTestHelper {
 	}
 	
 	public void start() throws Exception {
+		LOGGER.info("DOCKER_* environment variables:");
+		System.getenv().entrySet().stream()
+			.filter(entry -> entry.getKey().startsWith("DOCKER_"))
+			.forEach(entry -> LOGGER.info("{}={}", entry.getKey(), entry.getValue()));
+		
 		dockerClient = DefaultDockerClient.fromEnv().build();
+		LOGGER.info("Configured docker host: {}", dockerClient.getHost());
 		
 		dockerClient.pull(POSTGIS_IMAGE);
 		
