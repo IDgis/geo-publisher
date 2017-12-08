@@ -801,6 +801,40 @@ project(':publisher-geoserver') {
 	}
 }
 
+project(':publisher-console') {
+	apply plugin: 'application'
+	apply plugin: DockerRemoteConfig
+
+	mainClassName = 'nl.idgis.publisher.console.App'
+	
+	dependencies {
+		compile "org.jolokia:jolokia-client-java:${jolokiaVersion}"
+		compile 'commons-logging:commons-logging:1.2'
+	}
+	
+	task unpackTar(type: Copy) {
+		dependsOn distTar
+
+		from tarTree(distTar.archivePath)
+		into "${project.buildDir}/docker"
+	}
+
+	task createDockerfile(type: Dockerfile) {
+		destFile = file("${project.buildDir}/docker/Dockerfile")
+		from 'azul/zulu-openjdk'
+		copyFile "publisher-console-${project.version}", '/opt'
+		runCommand 'chmod +x /opt/bin/publisher-console'
+		entryPoint "/opt/bin/publisher-console"
+	}
+
+	task buildImage(type: DockerBuildImage) {
+		dependsOn rootProject.pullJavaImage, createDockerfile, unpackTar
+
+		inputDir = file("${project.buildDir}/docker")
+		tag = "idgis/geopublisher_console:${project.version}"
+	}
+}
+
 // measure task execution time
 if(!gradle.startParameter.continuous) {
 	gradle.addListener(new TimingListener())
