@@ -147,7 +147,7 @@ public class GeoServerTestHelper {
 		
 		dbHost = dockerClient.getHost();
 		
-		for(int i = 10; i >= 0; i--) {
+		for(int i = 60; i >= 0; i--) {
 			Thread.sleep(1000);
 			
 			try(Connection c = DriverManager.getConnection("jdbc:postgresql://" + dbHost + ":" + dbPort + "/postgres", "postgres", "postgres");
