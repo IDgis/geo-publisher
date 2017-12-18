@@ -247,13 +247,13 @@ public class Groups extends GroupsLayersCommon {
 									nl.idgis.publisher.domain.web.tree.Layer layer = layerRef.getLayer();
 									Logger.debug ("GROUP LAYER layer name:" + layer.getName() + " id:" + layer.getId());
 								}
-			
+								
 								// build a preview string
 								final String previewUrl ;
 								if (service==null){
 									previewUrl = null;
 								} else {
-									previewUrl = makePreviewUrl(service.name(), group.name());
+									previewUrl = makeOldPreviewUrl(service.name(), group.name());
 								}
 								return ok (form.render (groupForm, false, groups, layers, groupLayer, parentGroups, parentServices, previewUrl));
 							}
