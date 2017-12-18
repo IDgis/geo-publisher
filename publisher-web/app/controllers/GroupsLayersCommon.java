@@ -20,4 +20,30 @@ public class GroupsLayersCommon extends Controller {
 		
 		return url.toString();
 	}
+	
+	protected static String makeOldPreviewUrl(String serviceId, String layerId){
+		StringBuilder url = new StringBuilder();
+		url.append("http://");
+		url.append(getConfig("publisher.preview.geoserverDomain"));
+		url.append(getConfig ("publisher.preview.geoserverPath"));
+		url.append("/" + serviceId);
+		url.append("/wms?");
+		url.append(getConfig("publisher.preview.serviceRequest"));
+		url.append("&");
+		url.append("layers="  + serviceId + ":"+ layerId);
+		url.append("&");
+		url.append("styles=" + getConfig("publisher.preview.styles"));
+		url.append("&");
+		url.append("bbox=" + getConfig("publisher.preview.bbox"));
+		url.append("&");
+		url.append("width=" + getConfig("publisher.preview.width"));
+		url.append("&");
+		url.append("height=" + getConfig("publisher.preview.height"));
+		url.append("&");
+		url.append("srs=" + getConfig("publisher.preview.srs"));
+		url.append("&");
+		url.append("format=" + getConfig("publisher.preview.format"));
+		  		
+		return url.toString();
+	}
 }
