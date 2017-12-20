@@ -9,16 +9,13 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import javax.xml.namespace.NamespaceContext;
 import javax.xml.parsers.DocumentBuilder;
@@ -36,6 +33,8 @@ import org.eclipse.jetty.plus.jndi.Resource;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.webapp.Configuration.ClassList;
 import org.eclipse.jetty.webapp.WebAppContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -44,18 +43,9 @@ import org.xml.sax.SAXException;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import com.spotify.docker.client.DefaultDockerClient;
-import com.spotify.docker.client.messages.ContainerConfig;
-import com.spotify.docker.client.messages.ContainerInfo;
-import com.spotify.docker.client.messages.ContainerMount;
-import com.spotify.docker.client.messages.HostConfig;
-import com.spotify.docker.client.messages.PortBinding;
+import com.opentable.db.postgres.embedded.EmbeddedPostgres;
 
 import akka.event.LoggingAdapter;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.GeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.ServiceType;
@@ -66,8 +56,6 @@ import nl.idgis.publisher.utils.FutureUtils;
 public class GeoServerTestHelper {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(GeoServerTestHelper.class);
-	
-	private static final String POSTGIS_IMAGE = "mdillon/postgis:9.6";
 
 	public static final int JETTY_PORT = 7000;
 			
@@ -76,12 +64,10 @@ public class GeoServerTestHelper {
 	private DocumentBuilder documentBuilder;
 	
 	private XPath xpath;
-
-	private DefaultDockerClient dockerClient;
+	
+	private EmbeddedPostgres embeddedPostgres;
 
 	private String dbPort;
-
-	private String containerId;
 
 	private String dbHost;
 	
@@ -117,55 +103,23 @@ public class GeoServerTestHelper {
 	}
 	
 	public void start() throws Exception {
-		LOGGER.info("DOCKER_* environment variables:");
-		System.getenv().entrySet().stream()
-			.filter(entry -> entry.getKey().startsWith("DOCKER_"))
-			.forEach(entry -> LOGGER.info("{}={}", entry.getKey(), entry.getValue()));
+		embeddedPostgres = EmbeddedPostgres.start();
 		
-		dockerClient = DefaultDockerClient.fromEnv().build();
-		LOGGER.info("Configured docker host: {}", dockerClient.getHost());
+		dbPort = Integer.toString(embeddedPostgres.getPort());
+		dbHost = "localhost";
 		
-		dockerClient.pull(POSTGIS_IMAGE);
-		
-		Map<String, List<PortBinding>> portBindings = new HashMap<>();
-		portBindings.put("5432", Arrays.asList(PortBinding.randomPort("0.0.0.0")));
-		HostConfig hostConfig = HostConfig.builder()
-				.portBindings(portBindings)
-				.build();
-		
-		ContainerConfig dbContainerConfig = ContainerConfig.builder()
-				.hostConfig(hostConfig)
-				.image(POSTGIS_IMAGE)
-				.exposedPorts("5432")
-				.build();
-		
-		containerId = dockerClient.createContainer(dbContainerConfig).id();
-		dockerClient.startContainer(containerId);
-		
-		ContainerInfo dbContainerInfo = dockerClient.inspectContainer(containerId);
-		dbPort = dbContainerInfo.networkSettings().ports().get("5432/tcp").get(0).hostPort();
-		
-		dbHost = dockerClient.getHost();
-		
-		for(int i = 60; i >= 0; i--) {
-			Thread.sleep(1000);
-			
-			try(Connection c = DriverManager.getConnection("jdbc:postgresql://" + dbHost + ":" + dbPort + "/postgres", "postgres", "postgres");
+		try(Connection c = embeddedPostgres.getDatabase("postgres", "postgres").getConnection();
 				Statement stmt = c.createStatement()) {
-				stmt.execute("create database \"test\"");
-				break;
-			} catch(Exception e) { 
-				if(i == 0) {
-					throw new IllegalStateException("Failed to create test database", e);
-				}
-			}
+			stmt.execute("create database \"test\"");
+		} catch(SQLException e) {
+			throw new IllegalStateException("Failed to create test database", e);
 		}
 		
-		try(Connection c = DriverManager.getConnection("jdbc:postgresql://" + dbHost + ":" + dbPort + "/test", "postgres", "postgres");
-			Statement stmt = c.createStatement()) {
+		try(Connection c = embeddedPostgres.getDatabase("postgres", "test").getConnection();
+				Statement stmt = c.createStatement()) {
 			stmt.execute("create extension postgis");
-		} catch(Exception e) { 
-			throw new IllegalStateException("Failed to create postgis extention", e);
+		} catch(SQLException e) {
+			throw new IllegalStateException("Failed to create postgis extension", e);
 		}
 		
 		File dataDir = new File("build/geoserver-data");
@@ -251,20 +205,7 @@ public class GeoServerTestHelper {
 			jettyServer.stop();
 		}
 		
-		if (dockerClient != null) {
-			ContainerInfo containerInfo = dockerClient.inspectContainer(containerId);
-			Set<String> volumeIds = containerInfo.mounts().stream()
-				.filter(containerMount -> "volume".equals(containerMount.type()))
-				.map(ContainerMount::name)
-				.collect(Collectors.toSet());
-			
-			dockerClient.stopContainer(containerId, 5);
-			dockerClient.removeContainer(containerId);
-			
-			for(String volumeId : volumeIds) {
-				dockerClient.removeVolume(volumeId);
-			}
-		}
+		embeddedPostgres.close();
 	}
 	
 	public void processNodeList(NodeList nodeList, Collection<String> retval) {
