@@ -256,7 +256,7 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 								mimeformatsQuery = f.successful(new TypedList<>(String.class, Collections.emptyList()));
 							}
 							
-							return mimeformatsQuery.<Optional<Layer>>thenCompose(mimeFormats ->									
+							return mimeformatsQuery.<Optional<Layer>>thenCompose(mimeFormats ->
 								tx.query()
 								.from(genericLayer)
 								.join(leafLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
@@ -264,7 +264,7 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 								.join(style).on(layerStyle.styleId.eq(style.id))
 								.where(genericLayer.identification.eq(layerId))
 								.orderBy(layerStyle.styleOrder.asc())
-								.list(new QStyle(style.identification, style.name, style.definition,style.styleType, ConstantImpl.create(true)))
+								.list(new QStyle(style.identification, style.name, style.styleSchemeType, style.definition,style.styleType, ConstantImpl.create(true)))
 								.<Optional<Layer>>thenApply(styles ->
 									Optional.of(new Layer(
 										layer.get(genericLayer.identification),
@@ -546,7 +546,7 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 					.where(leafLayer.genericLayerId.eq(glId.get()).and(layerStyle.layerId.eq(leafLayer.id))
 						.and(layerStyle.styleId.eq(style.id)))
 					.orderBy(layerStyle.styleOrder.asc())
-					.list(new QStyle(style.identification, style.name, style.definition,style.styleType, ConstantImpl.create(true)))
+					.list(new QStyle(style.identification, style.name, style.styleSchemeType, style.definition, style.styleType, ConstantImpl.create(true)))
 					.thenApply(this::toList);
 		}));
 	}

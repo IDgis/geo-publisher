@@ -12,6 +12,9 @@ errorMessage: java.util.Optional[String] = java.util.Optional.empty ())
 
 @styleId = @{styleForm("id").value()}
 
+@sldScheme100 = @{Domain.message("web.application.page.styles.form.validate.option.sldScheme.1.0.0.value")}
+@sldScheme110 = @{Domain.message("web.application.page.styles.form.validate.option.sldScheme.1.1.0.value")}
+
 @layout.application( 
 	title=Domain.message("web.application.page.styles.form.title"),
 	jsMain = routes.Assets.at("js/styles/form.js").url,
@@ -32,8 +35,8 @@ errorMessage: java.util.Optional[String] = java.util.Optional.empty ())
 		<div class="col-lg-12">
 			<form class="form-horizontal" method="post" action="@routes.Styles.submitCreateUpdate()" id="style-form">
 				<input type="hidden" class="form-control" id="input-id" name="id" value="@styleForm("id").value" >
-
-				@if(create) {				
+				
+				@if(create) {
 					@helper.inputText(
 						styleForm("name"),
 						'_label -> Domain.message("web.application.page.styles.form.field.name.label"),
@@ -58,11 +61,27 @@ errorMessage: java.util.Optional[String] = java.util.Optional.empty ())
 					<div class="col-sm-8" id="style-editor-container"@if(errorLine.isPresent){ data-error-line="@errorLine.get()"}@if(errorMessage.isPresent){ data-error-message="@errorMessage.get()"}>
 						<div class="row">
 							<div class="col-lg-4">
+								
+								<div id="style-sld-scheme-radio-buttons">
+									<div class="radio">
+										<label>
+											<input type="radio" name="sldScheme" value="@sldScheme100" @if(!sldScheme110.equals(styleForm("sldScheme").value)) {checked}>
+											@Domain.message("web.application.page.styles.form.validate.option.sldScheme.1.0.0.label")
+										</label>
+									</div>
+									<div class="radio">
+										<label>
+											<input type="radio" name="sldScheme" value="@sldScheme110" @if(sldScheme110.equals(styleForm("sldScheme").value)) {checked}>
+											@Domain.message("web.application.page.styles.form.validate.option.sldScheme.1.1.0.label")
+										</label>
+									</div>
+								</div>
 								<p>
 									<button id="validate-style-button" class="btn btn-default" type="button"><span class="glyphicon glyphicon-cog"></span> @Domain.message("web.application.button.validate")</button>
 								</p>
 							</div>
 							<div class="col-lg-8" id="style-editor-validation">
+								@helper.fielderrors(styleForm("sldScheme").errors)
 								@helper.fielderrors(styleForm("definition").errors)
 							</div>
 						</div>

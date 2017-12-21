@@ -28,7 +28,6 @@ public class DatabaseColumnInfo implements Serializable {
 	public Type getType() {
 		switch(typeName.toUpperCase()) {
 			case "NUMBER":
-			case "FLOAT":
 				return Type.NUMERIC;
 			case "DATE":
 				return Type.DATE;

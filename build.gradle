@@ -34,11 +34,11 @@ ext {
 	junitVersion = '4.11'
 	scalaAbiVersion = '2.11'
 	akkaVersion = '2.3.9'
-	jacksonVersion = '2.3.3'
+	jacksonVersion = '2.8.8'
 	guavaVersion = '17.0'
 	h2Version = '1.4.180'
 	jodatimeVersion = '2.3'
-	geoserverVersion = '2.6.1-gpo-4'
+	geoserverVersion = '2.12.0'
 	commonsIOVersion = '2.4'
 	deegreeVersion = '3.4-RC1'
 	logbackVersion= '1.1.2'
@@ -73,7 +73,7 @@ subprojects {
 	version = rootProject.version
 
 	repositories {	
-		mavenCentral artifactUrls: ['http://maven.geotoolkit.org/']
+		mavenCentral artifactUrls: ['http://maven.geotoolkit.org/', 'https://repo.boundlessgeo.com/release/']
 		maven {
 			name "idgis-public"
 			url "http://nexus.idgis.eu/content/groups/public/"
@@ -199,6 +199,7 @@ project(':publisher-commons') {
 		testCompile "com.h2database:h2:${h2Version}"
 	
 		compile "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
+		compile "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:${jacksonVersion}"
 		compile "com.typesafe.akka:akka-actor_${scalaAbiVersion}:${akkaVersion}"
 		compile 'org.apache.commons:commons-lang3:3.3.2'
 		compile "com.google.guava:guava:${guavaVersion}"
@@ -602,6 +603,12 @@ project(':publisher-service') {
 		testCompile project(':publisher-test')
 		testCompile project(path: ':publisher-commons', configuration: 'testArtifact')
 		testCompile project(path: ':publisher-database', configuration: 'testArtifact')
+		
+		testCompile files('libs/postgres-9.6.6-postgis-2.4.2.jar')
+		testCompile group: 'org.tukaani', name: 'xz', version: '1.5'
+	    testCompile group: 'org.apache.commons', name: 'commons-compress', version: '1.11'
+	    testCompile('org.flywaydb:flyway-core:3.0')
+		
 		testCompile "com.h2database:h2:${h2Version}"
 		testCompile "com.typesafe.akka:akka-testkit_${scalaAbiVersion}:${akkaVersion}"
 		testCompile 'com.google.jimfs:jimfs:1.0'
