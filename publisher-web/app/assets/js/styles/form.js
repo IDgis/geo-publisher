@@ -188,6 +188,8 @@ require ([
 		e.preventDefault ();
 		e.stopPropagation ();
 		
+		var sldScheme = query ('input[name="sldScheme"]:checked')[0].value;
+		
 		var value = editor.getValue ();
 		
 		validateButton.disabled = true;
@@ -199,7 +201,7 @@ require ([
 		
 		domClass.remove (styleEditorGroup, ['has-error', 'has-success']);
 		
-		xhr.post (jsRoutes.controllers.Styles.validateSld ().url, {
+		xhr.post (jsRoutes.controllers.Styles.validateSld (sldScheme).url, {
 			data: value,
 			handleAs: 'json',
 			headers: {

@@ -86,7 +86,7 @@ public class StyleAdmin extends AbstractAdmin {
 				addPageInfo (builder, listStyles.getPage (), count);
 				
 				return listQuery
-					.list (new QStyle (style.identification, style.name, Expressions.constant(""), style.styleType, styleInUse))
+					.list (new QStyle (style.identification, style.name, style.styleSchemeType, Expressions.constant(""), style.styleType, styleInUse))
 					.thenApply ((styles) -> {
 						builder.addAll (styles.list ());
 						return builder.build ();
@@ -102,7 +102,7 @@ public class StyleAdmin extends AbstractAdmin {
 			db.query().from(style)
 			.leftJoin(layerStyle).on(style.id.eq(layerStyle.styleId)).distinct()
 			.where(style.identification.eq(styleId))
-			.singleResult(new nl.idgis.publisher.domain.web.QStyle(style.identification, style.name, style.definition,style.styleType, layerStyle.styleId.isNotNull()));		
+			.singleResult(new nl.idgis.publisher.domain.web.QStyle(style.identification, style.name, style.styleSchemeType, style.definition,style.styleType, layerStyle.styleId.isNotNull()));		
 	}
 	
 	private CompletableFuture<Response<?>> handlePutStyle(Style theStyle) {
@@ -127,6 +127,7 @@ public class StyleAdmin extends AbstractAdmin {
 					.set(style.name, styleName)
 					.set(style.definition, theStyle.definition())
 					.set(style.styleType, theStyle.styleType().name())
+					.set(style.styleSchemeType, theStyle.sldScheme())
 					.execute()
 					.thenApply(l -> new Response<String>(CrudOperation.CREATE, CrudResponse.OK, newStyleId));
 				} else {
@@ -136,6 +137,7 @@ public class StyleAdmin extends AbstractAdmin {
 					.set(style.name, styleName)
 					.set(style.definition, theStyle.definition())
 					.set(style.styleType, theStyle.styleType().name())
+					.set(style.styleSchemeType, theStyle.sldScheme())
 					.where(style.identification.eq(styleId))
 					.execute()
 					.thenApply(l -> new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, styleId));

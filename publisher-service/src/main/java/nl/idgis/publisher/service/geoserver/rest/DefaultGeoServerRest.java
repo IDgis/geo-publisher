@@ -62,6 +62,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	
 	private static final Set<String> DEFAULT_STYLE_NAMES = Collections.unmodifiableSet(
 		new HashSet<>(Arrays.asList(
+			"generic",
 			"line",
 			"point",
 			"polygon",
@@ -1143,7 +1144,10 @@ public class DefaultGeoServerRest implements GeoServerRest {
 	public CompletableFuture<Void> postStyle(Style style) {
 		try {
 			Document sld = style.getSld();
-			return post(getStylesPath() + "?name=" + style.getName(), serializeStyle(sld), getStyleContentType(sld));
+			String styleSldName = String.format("<style><name>%s</name><filename>%s</filename></style>", style.getName(), style.getName());
+			byte[] serializedStyle = serializeStyle(sld);
+			
+			return post(getStylesPath(), styleSldName.getBytes(), "text/xml").thenRun(() -> put(getStylesPath() + "/" + style.getName(), serializedStyle, getStyleContentType(sld)));
 		} catch(Exception e) {
 			return f.failed(e);
 		}
