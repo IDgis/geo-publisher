@@ -30,6 +30,15 @@ else
 			echo Failed to enable $ENABLE_SERVICE service: no configuration file for service found
 	 	fi
 	done
+	
+	# Enable scale hints for wms services
+	WMS_CONFIG_FILE=$GEOSERVER_DATA_DIR/wms.xml
+	if [ -f $WMS_CONFIG_FILE ]; then
+		NEW_CONTENT=$(cat $WMS_CONFIG_FILE sed "/<metadata>/a <entry key=\"scalehintMapunitsPixel\">$ENABLE_SCALE_HINTS</entry>" | xml2 | 2xml)
+		echo $NEW_CONTENT > $WMS_CONFIG_FILE
+	else
+		echo Failed to find $WMS_CONFIG_FILE
+	fi
 fi
 
 if [ "$ZOOKEEPER_HOSTS" != "" ]; then
