@@ -109,9 +109,9 @@ public class WMSTest {
 		} catch(RuntimeException e) {
 			throw e;
 		} catch(WMSException e) {
-			error.append(" HTTP status: " + e.getResponseCode());
+			error.append(" ").append(e.getMessage());
 		} catch(Exception e) {
-			error.append(" exception: " + e.getMessage());
+			error.append(" unhandled exception: ").append(e.getMessage());
 		}
 		
 		if(error.length() == 0) {
@@ -136,8 +136,12 @@ public class WMSTest {
 		
 		throw new IllegalStateException("environment not found: " + environmentId);
 	}
-
+	
 	private static Set<String> getServiceContent(URL capabilitiesURL) throws Exception {
+		return getServiceContent(capabilitiesURL, 5);
+	}
+
+	private static Set<String> getServiceContent(URL capabilitiesURL, int maxRedirects) throws Exception {
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		dbf.setNamespaceAware(true);
 		
@@ -164,12 +168,25 @@ public class WMSTest {
 			}
 		});
 		
-		Document wmsCapabilities = db.parse(urlConnection.getInputStream());
-		
 		int responseCode = urlConnection.getResponseCode();
 		if(responseCode != 200) {
-			throw new WMSException(responseCode);
+			if(responseCode / 100 == 3) {
+				if(maxRedirects > 0) {
+					String location = urlConnection.getHeaderField("Location");
+					if(location != null) {
+						return getServiceContent(new URL(location), maxRedirects - 1);
+					} else {
+						throw new WMSException(responseCode, "Redirect location missing");
+					}
+				} else {
+					throw new WMSException(responseCode, "Maximum allowed redirects exceeded");
+				}
+			} else {
+				throw new WMSException(responseCode);
+			}
 		}
+		
+		Document wmsCapabilities = db.parse(urlConnection.getInputStream());
 		
 		XPathHelper xpath = new XPathHelper()
 			.bindNamespaceUri("wms", "http://www.opengis.net/wms")
