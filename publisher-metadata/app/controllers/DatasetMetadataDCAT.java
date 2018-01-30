@@ -97,9 +97,6 @@ public class DatasetMetadataDCAT extends Controller{
 				.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
 				.join(publishedService).on(publishedService.serviceId.eq(publishedServiceDataset2.serviceId))
 				.join(environment).on(environment.id.eq(publishedService.environmentId))
-				.where(environment.confidential.eq(false)
-						.and(environment.wmsOnly.eq(false))
-						.and(sourceDatasetVersion.type.eq("VECTOR")))
 				.orderBy(dataset.id.asc(), service.id.asc())
 				.list(dataset.id, dataset.identification, dataset.metadataFileIdentification, dataset.name, sourceDatasetVersion.confidential, sourceDatasetMetadata.document, publishedServiceDataset2.layerName, genericLayer.name, environment.url)				);
 	}
@@ -137,8 +134,6 @@ public class DatasetMetadataDCAT extends Controller{
 		Integer lastId = null;
 		for (Tuple ds : datasets) {
 			Integer currentId = ds.get(dataset.id);
-			// If a dataset is in multiple services, It appears multiple times in the resultset.
-			// Because the resultset is ordered, a simple check will do to make sure the dataset isn't serviced twice.
 			if (currentId != lastId) {
 				datasetsDcat.add(mapDcat(ds));
 			}
