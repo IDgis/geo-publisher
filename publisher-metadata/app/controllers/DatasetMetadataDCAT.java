@@ -97,8 +97,13 @@ public class DatasetMetadataDCAT extends Controller{
 				.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
 				.join(publishedService).on(publishedService.serviceId.eq(publishedServiceDataset2.serviceId))
 				.join(environment).on(environment.id.eq(publishedService.environmentId))
-				.orderBy(dataset.id.asc(), service.id.asc())
-				.list(dataset.id, dataset.identification, dataset.metadataFileIdentification, dataset.name, sourceDatasetVersion.confidential, sourceDatasetMetadata.document, publishedServiceDataset2.layerName, genericLayer.name, environment.url)				);
+				.where(environment.confidential.eq(false)
+						.and(environment.wmsOnly.eq(false))
+						.and(sourceDatasetVersion.type.eq("VECTOR")))
+				.groupBy(dataset.id, dataset.identification, dataset.metadataFileIdentification, dataset.name, sourceDatasetVersion.confidential, sourceDatasetMetadata.document, environment.url)
+				.orderBy(dataset.id.asc())
+				.list(dataset.id, dataset.identification, dataset.metadataFileIdentification, dataset.name, sourceDatasetVersion.confidential, sourceDatasetMetadata.document, publishedServiceDataset2.layerName.min(), genericLayer.name.min(), environment.url)
+			);
 	}
 
 	// Fetch all published datasets and generate a hashmap for each. 
@@ -122,22 +127,15 @@ public class DatasetMetadataDCAT extends Controller{
 		dcatResult.put("@type", type);
 		dcatResult.put("describedBy", describedBy);	
 
-
-		// A list of all datasets. A dataset is an 
+		// A list of all datasets.
 		List<Object> datasetsDcat = new ArrayList<>();
 
 		// get all published datasets
 		List<Tuple> datasets = getPublishedDatasets();
 
 		// Loop over all dataset to generate correct dcat metadata
-		
-		Integer lastId = null;
 		for (Tuple ds : datasets) {
-			Integer currentId = ds.get(dataset.id);
-			if (currentId != lastId) {
-				datasetsDcat.add(mapDcat(ds));
-			}
-			lastId = currentId;
+			datasetsDcat.add(mapDcat(ds));		
 		}
 
 		// Add hashmap with all datasets to our result
@@ -187,7 +185,6 @@ public class DatasetMetadataDCAT extends Controller{
 			distributions.add(distribution);
 		}
 		resultDataset.put("distribution", distributions);
-
 
 		// All info from XML
 		try {
