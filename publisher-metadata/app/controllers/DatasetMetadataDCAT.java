@@ -25,6 +25,7 @@ import java.util.Map;
 import javax.inject.Inject;
 
 import com.mysema.query.Tuple;
+import com.mysema.query.types.path.PathBuilder;
 
 import nl.idgis.publisher.database.QPublishedServiceDataset;
 import nl.idgis.publisher.metadata.MetadataDocument;
@@ -52,6 +53,9 @@ public class DatasetMetadataDCAT extends Controller{
 	private final Map<String, String[]> distributionsTypes;
 	private final String language = "dut";
 
+	private PathBuilder<Boolean> publishedServiceDatasetLayerNamePath = new PathBuilder<> (Boolean.class, "publishedServiceDatasetLayerNamePath");
+	private PathBuilder<Boolean> genericLayerName = new PathBuilder<> (Boolean.class, "genericLayerName");
+		
 	@Inject
 	public DatasetMetadataDCAT(MetadataConfig mdc, QueryDSL q, DatasetQueryBuilder dqb, MetadataDocumentFactory mdf) {
 		this.mdc = mdc;
@@ -102,7 +106,7 @@ public class DatasetMetadataDCAT extends Controller{
 						.and(sourceDatasetVersion.type.eq("VECTOR")))
 				.groupBy(dataset.id, dataset.identification, dataset.metadataFileIdentification, dataset.name, sourceDatasetVersion.confidential, sourceDatasetMetadata.document, environment.url)
 				.orderBy(dataset.id.asc())
-				.list(dataset.id, dataset.identification, dataset.metadataFileIdentification, dataset.name, sourceDatasetVersion.confidential, sourceDatasetMetadata.document, publishedServiceDataset2.layerName.min(), genericLayer.name.min(), environment.url)
+				.list(dataset.id, dataset.identification, dataset.metadataFileIdentification, dataset.name, sourceDatasetVersion.confidential, sourceDatasetMetadata.document, publishedServiceDataset2.layerName.min().as(publishedServiceDatasetLayerNamePath), genericLayer.name.min().as(genericLayerName), environment.url)
 			);
 	}
 
@@ -163,8 +167,8 @@ public class DatasetMetadataDCAT extends Controller{
 
 		String metadataIdent = ds.get(dataset.metadataFileIdentification);
 
-		String typeName = ds.get(publishedServiceDataset2.layerName).replaceAll(" ", "_");
-		String nameSpace = ds.get(genericLayer.name).replaceAll(" ", "_");
+		String typeName = ds.get(publishedServiceDatasetLayerNamePath).replaceAll(" ", "_");
+		String nameSpace = ds.get(genericLayerName).replaceAll(" ", "_");
 
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 
