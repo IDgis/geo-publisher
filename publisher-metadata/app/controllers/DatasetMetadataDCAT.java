@@ -25,6 +25,7 @@ import java.util.Map;
 import javax.inject.Inject;
 
 import com.mysema.query.Tuple;
+import com.mysema.query.types.path.PathBuilder;
 
 import nl.idgis.publisher.database.QPublishedServiceDataset;
 import nl.idgis.publisher.metadata.MetadataDocument;
@@ -52,6 +53,9 @@ public class DatasetMetadataDCAT extends Controller{
 	private final Map<String, String[]> distributionsTypes;
 	private final String language = "dut";
 
+	private PathBuilder<String> publishedServiceDatasetLayerNamePath = new PathBuilder<> (String.class, "publishedServiceDatasetLayerNamePath");
+	private PathBuilder<String> genericLayerName = new PathBuilder<> (String.class, "genericLayerName");
+		
 	@Inject
 	public DatasetMetadataDCAT(MetadataConfig mdc, QueryDSL q, DatasetQueryBuilder dqb, MetadataDocumentFactory mdf) {
 		this.mdc = mdc;
@@ -100,8 +104,10 @@ public class DatasetMetadataDCAT extends Controller{
 				.where(environment.confidential.eq(false)
 						.and(environment.wmsOnly.eq(false))
 						.and(sourceDatasetVersion.type.eq("VECTOR")))
-				.orderBy(dataset.id.asc(), service.id.asc())
-				.list(dataset.id, dataset.identification, dataset.metadataFileIdentification, dataset.name, sourceDatasetVersion.confidential, sourceDatasetMetadata.document, publishedServiceDataset2.layerName, genericLayer.name, environment.url)				);
+				.groupBy(dataset.id, dataset.identification, dataset.metadataFileIdentification, dataset.name, sourceDatasetVersion.confidential, sourceDatasetMetadata.document, environment.url)
+				.orderBy(dataset.id.asc())
+				.list(dataset.id, dataset.identification, dataset.metadataFileIdentification, dataset.name, sourceDatasetVersion.confidential, sourceDatasetMetadata.document, publishedServiceDataset2.layerName.min().as(publishedServiceDatasetLayerNamePath), genericLayer.name.min().as(genericLayerName), environment.url)
+			);
 	}
 
 	// Fetch all published datasets and generate a hashmap for each. 
@@ -125,24 +131,15 @@ public class DatasetMetadataDCAT extends Controller{
 		dcatResult.put("@type", type);
 		dcatResult.put("describedBy", describedBy);	
 
-
-		// A list of all datasets. A dataset is an 
+		// A list of all datasets.
 		List<Object> datasetsDcat = new ArrayList<>();
 
 		// get all published datasets
 		List<Tuple> datasets = getPublishedDatasets();
 
 		// Loop over all dataset to generate correct dcat metadata
-		
-		Integer lastId = null;
 		for (Tuple ds : datasets) {
-			Integer currentId = ds.get(dataset.id);
-			// If a dataset is in multiple services, It appears multiple times in the resultset.
-			// Because the resultset is ordered, a simple check will do to make sure the dataset isn't serviced twice.
-			if (currentId != lastId) {
-				datasetsDcat.add(mapDcat(ds));
-			}
-			lastId = currentId;
+			datasetsDcat.add(mapDcat(ds));		
 		}
 
 		// Add hashmap with all datasets to our result
@@ -170,8 +167,8 @@ public class DatasetMetadataDCAT extends Controller{
 
 		String metadataIdent = ds.get(dataset.metadataFileIdentification);
 
-		String typeName = ds.get(publishedServiceDataset2.layerName).replaceAll(" ", "_");
-		String nameSpace = ds.get(genericLayer.name).replaceAll(" ", "_");
+		String typeName = ds.get(publishedServiceDatasetLayerNamePath).replaceAll(" ", "_");
+		String nameSpace = ds.get(genericLayerName).replaceAll(" ", "_");
 
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 
