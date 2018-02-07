@@ -53,8 +53,8 @@ public class DatasetMetadataDCAT extends Controller{
 	private final Map<String, String[]> distributionsTypes;
 	private final String language = "dut";
 
-	private PathBuilder<Boolean> publishedServiceDatasetLayerNamePath = new PathBuilder<> (Boolean.class, "publishedServiceDatasetLayerNamePath");
-	private PathBuilder<Boolean> genericLayerName = new PathBuilder<> (Boolean.class, "genericLayerName");
+	private PathBuilder<String> publishedServiceDatasetLayerNamePath = new PathBuilder<> (String.class, "publishedServiceDatasetLayerNamePath");
+	private PathBuilder<String> genericLayerName = new PathBuilder<> (String.class, "genericLayerName");
 		
 	@Inject
 	public DatasetMetadataDCAT(MetadataConfig mdc, QueryDSL q, DatasetQueryBuilder dqb, MetadataDocumentFactory mdf) {
