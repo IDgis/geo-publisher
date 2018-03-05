@@ -56,7 +56,8 @@ class DatasetQueryBuilder {
 		return joinSourceDatasetVersion(tx.query().from(dataset)
 			.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
 			.join(sourceDatasetMetadata).on(sourceDatasetMetadata.sourceDatasetId.eq(sourceDataset.id))
-			.where(isPublishedDataset()));
+			.where(isPublishedDataset()
+				.and(sourceDataset.deleteTime.isNull())));
 	}
 	
 	SQLQuery fromSourceDataset(Transaction tx) {
@@ -70,9 +71,10 @@ class DatasetQueryBuilder {
 			tx.query().from(sourceDataset)
 				.join(sourceDatasetMetadata).on(sourceDatasetMetadata.sourceDatasetId.eq(sourceDataset.id))
 				.where(new SQLSubQuery().from(dataset)
-					.where(dataset.sourceDatasetId.eq(sourceDataset.id))
-					.where(isPublishedDataset())
-					.notExists()));
+						.where(dataset.sourceDatasetId.eq(sourceDataset.id))
+						.where(isPublishedDataset())
+						.notExists()
+					.and(sourceDataset.deleteTime.isNull())));
 	}
 	
 }

@@ -118,7 +118,8 @@ public class DatasetMetadata extends AbstractMetadata {
 	
 	private Optional<Resource> sourceDatasetResource(String id, Transaction tx) {
 		return Optional.ofNullable(dqb.fromSourceDataset(tx)
-			.where(sourceDataset.metadataFileIdentification.eq(id))
+			.where(sourceDataset.metadataFileIdentification.eq(id)
+				.and(sourceDataset.deleteTime.isNull()))
 			.singleResult(
 				sourceDataset.metadataIdentification,
 				sourceDatasetMetadata.sourceDatasetId,
@@ -134,7 +135,8 @@ public class DatasetMetadata extends AbstractMetadata {
 
 	private Optional<Resource> datasetResource(String id, Transaction tx) throws Exception {
 		return Optional.ofNullable(dqb.fromDataset(tx)
-			.where(dataset.metadataFileIdentification.eq(id))
+			.where(dataset.metadataFileIdentification.eq(id)
+				.and(sourceDataset.deleteTime.isNull()))
 			.singleResult(
 				dataset.id,
 				dataset.metadataIdentification,
