@@ -84,6 +84,9 @@ POST	/styles/-/validate								controllers.Styles.validateSld(sldScheme : String
 GET		/styles/:styleId/edit							controllers.Styles.edit(styleId: String)
 POST 	/styles/:styleId/delete							controllers.Styles.delete(styleId : String)
 
+# Provider
+GET		/provider/connection							controllers.Provider.connection()
+
 # Logging
 GET		/logging/messages								controllers.Logging.messages()
 GET		/logging/messages/:logLevels/:page				controllers.Logging.messagesWithFilter(logLevels: String, page: Long)

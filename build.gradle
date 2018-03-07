@@ -286,6 +286,7 @@ project(':publisher-web') {
 		play "com.typesafe.akka:akka-remote_${scalaAbiVersion}:${akkaVersion}"
 		play 'org.pegdown:pegdown:1.5.0'
 		play 'org.webjars:ace:01.08.2014'
+		play 'com.google.code.gson:gson:2.8.2'
 	}
 }
 
