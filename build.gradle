@@ -27,7 +27,7 @@ import com.bmuschko.gradle.docker.tasks.image.DockerPullImage
 
 task pullJavaImage(type: DockerPullImage) {
 	repository 'azul/zulu-openjdk'
-	tag 'latest'
+	tag '8'
 }
 
 ext {
@@ -380,7 +380,7 @@ project(':publisher-provider:publisher-provider-app') {
 	
 	task createDockerfile(type: Dockerfile) {
 		destFile = file("${project.buildDir}/docker/Dockerfile")
-		from 'azul/zulu-openjdk'
+		from 'azul/zulu-openjdk:8'
 		workingDir '/etc/geo-publisher/provider/'
 		copyFile "publisher-provider-app-${project.version}", '/opt'
 		copyFile 'conf', '/etc/geo-publisher/provider'
@@ -562,7 +562,7 @@ project(':publisher-monitor') {
 	
 	task createDockerfile(type: Dockerfile) {
 		destFile = file("${project.buildDir}/docker/Dockerfile")
-		from 'azul/zulu-openjdk'
+		from 'azul/zulu-openjdk:8'
 		copyFile "publisher-monitor-${project.version}", '/opt'
 		runCommand 'chmod +x /opt/bin/publisher-monitor'
 		entryPoint '/opt/bin/publisher-monitor'
@@ -661,7 +661,7 @@ project(':publisher-service') {
 
 	task createDockerfile(type: Dockerfile) {
 		destFile = file("${project.buildDir}/docker/Dockerfile")
-		from 'azul/zulu-openjdk'
+		from 'azul/zulu-openjdk:8'
 		copyFile "publisher-service-${project.version}", '/opt'
 		copyFile 'agents', "/opt/bin/agents"
 		copyFile 'start.sh', '/opt'
@@ -824,7 +824,7 @@ project(':publisher-console') {
 
 	task createDockerfile(type: Dockerfile) {
 		destFile = file("${project.buildDir}/docker/Dockerfile")
-		from 'azul/zulu-openjdk'
+		from 'azul/zulu-openjdk:8'
 		copyFile "publisher-console-${project.version}", '/opt'
 		runCommand 'chmod +x /opt/bin/publisher-console'
 		entryPoint "/opt/bin/publisher-console"
