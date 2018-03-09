@@ -75,7 +75,7 @@ public class VectorDatasetInfoBuilder extends AbstractDatasetInfoBuilder {
 	}
 
 	protected void processMetadata() {
-		if(!"vector".equals(spatialRepresentationType)) {
+		if(!"vector".equals(spatialRepresentationType) && !"textTable".equals(spatialRepresentationType)) {
 			tellTarget(new SkipDataset(identification));
 			return;
 		}
