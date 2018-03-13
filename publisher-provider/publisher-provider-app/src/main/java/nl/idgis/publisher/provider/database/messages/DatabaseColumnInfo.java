@@ -31,6 +31,7 @@ public class DatabaseColumnInfo implements Serializable {
 			case "FLOAT":
 				return Type.NUMERIC;
 			case "DATE":
+			case "TIMESTAMP(6)":
 				return Type.DATE;
 			case "VARCHAR2":
 			case "NVARCHAR2":
