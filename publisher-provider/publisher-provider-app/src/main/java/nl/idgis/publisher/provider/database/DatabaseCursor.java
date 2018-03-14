@@ -24,6 +24,7 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
 import oracle.sql.STRUCT;
+import oracle.sql.TIMESTAMP;
 
 import org.deegree.geometry.Geometry;
 import org.deegree.geometry.io.WKBWriter;
@@ -59,7 +60,23 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 		
 		log.debug("database column value: " + value);
 		
-		if(columnInfo.getType() == Type.GEOMETRY) {
+		if(columnInfo.getType() == Type.DATE) {
+			String typeName = columnInfo.getTypeName();
+			if("TIMESTAMP(6)".equals(typeName)) {
+				log.debug("database column value is of type timestamp(6)");
+				if(value instanceof TIMESTAMP) {
+					log.debug("database column value is of type oracle.sql.timestamp");
+					
+					TIMESTAMP timestamp = (TIMESTAMP)value;
+					return timestamp.timestampValue();
+				} else {
+					log.error("unsupported value class: {}", value.getClass().getCanonicalName());
+					return null;
+				}
+			} else {
+				return value;
+			}
+		} else if(columnInfo.getType() == Type.GEOMETRY) {
 			String typeName = columnInfo.getTypeName();
 			if("SDO_GEOMETRY".equals(typeName)) {
 				log.debug("database column value is of type sdo_geometry");
