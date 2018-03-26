@@ -56,6 +56,10 @@ import static nl.idgis.publisher.database.QDatasetView.datasetView;
 
 import java.io.IOException;
 import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -532,7 +536,8 @@ public class DatasetMetadata extends AbstractMetadata {
 		return dqb.fromNonPublishedSourceDataset(tx).list(
 			sourceDataset.metadataFileIdentification,
 			sourceDatasetVersion.metadataConfidential,
-			sourceDatasetVersion.revision).stream()
+			sourceDatasetVersion.revision,
+			sourceDatasetMetadata.document).stream()
 			.map(tuple -> tupleToDatasetDescription(tuple, sourceDataset.metadataFileIdentification, false));
 	}
 	
@@ -540,12 +545,29 @@ public class DatasetMetadata extends AbstractMetadata {
 		return dqb.fromPublishedDataset(tx).list(
 			dataset.metadataFileIdentification, 
 			sourceDatasetVersion.metadataConfidential,
-			sourceDatasetVersion.revision).stream()
+			sourceDatasetVersion.revision,
+			sourceDatasetMetadata.document).stream()
 			.map(tuple -> tupleToDatasetDescription(tuple, dataset.metadataFileIdentification, true));
 	}
 
 	private ResourceDescription tupleToDatasetDescription(Tuple tuple, Expression<String> identificationExpression, boolean published) {
-		Timestamp createTime = tuple.get(sourceDatasetVersion.revision);
+		Timestamp createTime = null;
+		
+		MetadataDocument metadataDocument;
+		try {
+			metadataDocument = mdf.parseDocument(tuple.get(sourceDatasetMetadata.document));
+			String metadataRevisionDateString = metadataDocument.getMetaDataCreationDate();
+			
+			LocalDate metadataRevisionDate = 
+					LocalDate.parse(metadataRevisionDateString, 
+							DateTimeFormatter.ISO_DATE);
+			createTime = Timestamp.valueOf(LocalDateTime.of(metadataRevisionDate, LocalTime.MIN));
+		} catch (Exception e) {
+			Logger.info(tuple.get(identificationExpression) + ": Either metadata document "
+					+ "doesn't exist, metadata revision date can't be found or date is not in "
+					+ "iso date format");
+		}
+		
 		boolean confidential = tuple.get(sourceDatasetVersion.metadataConfidential);
 		
 		return new DefaultResourceDescription(
