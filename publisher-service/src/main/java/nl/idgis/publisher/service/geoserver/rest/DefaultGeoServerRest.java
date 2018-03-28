@@ -1065,6 +1065,10 @@ public class DefaultGeoServerRest implements GeoServerRest {
 					sw.writeCharacters("UTF-8");
 				sw.writeEndElement();
 				
+				sw.writeStartElement("numDecimals");
+					sw.writeCharacters("5");
+				sw.writeEndElement();
+				
 			sw.writeEndElement();
 			
 			sw.writeEndDocument();
