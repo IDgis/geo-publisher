@@ -172,7 +172,7 @@ public class DatasetMetadata extends AbstractMetadata {
 				.where(sourceDatasetVersionSub.sourceDatasetId.eq(dataset.sourceDatasetId))
 				.notExists())
 			.where(sourceDatasetVersionColumn.alias.isNotNull())
-			.orderBy(sourceDatasetVersionColumn.index.desc())
+			.orderBy(sourceDatasetVersionColumn.index.asc())
 			.list(sourceDatasetVersionColumn.name, sourceDatasetVersionColumn.alias);
 	}
 
@@ -307,7 +307,7 @@ public class DatasetMetadata extends AbstractMetadata {
 								.where(sourceDatasetVersion.sourceDatasetId.eq(sourceDatasetId))
 								.unique(sourceDatasetVersion.id.max())))
 						.where(sourceDatasetVersionColumn.alias.isNotNull())
-						.orderBy(sourceDatasetVersionColumn.index.desc())
+						.orderBy(sourceDatasetVersionColumn.index.asc())
 						.list(sourceDatasetVersionColumn.name, sourceDatasetVersionColumn.alias));
 			} else {
 				final QSourceDatasetVersionColumn sourceDatasetVersionColumnSub = new QSourceDatasetVersionColumn("source_dataset_version_column_sub");
