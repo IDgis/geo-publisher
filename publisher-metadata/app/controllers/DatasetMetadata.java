@@ -230,6 +230,10 @@ public class DatasetMetadata extends AbstractMetadata {
 					String type = supplementalInformation.substring(0, separator);
 					String url = supplementalInformation.substring(separator + 1).trim().replace('\\', '/');
 					
+					if(url.endsWith("/")) {
+						url = url.substring(0, url.length() -1);
+					}
+					
 					String fileName;
 					Matcher urlMatcher = urlPattern.matcher(url);
 					if(urlMatcher.find()) {
@@ -243,7 +247,7 @@ public class DatasetMetadata extends AbstractMetadata {
 							type + "|" + 
 								routes.Attachment.get(attachments.get(supplementalInformation).toString(), fileName)
 								.absoluteURL(false, config.getHost());
-					
+						
 						metadataDocument.updateSupplementalInformation(
 							supplementalInformation,
 							updatedSupplementalInformation);
