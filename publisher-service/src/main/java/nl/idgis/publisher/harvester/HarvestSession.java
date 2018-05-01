@@ -1,5 +1,6 @@
 package nl.idgis.publisher.harvester;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -49,6 +50,8 @@ public class HarvestSession extends UntypedActor {
 	
 	private final Set<String> toBeRemovedDatasetIds;
 	
+	private final Set<String> alreadyHandledDatasetIds;
+	
 	private final boolean includeConfidential;
 	
 	private FutureUtils f;
@@ -60,6 +63,7 @@ public class HarvestSession extends UntypedActor {
 		this.datasetManager = datasetManager;
 		this.harvestJob = harvestJob;
 		this.toBeRemovedDatasetIds = currentDatasetIds;
+		this.alreadyHandledDatasetIds = new HashSet<>();
 		this.includeConfidential = includeConfidential;
 	}
 	
@@ -182,6 +186,9 @@ public class HarvestSession extends UntypedActor {
 		
 		ActorRef sender = getSender();
 		
+		boolean datasetIdAlreadyHandled = alreadyHandledDatasetIds.contains(dataset.getId());
+		alreadyHandledDatasetIds.add(dataset.getId());
+		
 		final boolean includeDataset;
 		if(includeConfidential) {
 			includeDataset = true;
@@ -189,7 +196,13 @@ public class HarvestSession extends UntypedActor {
 			includeDataset = !dataset.isConfidential();
 		}
 		
-		if(includeDataset) {
+		if(datasetIdAlreadyHandled) {
+			log.debug("dataset with external uuid " + 
+					dataset.getId() + 
+					" has already been handled in this harvest session");
+			
+			sender.tell(new NextItem(), getSelf());
+		} else if(includeDataset) {
 			String dataSourceId = harvestJob.getDataSourceId();
 			toBeRemovedDatasetIds.remove(dataset.getId());
 			
