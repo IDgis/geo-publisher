@@ -1,10 +1,12 @@
 package nl.idgis.publisher.harvester;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import nl.idgis.publisher.dataset.messages.AlreadyRegistered;
 import nl.idgis.publisher.dataset.messages.Cleanup;
+import nl.idgis.publisher.dataset.messages.HarvestSessionDatasetDuplicate;
 import nl.idgis.publisher.dataset.messages.DeleteSourceDatasets;
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 import nl.idgis.publisher.dataset.messages.Registered;
@@ -49,6 +51,8 @@ public class HarvestSession extends UntypedActor {
 	
 	private final Set<String> toBeRemovedDatasetIds;
 	
+	private final Set<String> alreadyHandledDatasetIds;
+	
 	private final boolean includeConfidential;
 	
 	private FutureUtils f;
@@ -60,6 +64,7 @@ public class HarvestSession extends UntypedActor {
 		this.datasetManager = datasetManager;
 		this.harvestJob = harvestJob;
 		this.toBeRemovedDatasetIds = currentDatasetIds;
+		this.alreadyHandledDatasetIds = new HashSet<>();
 		this.includeConfidential = includeConfidential;
 	}
 	
@@ -182,6 +187,11 @@ public class HarvestSession extends UntypedActor {
 		
 		ActorRef sender = getSender();
 		
+		boolean datasetIdAlreadyHandled = alreadyHandledDatasetIds.contains(dataset.getId());
+		alreadyHandledDatasetIds.add(dataset.getId());
+		
+		String dataSourceId = harvestJob.getDataSourceId();
+		
 		final boolean includeDataset;
 		if(includeConfidential) {
 			includeDataset = true;
@@ -189,8 +199,15 @@ public class HarvestSession extends UntypedActor {
 			includeDataset = !dataset.isConfidential();
 		}
 		
-		if(includeDataset) {
-			String dataSourceId = harvestJob.getDataSourceId();
+		if(datasetIdAlreadyHandled) {
+			log.debug("dataset with external uuid " + 
+					dataset.getId() + 
+					" has already been handled in this harvest session");
+			
+			f.ask(datasetManager, new HarvestSessionDatasetDuplicate(dataSourceId, dataset.getId()));
+			
+			sender.tell(new NextItem(), getSelf());
+		} else if(includeDataset) {
 			toBeRemovedDatasetIds.remove(dataset.getId());
 			
 			f.ask(datasetManager, new RegisterSourceDataset(dataSourceId, dataset))
