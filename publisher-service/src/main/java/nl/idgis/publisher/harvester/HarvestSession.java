@@ -6,6 +6,7 @@ import java.util.concurrent.TimeUnit;
 
 import nl.idgis.publisher.dataset.messages.AlreadyRegistered;
 import nl.idgis.publisher.dataset.messages.Cleanup;
+import nl.idgis.publisher.dataset.messages.HarvestSessionDatasetDuplicate;
 import nl.idgis.publisher.dataset.messages.DeleteSourceDatasets;
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 import nl.idgis.publisher.dataset.messages.Registered;
@@ -189,6 +190,8 @@ public class HarvestSession extends UntypedActor {
 		boolean datasetIdAlreadyHandled = alreadyHandledDatasetIds.contains(dataset.getId());
 		alreadyHandledDatasetIds.add(dataset.getId());
 		
+		String dataSourceId = harvestJob.getDataSourceId();
+		
 		final boolean includeDataset;
 		if(includeConfidential) {
 			includeDataset = true;
@@ -201,9 +204,10 @@ public class HarvestSession extends UntypedActor {
 					dataset.getId() + 
 					" has already been handled in this harvest session");
 			
+			f.ask(datasetManager, new HarvestSessionDatasetDuplicate(dataSourceId, dataset.getId()));
+			
 			sender.tell(new NextItem(), getSelf());
 		} else if(includeDataset) {
-			String dataSourceId = harvestJob.getDataSourceId();
 			toBeRemovedDatasetIds.remove(dataset.getId());
 			
 			f.ask(datasetManager, new RegisterSourceDataset(dataSourceId, dataset))
