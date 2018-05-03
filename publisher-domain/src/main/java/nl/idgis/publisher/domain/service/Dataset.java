@@ -1,7 +1,7 @@
 package nl.idgis.publisher.domain.service;
 
 import java.io.Serializable;
-import java.util.Date;
+import java.time.ZonedDateTime;
 import java.util.Optional;
 import java.util.Set;
 
@@ -10,13 +10,13 @@ import nl.idgis.publisher.metadata.MetadataDocument;
 
 public abstract class Dataset implements Serializable {
 	
-	private static final long serialVersionUID = -9126758457516863133L;
-
+	private static final long serialVersionUID = 5958577175815972860L;
+	
 	protected final String id, name, alternateTitle;
 	
 	protected final String categoryId;
 	
-	protected final Date revisionDate;
+	protected final ZonedDateTime revisionDate;
 	
 	protected final Set<Log> logs;
 	
@@ -30,7 +30,7 @@ public abstract class Dataset implements Serializable {
 	
 	protected final String refreshFrequency;
 	
-	Dataset(String id, String name, String alternateTitle, String categoryId, Date revisionDate, Set<Log> logs, boolean confidential, boolean metadataConfidential, boolean wmsOnly, MetadataDocument metadata, String physicalName, String refreshFrequency) {
+	Dataset(String id, String name, String alternateTitle, String categoryId, ZonedDateTime revisionDate, Set<Log> logs, boolean confidential, boolean metadataConfidential, boolean wmsOnly, MetadataDocument metadata, String physicalName, String refreshFrequency) {
 		this.id = id;
 		this.name = name;
 		this.alternateTitle = alternateTitle;
@@ -61,7 +61,7 @@ public abstract class Dataset implements Serializable {
 		return categoryId;
 	}
 
-	public Date getRevisionDate() {
+	public ZonedDateTime getRevisionDate() {
 		return revisionDate;
 	}
 	

@@ -4,6 +4,10 @@ import java.io.IOException;
 import java.sql.Timestamp;
 import java.text.Format;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -13,16 +17,15 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
+
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 
 import nl.idgis.publisher.utils.SimpleDateFormatMapper;
 import nl.idgis.publisher.utils.XMLUtils.XPathHelper;
 import nl.idgis.publisher.xml.XMLDocument;
 import nl.idgis.publisher.xml.exceptions.NotFound;
 import nl.idgis.publisher.xml.exceptions.QueryFailure;
-
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
 
 /**
  * 
@@ -173,12 +176,21 @@ public class MetadataDocument {
 		}
 	}
 	
-	public Date getDatasetRevisionDate() throws NotFound {
+	public ZonedDateTime getDatasetRevisionDate() throws NotFound {
 		try { 
-			return getDate(Topic.DATASET, REVISION);
+			return getDatasetRevisionDate(REVISION);
 		} catch(NotFound nf) {
-			return getDate(Topic.DATASET, CREATION);
+			return getDatasetRevisionDate(CREATION);
 		}
+	}
+	
+	private ZonedDateTime getDatasetRevisionDate(String codeListValue) throws NotFound {
+		String dateString = isoMetadata.getString(namespaces, 
+				getDatePath(Topic.DATASET, codeListValue) + 
+				"/gco:Date");
+		
+		LocalDate date = LocalDate.parse(dateString, DateTimeFormatter.ISO_DATE);
+		return date.atStartOfDay(ZoneId.of("Europe/Amsterdam"));
 	}
 	
 	public void setDatasetRevisionDate(Timestamp ts) throws Exception {

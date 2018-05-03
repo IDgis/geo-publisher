@@ -1,6 +1,6 @@
 package nl.idgis.publisher.provider.protocol;
 
-import java.util.Date;
+import java.time.ZonedDateTime;
 import java.util.Set;
 
 import nl.idgis.publisher.domain.Log;
@@ -13,8 +13,8 @@ import nl.idgis.publisher.domain.Log;
  */
 public class RasterDatasetInfo extends DatasetInfo {
 	
-	private static final long serialVersionUID = 485802087301023495L;
-
+	private static final long serialVersionUID = -8448537523977967833L;
+	
 	private final RasterFormat format;
 	
 	private final long size;
@@ -31,7 +31,7 @@ public class RasterDatasetInfo extends DatasetInfo {
 	 * @param format file format of the dataset.
 	 * @param size size of the dataset
 	 */
-	public RasterDatasetInfo(String identification, String title, String alternateTitle, String categoryId, Date revisionDate, Set<Attachment> attachments, 
+	public RasterDatasetInfo(String identification, String title, String alternateTitle, String categoryId, ZonedDateTime revisionDate, Set<Attachment> attachments, 
 		Set<Log> logs, RasterFormat format, long size) {
 		
 		super(identification, title, alternateTitle, categoryId, revisionDate, attachments, logs);
