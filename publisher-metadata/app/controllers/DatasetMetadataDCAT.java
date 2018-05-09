@@ -1,21 +1,16 @@
 package controllers;
 
 import static nl.idgis.publisher.database.QDataset.dataset;
-import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
-import static nl.idgis.publisher.database.QSourceDatasetMetadata.sourceDatasetMetadata;
-import static nl.idgis.publisher.database.QService.service;
-import static nl.idgis.publisher.database.QPublishedService.publishedService;
 import static nl.idgis.publisher.database.QEnvironment.environment;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
-
-import play.mvc.*;
-import util.MetadataConfig;
-import util.QueryDSL;
-import play.api.Environment;
-import play.libs.Json;
+import static nl.idgis.publisher.database.QPublishedService.publishedService;
+import static nl.idgis.publisher.database.QService.service;
+import static nl.idgis.publisher.database.QSourceDatasetMetadata.sourceDatasetMetadata;
+import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 
 import java.text.SimpleDateFormat;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -32,6 +27,11 @@ import nl.idgis.publisher.database.QPublishedServiceDataset;
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.xml.exceptions.NotFound;
+import play.libs.Json;
+import play.mvc.Controller;
+import play.mvc.Result;
+import util.MetadataConfig;
+import util.QueryDSL;
 
 public class DatasetMetadataDCAT extends Controller{
 
@@ -214,7 +214,7 @@ public class DatasetMetadataDCAT extends Controller{
 			
 			try {
 				ZonedDateTime modDate = metadataDocument.getDatasetRevisionDate();
-				resultDataset.put("modified", sdf.format(Date.from(modDate.toInstant())));
+				resultDataset.put("modified", DateTimeFormatter.ofPattern("yyyy-MM-dd").format(modDate));
 			} catch (NotFound nf) {
 				
 				resultDataset.put("modified", null);
