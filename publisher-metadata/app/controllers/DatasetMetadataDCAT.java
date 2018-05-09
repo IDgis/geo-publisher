@@ -15,6 +15,7 @@ import play.api.Environment;
 import play.libs.Json;
 
 import java.text.SimpleDateFormat;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -149,11 +150,9 @@ public class DatasetMetadataDCAT extends Controller{
 	}
 
 	private Map<String, Object> mapDcat(Tuple ds) {
-		final QPublishedServiceDataset publishedServiceDataset2 = new QPublishedServiceDataset("published_service_dataset2");
-
 		Map<String, Object> resultDataset = new HashMap<>();
 		List<Object> distributions = new ArrayList<>();
-
+		
 		/*
 		 * For the GetFeature URL the nameSpace is the service name. It is stored in generic_layer.layerName. The typeName is stored in published_service_dataset.layerName
 		 * The UUID for the landingspage URL is the metadata for this dataset contained in the xml.
@@ -204,20 +203,20 @@ public class DatasetMetadataDCAT extends Controller{
 			} catch (NotFound nf) {
 				resultDataset.put("description", null);
 			}
-
+			
 			try {
 				Date pubDate = metadataDocument.getDatasetPublicationDate();
 				resultDataset.put("issued", sdf.format(pubDate));
 			} catch (NotFound nf) {
-
+				
 				resultDataset.put("issued", null);
 			}
-
+			
 			try {
-				Date modDate = metadataDocument.getDatasetRevisionDate();
-				resultDataset.put("modified", sdf.format(modDate));
+				ZonedDateTime modDate = metadataDocument.getDatasetRevisionDate();
+				resultDataset.put("modified", sdf.format(Date.from(modDate.toInstant())));
 			} catch (NotFound nf) {
-
+				
 				resultDataset.put("modified", null);
 			}
 

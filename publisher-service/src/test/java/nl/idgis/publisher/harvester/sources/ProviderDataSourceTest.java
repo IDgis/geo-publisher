@@ -6,9 +6,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.InputStream;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -30,16 +32,13 @@ import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-
 import nl.idgis.publisher.collector.Collector;
 import nl.idgis.publisher.collector.messages.GetMessage;
-
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.domain.service.VectorDataset;
-
 import nl.idgis.publisher.harvester.sources.messages.FetchVectorDataset;
 import nl.idgis.publisher.harvester.sources.messages.GetMetadata;
 import nl.idgis.publisher.harvester.sources.messages.ListDatasets;
@@ -87,7 +86,9 @@ public class ProviderDataSourceTest {
 		ColumnInfo[] columns = {new ColumnInfo("id", Type.NUMERIC, "the id"), new ColumnInfo("title", Type.TEXT, "the title")};
 		TableInfo tableInfo = new TableInfo(columns);
 		
-		vectorDatasetInfo = new VectorDatasetInfo("vectorDataset", "vectorDatasetTitle", "vectorDatasetAlternateTitle", "categoryId", new Date(), attachments, logs, "tableName", tableInfo, 42);
+		ZonedDateTime revision = ZonedDateTime.of(LocalDate.now().atStartOfDay(), ZoneId.of("Europe/Amsterdam"));
+		
+		vectorDatasetInfo = new VectorDatasetInfo("vectorDataset", "vectorDatasetTitle", "vectorDatasetAlternateTitle", "categoryId", revision, attachments, logs, "tableName", tableInfo, 42);
 	}
 	
 	@Before

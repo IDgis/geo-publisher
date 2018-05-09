@@ -1,5 +1,7 @@
 package nl.idgis.publisher.database;
 
+import static nl.idgis.publisher.database.QDataSource.dataSource;
+
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -7,10 +9,11 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
@@ -18,26 +21,6 @@ import java.util.Set;
 
 import org.junit.After;
 import org.junit.Before;
-
-import scala.concurrent.ExecutionContext;
-
-import nl.idgis.publisher.database.ExtendedPostgresTemplates;
-import nl.idgis.publisher.domain.Log;
-import nl.idgis.publisher.domain.job.LogLevel;
-import nl.idgis.publisher.domain.service.Column;
-import nl.idgis.publisher.domain.service.DatasetLogType;
-import nl.idgis.publisher.domain.service.Table;
-import nl.idgis.publisher.domain.service.Type;
-import nl.idgis.publisher.domain.service.UnavailableDataset;
-import nl.idgis.publisher.domain.service.VectorDataset;
-import nl.idgis.publisher.metadata.MetadataDocument;
-import nl.idgis.publisher.metadata.MetadataDocumentTest;
-import nl.idgis.publisher.utils.FutureUtils;
-import nl.idgis.publisher.utils.JdbcUtils;
-
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
 
 import com.mysema.query.QueryMetadata;
 import com.mysema.query.sql.Configuration;
@@ -50,7 +33,22 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
-import static nl.idgis.publisher.database.QDataSource.dataSource;
+import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
+import akka.actor.Props;
+import nl.idgis.publisher.domain.Log;
+import nl.idgis.publisher.domain.job.LogLevel;
+import nl.idgis.publisher.domain.service.Column;
+import nl.idgis.publisher.domain.service.DatasetLogType;
+import nl.idgis.publisher.domain.service.Table;
+import nl.idgis.publisher.domain.service.Type;
+import nl.idgis.publisher.domain.service.UnavailableDataset;
+import nl.idgis.publisher.domain.service.VectorDataset;
+import nl.idgis.publisher.metadata.MetadataDocument;
+import nl.idgis.publisher.metadata.MetadataDocumentTest;
+import nl.idgis.publisher.utils.FutureUtils;
+import nl.idgis.publisher.utils.JdbcUtils;
+import scala.concurrent.ExecutionContext;
 
 public abstract class AbstractDatabaseTest {
 	
@@ -188,11 +186,30 @@ public abstract class AbstractDatabaseTest {
 				new Column("col1", Type.NUMERIC, null));
 		Table table = new Table(columns);
 		
-		Timestamp revision = new Timestamp(new Date().getTime());
+		ZonedDateTime revision = ZonedDateTime.of(
+				LocalDate.now().atStartOfDay(), ZoneId.of("Europe/Amsterdam"));
 		
 		MetadataDocument metadata = MetadataDocumentTest.getDocument("dataset_metadata.xml");
 		
 		return new VectorDataset(id, "My Test Table", "alternate title", "testCategory", revision, Collections.<Log>emptySet(), false, false, false, metadata, table, null, null);
+	}
+	
+	protected VectorDataset createAnotherVectorDataset() throws Exception {
+		VectorDataset dataset = createVectorDataset("testVectorDataset");
+		return new VectorDataset(
+				dataset.getId(),
+				dataset.getName(),
+				dataset.getAlternateTitle(),
+				dataset.getCategoryId(),
+				dataset.getRevisionDate().minusDays(1),
+				dataset.getLogs(),
+				dataset.isConfidential(),
+				dataset.isMetadataConfidential(),
+				dataset.isWmsOnly(),
+				MetadataDocumentTest.getDocument("dataset_metadata.xml"),
+				dataset.getTable(),
+				dataset.getPhysicalName(),
+				dataset.getRefreshFrequency());
 	}
 	
 	protected UnavailableDataset createUnavailableDataset() {
@@ -203,7 +220,8 @@ public abstract class AbstractDatabaseTest {
 		Set<Log> logs = new HashSet<>();
 		logs.add(Log.create(LogLevel.ERROR, DatasetLogType.UNKNOWN_TABLE));
 		
-		Timestamp revision = new Timestamp(new Date().getTime());
+		ZonedDateTime revision = ZonedDateTime.of(
+				LocalDate.now().atStartOfDay(), ZoneId.of("Europe/Amsterdam"));
 		
 		return new UnavailableDataset(id, "My Test Table", "alternate title", "testCategory", revision, logs, false, false, false, null, null, null);
 	}

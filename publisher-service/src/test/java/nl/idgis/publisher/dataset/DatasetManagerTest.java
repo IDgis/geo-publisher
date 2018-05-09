@@ -7,19 +7,20 @@ import static nl.idgis.publisher.database.QSourceDatasetMetadataAttachment.sourc
 import static nl.idgis.publisher.database.QSourceDatasetMetadataAttachmentError.sourceDatasetMetadataAttachmentError;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionLog.sourceDatasetVersionLog;
-
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -41,6 +42,7 @@ import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.QTuple;
 import com.mysema.query.types.expr.DateTimeExpression;
 
+import nl.idgis.publisher.AbstractServiceTest;
 import nl.idgis.publisher.dataset.messages.AlreadyRegistered;
 import nl.idgis.publisher.dataset.messages.Cleanup;
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
@@ -55,7 +57,6 @@ import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.domain.service.UnavailableDataset;
 import nl.idgis.publisher.domain.service.VectorDataset;
-import nl.idgis.publisher.AbstractServiceTest;
 
 public class DatasetManagerTest extends AbstractServiceTest {
 	
@@ -185,7 +186,7 @@ public class DatasetManagerTest extends AbstractServiceTest {
 			f.ask(datasetManager, new RegisterSourceDataset("testDataSource", createVectorDataset("otherSourceDataset" + i)), Registered.class).get();
 		}
 		
-		VectorDataset dataset = createVectorDataset();		
+		VectorDataset dataset = createVectorDataset();
 		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", dataset), Registered.class).get();
 	
 		assertTrue(
@@ -219,8 +220,6 @@ public class DatasetManagerTest extends AbstractServiceTest {
 			.where(sourceDataset.externalIdentification.eq("testVectorDataset"))
 			.exists());
 		
-		Thread.sleep(1000); // createTestDataset() uses current time as revision date
-		
 		// destroy metadata
 		update(sourceDatasetMetadata)
 			.set(sourceDatasetMetadata.document, "Hello, world!".getBytes("utf-8"))
@@ -235,7 +234,7 @@ public class DatasetManagerTest extends AbstractServiceTest {
 				.exists())
 			.execute();
 		
-		VectorDataset updatedDataset = createVectorDataset();
+		VectorDataset updatedDataset = createAnotherVectorDataset();
 		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", updatedDataset), Updated.class).get();		
 		
 		assertEquals(2,
@@ -253,12 +252,18 @@ public class DatasetManagerTest extends AbstractServiceTest {
 		assertTrue(itr.hasNext());
 		
 		Timestamp t = itr.next();
-		assertEquals(dataset.getRevisionDate().getTime(), t.getTime());
+		assertEquals(Timestamp.valueOf(dataset
+				.getRevisionDate()
+				.toLocalDateTime())
+				.getTime(), t.getTime());
 		assertNotNull(t);
 		
 		assertTrue(itr.hasNext());
 		t = itr.next();
-		assertEquals(updatedDataset.getRevisionDate().getTime(), t.getTime());
+		assertEquals(Timestamp.valueOf(updatedDataset
+				.getRevisionDate()
+				.toLocalDateTime())
+				.getTime(), t.getTime());
 		assertNotNull(t);
 		
 		assertFalse(itr.hasNext());
@@ -348,7 +353,7 @@ public class DatasetManagerTest extends AbstractServiceTest {
 				new Column("col0", Type.TEXT, null /*alias*/),
 				new Column("col1", Type.NUMERIC, null));
 		final Table table = new Table(columns);
-		final Timestamp revision = new Timestamp(new Date().getTime());
+		final ZonedDateTime revision = ZonedDateTime.of(LocalDate.now().atStartOfDay(), ZoneId.of("Europe/Amsterdam"));
 		final VectorDataset[] datasets = {
 			new VectorDataset ("table1", "My Test Table", "alternate title", "category1", revision, Collections.<Log>emptySet(), false, false, false, null, table, null, null),
 			new VectorDataset ("table2", "My Test Table 2", "alternate title", "category2", revision, Collections.<Log>emptySet(), true, false, false, null, table, null, null),

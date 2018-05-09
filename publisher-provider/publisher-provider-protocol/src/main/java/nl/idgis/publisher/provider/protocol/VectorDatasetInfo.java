@@ -1,6 +1,6 @@
 package nl.idgis.publisher.provider.protocol;
 
-import java.util.Date;
+import java.time.ZonedDateTime;
 import java.util.Set;
 
 import nl.idgis.publisher.domain.Log;
@@ -13,8 +13,8 @@ import nl.idgis.publisher.domain.Log;
  */
 public class VectorDatasetInfo extends DatasetInfo {	
 	
-	private static final long serialVersionUID = -5699805424932689016L;
-
+	private static final long serialVersionUID = 1696821662450290642L;
+	
 	private final String tableName;
 
 	private final TableInfo tableInfo;
@@ -34,7 +34,7 @@ public class VectorDatasetInfo extends DatasetInfo {
 	 * @param tableInfo table description of the dataset.
 	 * @param numberOfRecords the number of records.
 	 */
-	public VectorDatasetInfo(String identification, String title, String alternateTitle, String categoryId, Date revisionDate, Set<Attachment> attachments, 
+	public VectorDatasetInfo(String identification, String title, String alternateTitle, String categoryId, ZonedDateTime revisionDate, Set<Attachment> attachments, 
 		Set<Log> logs, String tableName, TableInfo tableInfo, long numberOfRecords) {		
 		super(identification, title, alternateTitle, categoryId, revisionDate, attachments, logs);
 		

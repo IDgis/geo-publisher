@@ -1,6 +1,6 @@
 package nl.idgis.publisher.provider.protocol;
 
-import java.util.Date;
+import java.time.ZonedDateTime;
 import java.util.Set;
 
 import nl.idgis.publisher.domain.Log;
@@ -14,7 +14,7 @@ import nl.idgis.publisher.domain.Log;
  */
 public class UnavailableDatasetInfo extends DatasetInfo {
 	
-	private static final long serialVersionUID = 1406423527757972234L;
+	private static final long serialVersionUID = 4082305899999803978L;
 	
 	/**
 	 * 
@@ -26,7 +26,7 @@ public class UnavailableDatasetInfo extends DatasetInfo {
 	 * @param attachments attachments of the dataset.
 	 * @param logs logs for this dataset.
 	 */
-	public UnavailableDatasetInfo(String identification, String title, String alternateTitle, String categoryId, Date revisionDate, Set<Attachment> attachments, Set<Log> logs) {
+	public UnavailableDatasetInfo(String identification, String title, String alternateTitle, String categoryId, ZonedDateTime revisionDate, Set<Attachment> attachments, Set<Log> logs) {
 		super(identification, title, alternateTitle, categoryId, revisionDate, attachments, logs);
 	}
 

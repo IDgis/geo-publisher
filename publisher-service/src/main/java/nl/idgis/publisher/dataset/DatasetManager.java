@@ -1,14 +1,14 @@
 package nl.idgis.publisher.dataset;
 
-import static nl.idgis.publisher.database.QJobState.jobState;
-import static nl.idgis.publisher.database.QImportJob.importJob;
-import static nl.idgis.publisher.database.QImportJobColumn.importJobColumn;
-import static nl.idgis.publisher.database.QDatasetView.datasetView;
-import static nl.idgis.publisher.database.QDatasetCopy.datasetCopy;
-import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
+import static nl.idgis.publisher.database.QDataset.dataset;
+import static nl.idgis.publisher.database.QDatasetCopy.datasetCopy;
+import static nl.idgis.publisher.database.QDatasetView.datasetView;
 import static nl.idgis.publisher.database.QHarvestNotification.harvestNotification;
+import static nl.idgis.publisher.database.QImportJob.importJob;
+import static nl.idgis.publisher.database.QImportJobColumn.importJobColumn;
+import static nl.idgis.publisher.database.QJobState.jobState;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetMetadata.sourceDatasetMetadata;
 import static nl.idgis.publisher.database.QSourceDatasetMetadataAttachment.sourceDatasetMetadataAttachment;
@@ -22,10 +22,11 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.MessageDigest;
 import java.sql.Timestamp;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -35,6 +36,20 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
+import com.mysema.query.Tuple;
+import com.mysema.query.sql.SQLSubQuery;
+import com.mysema.query.types.expr.DateTimeExpression;
+import com.mysema.query.types.query.ListSubQuery;
+import com.ning.http.client.AsyncCompletionHandler;
+import com.ning.http.client.AsyncHttpClient;
+import com.ning.http.client.Response;
+
+import akka.actor.ActorRef;
+import akka.actor.Props;
+import akka.actor.UntypedActor;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
+import akka.util.Timeout;
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.AsyncHelper;
 import nl.idgis.publisher.database.QSourceDataset;
@@ -45,51 +60,33 @@ import nl.idgis.publisher.database.messages.DropTable;
 import nl.idgis.publisher.database.messages.DropView;
 import nl.idgis.publisher.database.messages.ReplaceTable;
 import nl.idgis.publisher.database.projections.QColumn;
-
 import nl.idgis.publisher.dataset.messages.AlreadyRegistered;
 import nl.idgis.publisher.dataset.messages.Cleanup;
-import nl.idgis.publisher.dataset.messages.HarvestSessionDatasetDuplicate;
 import nl.idgis.publisher.dataset.messages.DeleteSourceDatasets;
+import nl.idgis.publisher.dataset.messages.HarvestSessionDatasetDuplicate;
 import nl.idgis.publisher.dataset.messages.PrepareTable;
 import nl.idgis.publisher.dataset.messages.PrepareView;
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 import nl.idgis.publisher.dataset.messages.Registered;
 import nl.idgis.publisher.dataset.messages.Updated;
-import nl.idgis.publisher.metadata.MetadataDocument;
-import nl.idgis.publisher.metadata.MetadataDocumentFactory;
-
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.MessageProperties;
-import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.job.JobState;
+import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.DatasetLog;
 import nl.idgis.publisher.domain.service.DatasetLogType;
+import nl.idgis.publisher.domain.service.RasterDataset;
 import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.UnavailableDataset;
 import nl.idgis.publisher.domain.service.VectorDataset;
-import nl.idgis.publisher.domain.service.RasterDataset;
-
+import nl.idgis.publisher.metadata.MetadataDocument;
+import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.JsonUtils;
-
-import akka.actor.ActorRef;
-import akka.actor.Props;
-import akka.actor.UntypedActor;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
-import akka.util.Timeout;
-
-import com.mysema.query.Tuple;
-import com.mysema.query.sql.SQLSubQuery;
-import com.mysema.query.types.expr.DateTimeExpression;
-import com.mysema.query.types.query.ListSubQuery;
-import com.ning.http.client.AsyncCompletionHandler;
-import com.ning.http.client.AsyncHttpClient;
-import com.ning.http.client.Response;
 
 public class DatasetManager extends UntypedActor {
 
@@ -383,7 +380,7 @@ public class DatasetManager extends UntypedActor {
 						String alternateTitle = baseInfo.get(sourceDatasetVersion.alternateTitle);
 						String type = baseInfo.get(sourceDatasetVersion.type);
 						String categoryId = baseInfo.get(category.identification);
-						Date revisionDate = baseInfo.get(sourceDatasetVersion.revision);
+						Timestamp revision = baseInfo.get(sourceDatasetVersion.revision);
 						boolean confidential = baseInfo.get(sourceDatasetVersion.confidential);
 						boolean metadataConfidential = baseInfo.get(sourceDatasetVersion.metadataConfidential);
 						boolean wmsOnly = baseInfo.get(sourceDatasetVersion.wmsOnly);
@@ -402,10 +399,18 @@ public class DatasetManager extends UntypedActor {
 							}
 						}
 						
-						// convert from timestamp to date because harvester provides date objects,
-						// otherwise source dataset versions are never equal.
-						if(revisionDate != null) {							
-							revisionDate = new Date(revisionDate.getTime());
+						ZonedDateTime revisionDate;
+						
+						// convert from timestamp to zonedDateTime because harvester provides
+						// zonedDateTime objects, otherwise source dataset versions are never equal.
+						if(revision != null) {
+							revisionDate = 
+									revision
+										.toLocalDateTime()
+										.toLocalDate()
+										.atStartOfDay(ZoneId.of("Europe/Amsterdam"));
+						} else {
+							revisionDate = null;
 						}
 						
 						Set<Log> logs = new HashSet<>();
@@ -601,9 +606,9 @@ public class DatasetManager extends UntypedActor {
 			log.debug("categoryId: {}", categoryId);
 			
 			final Timestamp revision;
-			Date revisionDate = dataset.getRevisionDate();
+			ZonedDateTime revisionDate = dataset.getRevisionDate();
 			if(revisionDate != null) {
-				revision = new Timestamp(revisionDate.getTime());
+				revision = Timestamp.valueOf(revisionDate.toLocalDateTime());
 			} else {
 				revision = null;
 			}

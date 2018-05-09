@@ -1,18 +1,18 @@
 package nl.idgis.publisher.loader;
 
+import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
-import static nl.idgis.publisher.database.QDatasetView.datasetView;
 import static nl.idgis.publisher.database.QDatasetCopy.datasetCopy;
+import static nl.idgis.publisher.database.QDatasetView.datasetView;
+import static nl.idgis.publisher.database.QEnvironment.environment;
+import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
+import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
+import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
+import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetColumnDiff.sourceDatasetColumnDiff;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
-import static nl.idgis.publisher.database.QDataset.dataset;
-import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
-import static nl.idgis.publisher.database.QLayerStructure.layerStructure;
-import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
-import static nl.idgis.publisher.database.QService.service;
-import static nl.idgis.publisher.database.QEnvironment.environment;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -23,10 +23,11 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
@@ -39,9 +40,11 @@ import org.junit.Test;
 import com.mysema.query.sql.SQLSubQuery;
 
 import akka.actor.ActorRef;
-
+import nl.idgis.publisher.AbstractServiceTest;
 import nl.idgis.publisher.database.messages.AddNotificationResult;
-
+import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
+import nl.idgis.publisher.dataset.messages.Registered;
+import nl.idgis.publisher.dataset.messages.Updated;
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.job.ConfirmNotificationResult;
 import nl.idgis.publisher.domain.job.JobState;
@@ -57,11 +60,6 @@ import nl.idgis.publisher.domain.web.tree.Layer;
 import nl.idgis.publisher.domain.web.tree.LayerRef;
 import nl.idgis.publisher.domain.web.tree.Service;
 import nl.idgis.publisher.domain.web.tree.VectorDatasetLayer;
-
-import nl.idgis.publisher.AbstractServiceTest;
-import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
-import nl.idgis.publisher.dataset.messages.Registered;
-import nl.idgis.publisher.dataset.messages.Updated;
 import nl.idgis.publisher.job.context.JobContext;
 import nl.idgis.publisher.job.context.messages.JobFinished;
 import nl.idgis.publisher.job.manager.messages.CreateImportJob;
@@ -112,7 +110,7 @@ public class MissingColumnTest extends AbstractServiceTest {
 			"My Test Table", 
 			"alternate title", 
 			"testCategory", 
-			new Timestamp(new Date().getTime()), //revision date
+			ZonedDateTime.of(LocalDate.now().atStartOfDay(), ZoneId.of("Europe/Amsterdam")), //revision date
 			Collections.<Log>emptySet(), 
 			false, // confidential
 			false, // metadataConfidential
@@ -371,7 +369,7 @@ public class MissingColumnTest extends AbstractServiceTest {
 				"My Test Table", 
 				"alternate title", 
 				"testCategory", 
-				new Timestamp(new Date().getTime()), //revision date
+				ZonedDateTime.of(LocalDate.now().atStartOfDay(), ZoneId.of("Europe/Amsterdam")), //revision date
 				Collections.<Log>emptySet(), 
 				false, // confidential
 				false, // metadataConfidential

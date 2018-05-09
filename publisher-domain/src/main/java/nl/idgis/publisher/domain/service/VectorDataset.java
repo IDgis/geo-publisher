@@ -1,6 +1,6 @@
 package nl.idgis.publisher.domain.service;
 
-import java.util.Date;
+import java.time.ZonedDateTime;
 import java.util.Set;
 
 import nl.idgis.publisher.domain.Log;
@@ -8,11 +8,11 @@ import nl.idgis.publisher.metadata.MetadataDocument;
 
 public final class VectorDataset extends Dataset {	
 	
-	private static final long serialVersionUID = -5454433118380905025L;
+	private static final long serialVersionUID = 4635380718758317113L;
 	
 	private final Table table;
 	
-	public VectorDataset(String id, String name, String alternateTitle, String categoryId, Date revisionDate, Set<Log> logs, boolean confidential, boolean metadataConfidential, boolean wmsOnly, MetadataDocument metadata, Table table, String physicalName, String refreshFrequency) {
+	public VectorDataset(String id, String name, String alternateTitle, String categoryId, ZonedDateTime revisionDate, Set<Log> logs, boolean confidential, boolean metadataConfidential, boolean wmsOnly, MetadataDocument metadata, Table table, String physicalName, String refreshFrequency) {
 		super(id, name, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata, physicalName, refreshFrequency);
 		
 		this.table = table;

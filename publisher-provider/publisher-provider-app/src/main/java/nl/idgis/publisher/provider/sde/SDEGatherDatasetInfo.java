@@ -5,11 +5,13 @@ import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -81,7 +83,7 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 	
 	private Set<Attachment> attachments;
 	
-	private Date revisionDate;
+	private ZonedDateTime revisionDate;
 	
 	private Map<String, String> attributeAliases;
 
@@ -144,16 +146,14 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 				StringBuilder sb = new StringBuilder(new String(dateFileContent));
 				String dateString = sb.substring(0, 10);
 				
-				SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-				revisionDate = dateFormat.parse(dateString);
+				LocalDate date = LocalDate.parse(dateString, DateTimeFormatter.ISO_DATE);
+				revisionDate = date.atStartOfDay(ZoneId.of("Europe/Amsterdam"));
 			} catch(ConfigException ce) {
 				log.debug("no or wrong raster folder in config");
 			} catch(InvalidPathException ipe) {
 				log.debug("something went wrong in getting path of sde raster date file");
 			} catch(IOException ioe) {
 				log.debug("couldn't read sde raster date file");
-			} catch(ParseException pe) {
-				log.debug("couldn't parse sde raster date to date object");
 			} catch(Exception e) {
 				log.debug("setting of sde raster date went wrong because of unknown reason");
 			}

@@ -1,12 +1,17 @@
 package nl.idgis.publisher.provider;
 
+import java.time.ZonedDateTime;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import akka.actor.ActorRef;
+import akka.actor.ReceiveTimeout;
+import akka.actor.UntypedActor;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.job.harvest.MetadataField;
@@ -22,17 +27,10 @@ import nl.idgis.publisher.provider.protocol.AttachmentType;
 import nl.idgis.publisher.provider.protocol.DatasetNotFound;
 import nl.idgis.publisher.provider.protocol.UnavailableDatasetInfo;
 import nl.idgis.publisher.xml.exceptions.NotFound;
-
 import scala.concurrent.duration.Duration;
 
-import akka.actor.ActorRef;
-import akka.actor.ReceiveTimeout;
-import akka.actor.UntypedActor;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
-
 public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
-
+	
 	protected final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	protected final Set<AttachmentType> requestedAttachmentTypes;
@@ -47,7 +45,7 @@ public abstract class AbstractDatasetInfoBuilder extends UntypedActor {
 	
 	protected String identification, title, alternateTitle, reportedTitle, categoryId;
 	
-	protected Date revisionDate;
+	protected ZonedDateTime revisionDate;
 	
 	protected String spatialRepresentationType;
 	

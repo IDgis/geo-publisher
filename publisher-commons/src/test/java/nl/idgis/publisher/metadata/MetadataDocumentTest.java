@@ -8,6 +8,8 @@ import static org.junit.Assert.fail;
 import static org.junit.Assert.assertNotEquals;
 
 import java.io.InputStream;
+import java.time.Month;
+import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
@@ -520,25 +522,21 @@ public class MetadataDocumentTest {
 		MetadataDocument document = getDocument("dataset_metadata.xml");
 		
 		// should return the revision date
-		Date date = document.getDatasetRevisionDate(); 
+		ZonedDateTime date = document.getDatasetRevisionDate();
 		
-		Calendar calendar = Calendar.getInstance();
-		calendar.setTime(date);
-		assertEquals(2013, calendar.get(Calendar.YEAR));
-		assertEquals(Calendar.NOVEMBER, calendar.get(Calendar.MONTH));
-		assertEquals(19, calendar.get(Calendar.DAY_OF_MONTH));
+		assertEquals(2013, date.getYear());
+		assertEquals(Month.NOVEMBER, date.getMonth());
+		assertEquals(19, date.getDayOfMonth());
 		
 		document.isoMetadata.removeNodes(document.namespaces,
 			document.getDatePath(Topic.DATASET, MetadataDocument.REVISION));
 		
 		// should return the creation date
-		date = document.getDatasetRevisionDate();		
+		date = document.getDatasetRevisionDate();
 		
-		calendar = Calendar.getInstance();
-		calendar.setTime(date);
-		assertEquals(1996, calendar.get(Calendar.YEAR));
-		assertEquals(Calendar.JUNE, calendar.get(Calendar.MONTH));
-		assertEquals(9, calendar.get(Calendar.DAY_OF_MONTH));
+		assertEquals(1996, date.getYear());
+		assertEquals(Month.JUNE, date.getMonth());
+		assertEquals(9, date.getDayOfMonth());
 		
 		document.isoMetadata.removeNodes(document.namespaces,
 				document.getDatePath(Topic.DATASET, MetadataDocument.CREATION));

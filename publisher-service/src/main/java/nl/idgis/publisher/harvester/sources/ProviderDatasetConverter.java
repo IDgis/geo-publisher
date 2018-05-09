@@ -1,8 +1,8 @@
 package nl.idgis.publisher.harvester.sources;
 
+import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -16,15 +16,13 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.service.Column;
 import nl.idgis.publisher.domain.service.Dataset;
 import nl.idgis.publisher.domain.service.RasterDataset;
+import nl.idgis.publisher.domain.service.Table;
 import nl.idgis.publisher.domain.service.UnavailableDataset;
 import nl.idgis.publisher.domain.service.VectorDataset;
-import nl.idgis.publisher.domain.service.Table;
-
 import nl.idgis.publisher.harvester.sources.messages.ListDatasets;
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
@@ -101,7 +99,7 @@ public class ProviderDatasetConverter extends StreamConverter {
 			String title = datasetInfo.getTitle();
 			String alternateTitle = datasetInfo.getAlternateTitle();
 			String categoryId = datasetInfo.getCategoryId();
-			Date revisionDate = datasetInfo.getRevisionDate();
+			ZonedDateTime revisionDate = datasetInfo.getRevisionDate();
 			Set<Log> logs = datasetInfo.getLogs();
 			
 			log.debug("Converting provider dataset info for dataset {}", identification);
