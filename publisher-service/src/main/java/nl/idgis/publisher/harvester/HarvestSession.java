@@ -4,22 +4,27 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
+import akka.actor.PoisonPill;
+import akka.actor.Props;
+import akka.actor.ReceiveTimeout;
+import akka.actor.UntypedActor;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
 import nl.idgis.publisher.dataset.messages.AlreadyRegistered;
 import nl.idgis.publisher.dataset.messages.Cleanup;
-import nl.idgis.publisher.dataset.messages.HarvestSessionDatasetDuplicate;
 import nl.idgis.publisher.dataset.messages.DeleteSourceDatasets;
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
 import nl.idgis.publisher.dataset.messages.Registered;
 import nl.idgis.publisher.dataset.messages.Updated;
-
 import nl.idgis.publisher.domain.EntityType;
 import nl.idgis.publisher.domain.Log;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.job.LogLevel;
-import nl.idgis.publisher.domain.job.harvest.HarvestLogType;
 import nl.idgis.publisher.domain.job.harvest.HarvestLog;
+import nl.idgis.publisher.domain.job.harvest.HarvestLogType;
 import nl.idgis.publisher.domain.service.Dataset;
-
 import nl.idgis.publisher.harvester.messages.RetryHarvest;
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
@@ -29,16 +34,6 @@ import nl.idgis.publisher.stream.messages.Item;
 import nl.idgis.publisher.stream.messages.NextItem;
 import nl.idgis.publisher.stream.messages.Unavailable;
 import nl.idgis.publisher.utils.FutureUtils;
-
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.PoisonPill;
-import akka.actor.Props;
-import akka.actor.ReceiveTimeout;
-import akka.actor.UntypedActor;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
-
 import scala.concurrent.duration.Duration;
 
 public class HarvestSession extends UntypedActor {
@@ -203,8 +198,6 @@ public class HarvestSession extends UntypedActor {
 			log.debug("dataset with external uuid " + 
 					dataset.getId() + 
 					" has already been handled in this harvest session");
-			
-			f.ask(datasetManager, new HarvestSessionDatasetDuplicate(dataSourceId, dataset.getId()));
 			
 			sender.tell(new NextItem(), getSelf());
 		} else if(includeDataset) {

@@ -11,7 +11,6 @@ public enum HarvestNotificationType implements NotificationType<NotificationProp
 	SOURCE_DATASET_UNAVAILABLE,
 	CONFIDENTIAL_CHANGED,
 	WMS_ONLY_CHANGED,
-	HARVEST_SESSION_DATASET_DUPLICATE,
 	UNKNOWN;
 	
 	@Override
@@ -35,8 +34,6 @@ public enum HarvestNotificationType implements NotificationType<NotificationProp
 			return HarvestNotificationType.CONFIDENTIAL_CHANGED;
 		} else if("WMS_ONLY_CHANGED".equals(type)) {
 			return HarvestNotificationType.WMS_ONLY_CHANGED;
-		} else if("HARVEST_SESSION_DATASET_DUPLICATE".equals(type)) {
-			return HarvestNotificationType.HARVEST_SESSION_DATASET_DUPLICATE;
 		} else {
 			return HarvestNotificationType.UNKNOWN;
 		}

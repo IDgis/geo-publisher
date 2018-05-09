@@ -25,7 +25,6 @@ nl.idgis.publisher.domain.job.harvest.HarvestNotificationType.SOURCE_DATASET_DEL
 nl.idgis.publisher.domain.job.harvest.HarvestNotificationType.SOURCE_DATASET_UNAVAILABLE=Brondataset niet beschikbaar
 nl.idgis.publisher.domain.job.harvest.HarvestNotificationType.CONFIDENTIAL_CHANGED=Vertrouwelijk waarde veranderd
 nl.idgis.publisher.domain.job.harvest.HarvestNotificationType.WMS_ONLY_CHANGED=Alleen WMS extern waarde veranderd
-nl.idgis.publisher.domain.job.harvest.HarvestNotificationType.HARVEST_SESSION_DATASET_DUPLICATE=De uuid die bij dit dataset hoort is meerdere keren gevonden (alleen de eerste wordt opgehaald)
 nl.idgis.publisher.domain.job.harvest.HarvestNotificationType.UNKNOWN=Onbekend
 # TODO: additional types
 

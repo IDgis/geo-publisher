@@ -52,8 +52,6 @@ import akka.event.LoggingAdapter;
 import akka.util.Timeout;
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.AsyncHelper;
-import nl.idgis.publisher.database.QSourceDataset;
-import nl.idgis.publisher.database.QSourceDatasetVersion;
 import nl.idgis.publisher.database.messages.CopyTable;
 import nl.idgis.publisher.database.messages.CreateView;
 import nl.idgis.publisher.database.messages.DropTable;
@@ -63,7 +61,6 @@ import nl.idgis.publisher.database.projections.QColumn;
 import nl.idgis.publisher.dataset.messages.AlreadyRegistered;
 import nl.idgis.publisher.dataset.messages.Cleanup;
 import nl.idgis.publisher.dataset.messages.DeleteSourceDatasets;
-import nl.idgis.publisher.dataset.messages.HarvestSessionDatasetDuplicate;
 import nl.idgis.publisher.dataset.messages.PrepareTable;
 import nl.idgis.publisher.dataset.messages.PrepareView;
 import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
@@ -144,8 +141,6 @@ public class DatasetManager extends UntypedActor {
 	public void onReceive(Object msg) throws Exception {
 		if (msg instanceof RegisterSourceDataset) {
 			returnToSender(handleRegisterSourceDataset((RegisterSourceDataset) msg));
-		} else if (msg instanceof HarvestSessionDatasetDuplicate) {
-			returnToSender (handleHarvestSessionDatasetDuplicate((HarvestSessionDatasetDuplicate) msg));
 		} else if (msg instanceof Cleanup) {
 			returnToSender (handleCleanup ((Cleanup) msg));
 		} else if (msg instanceof DeleteSourceDatasets) {
@@ -493,48 +488,6 @@ public class DatasetManager extends UntypedActor {
 						log.debug("current source dataset version: {}", dataset);
 						
 						return dataset;
-			});
-	}
-	
-	private CompletableFuture<Void> handleHarvestSessionDatasetDuplicate(final HarvestSessionDatasetDuplicate msg) {
-		final QSourceDataset sourceDatasetSub = new QSourceDataset("source_dataset_sub");
-		final QSourceDatasetVersion sourceDatasetVersionSub = new QSourceDatasetVersion("source_dataset_version_sub");
-		
-		return db.query().from(sourceDataset)
-			.join(sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
-			.join(dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
-			.where(dataSource.identification.eq(msg.getDataSourceId())
-				.and(sourceDatasetVersion.id.eq(
-					new SQLSubQuery()
-						.from(sourceDatasetVersionSub)
-						.join(sourceDatasetSub)
-							.on(sourceDatasetSub.id.eq(sourceDatasetVersionSub.sourceDatasetId))
-						.where(sourceDatasetSub.externalIdentification.eq(msg.getDatasetId()))
-						.unique(sourceDatasetVersionSub.id.max()))))
-			.singleResult(sourceDataset.id, sourceDatasetVersion.id).thenCompose(dataset -> {
-				dataset.ifPresent(t -> {
-					CompletableFuture<Boolean> notExists = db.query()
-						.from(harvestNotification)
-						.where(harvestNotification.sourceDatasetId.eq(t.get(sourceDataset.id))
-								.and(harvestNotification.notificationType.eq("HARVEST_SESSION_DATASET_DUPLICATE"))
-								.and(harvestNotification.done.eq(false)))
-						.notExists();
-					
-					notExists.thenCompose(b -> {
-						if(b) {
-							db.insert(harvestNotification)
-								.set(harvestNotification.notificationType, "HARVEST_SESSION_DATASET_DUPLICATE")
-								.set(harvestNotification.sourceDatasetId, t.get(sourceDataset.id))
-								.set(harvestNotification.sourceDatasetVersionId, t.get(sourceDatasetVersion.id))
-								.set(harvestNotification.done, false)
-								.execute();
-						}
-						
-						return f.successful(null);
-					});
-				});
-				
-				return f.successful(null);
 			});
 	}
 	
