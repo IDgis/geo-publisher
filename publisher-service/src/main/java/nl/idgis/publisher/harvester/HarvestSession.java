@@ -1,34 +1,9 @@
 package nl.idgis.publisher.harvester;
 
-import java.util.HashSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
-import nl.idgis.publisher.dataset.messages.AlreadyRegistered;
-import nl.idgis.publisher.dataset.messages.Cleanup;
-import nl.idgis.publisher.dataset.messages.HarvestSessionDatasetDuplicate;
-import nl.idgis.publisher.dataset.messages.DeleteSourceDatasets;
-import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
-import nl.idgis.publisher.dataset.messages.Registered;
-import nl.idgis.publisher.dataset.messages.Updated;
-
-import nl.idgis.publisher.domain.EntityType;
-import nl.idgis.publisher.domain.Log;
-import nl.idgis.publisher.domain.job.JobState;
-import nl.idgis.publisher.domain.job.LogLevel;
-import nl.idgis.publisher.domain.job.harvest.HarvestLogType;
-import nl.idgis.publisher.domain.job.harvest.HarvestLog;
-import nl.idgis.publisher.domain.service.Dataset;
-
-import nl.idgis.publisher.harvester.messages.RetryHarvest;
-import nl.idgis.publisher.job.context.messages.UpdateJobState;
-import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
-import nl.idgis.publisher.protocol.messages.Failure;
-import nl.idgis.publisher.stream.messages.End;
-import nl.idgis.publisher.stream.messages.Item;
-import nl.idgis.publisher.stream.messages.NextItem;
-import nl.idgis.publisher.stream.messages.Unavailable;
-import nl.idgis.publisher.utils.FutureUtils;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -38,7 +13,29 @@ import akka.actor.ReceiveTimeout;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-
+import nl.idgis.publisher.dataset.messages.AlreadyRegistered;
+import nl.idgis.publisher.dataset.messages.Cleanup;
+import nl.idgis.publisher.dataset.messages.DatasetCount;
+import nl.idgis.publisher.dataset.messages.DeleteSourceDatasets;
+import nl.idgis.publisher.dataset.messages.RegisterSourceDataset;
+import nl.idgis.publisher.dataset.messages.Registered;
+import nl.idgis.publisher.dataset.messages.Updated;
+import nl.idgis.publisher.domain.EntityType;
+import nl.idgis.publisher.domain.Log;
+import nl.idgis.publisher.domain.job.JobState;
+import nl.idgis.publisher.domain.job.LogLevel;
+import nl.idgis.publisher.domain.job.harvest.HarvestLog;
+import nl.idgis.publisher.domain.job.harvest.HarvestLogType;
+import nl.idgis.publisher.domain.service.Dataset;
+import nl.idgis.publisher.harvester.messages.RetryHarvest;
+import nl.idgis.publisher.job.context.messages.UpdateJobState;
+import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
+import nl.idgis.publisher.protocol.messages.Failure;
+import nl.idgis.publisher.stream.messages.End;
+import nl.idgis.publisher.stream.messages.Item;
+import nl.idgis.publisher.stream.messages.NextItem;
+import nl.idgis.publisher.stream.messages.Unavailable;
+import nl.idgis.publisher.utils.FutureUtils;
 import scala.concurrent.duration.Duration;
 
 public class HarvestSession extends UntypedActor {
@@ -51,7 +48,7 @@ public class HarvestSession extends UntypedActor {
 	
 	private final Set<String> toBeRemovedDatasetIds;
 	
-	private final Set<String> alreadyHandledDatasetIds;
+	private final Map<String, Integer> datasetCount;
 	
 	private final boolean includeConfidential;
 	
@@ -64,7 +61,7 @@ public class HarvestSession extends UntypedActor {
 		this.datasetManager = datasetManager;
 		this.harvestJob = harvestJob;
 		this.toBeRemovedDatasetIds = currentDatasetIds;
-		this.alreadyHandledDatasetIds = new HashSet<>();
+		this.datasetCount = new HashMap<>();
 		this.includeConfidential = includeConfidential;
 	}
 	
@@ -134,6 +131,8 @@ public class HarvestSession extends UntypedActor {
 	private void handleEnd() {
 		log.debug("harvesting finished");
 		
+		f.ask(datasetManager, new DatasetCount(harvestJob.getDataSourceId(), datasetCount));
+		
 		if(toBeRemovedDatasetIds.isEmpty()) {
 			log.debug ("no obsolete datasets");
 			cleanup();
@@ -187,10 +186,12 @@ public class HarvestSession extends UntypedActor {
 		
 		ActorRef sender = getSender();
 		
-		boolean datasetIdAlreadyHandled = alreadyHandledDatasetIds.contains(dataset.getId());
-		alreadyHandledDatasetIds.add(dataset.getId());
-		
-		String dataSourceId = harvestJob.getDataSourceId();
+		boolean datasetAlreadyHandled = datasetCount.containsKey(dataset.getId());
+		if(!datasetAlreadyHandled) {
+			datasetCount.put(dataset.getId(), 1);
+		} else {
+			datasetCount.put(dataset.getId(), datasetCount.get(dataset.getId()) + 1);
+		}
 		
 		final boolean includeDataset;
 		if(includeConfidential) {
@@ -199,15 +200,14 @@ public class HarvestSession extends UntypedActor {
 			includeDataset = !dataset.isConfidential();
 		}
 		
-		if(datasetIdAlreadyHandled) {
+		if(datasetAlreadyHandled) {
 			log.debug("dataset with external uuid " + 
 					dataset.getId() + 
 					" has already been handled in this harvest session");
 			
-			f.ask(datasetManager, new HarvestSessionDatasetDuplicate(dataSourceId, dataset.getId()));
-			
 			sender.tell(new NextItem(), getSelf());
 		} else if(includeDataset) {
+			String dataSourceId = harvestJob.getDataSourceId();
 			toBeRemovedDatasetIds.remove(dataset.getId());
 			
 			f.ask(datasetManager, new RegisterSourceDataset(dataSourceId, dataset))

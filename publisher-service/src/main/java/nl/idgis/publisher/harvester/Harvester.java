@@ -1,11 +1,24 @@
 package nl.idgis.publisher.harvester;
 
+import static nl.idgis.publisher.database.QDataSource.dataSource;
+import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
+
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import nl.idgis.publisher.domain.job.JobState;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+import com.typesafe.config.Config;
 
+import akka.actor.ActorRef;
+import akka.actor.Props;
+import akka.actor.Terminated;
+import akka.actor.UntypedActor;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
+import nl.idgis.publisher.database.AsyncDatabaseHelper;
+import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.harvester.messages.DataSourceConnected;
 import nl.idgis.publisher.harvester.messages.GetActiveDataSources;
 import nl.idgis.publisher.harvester.messages.GetDataSource;
@@ -19,25 +32,8 @@ import nl.idgis.publisher.messages.ActiveJob;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.protocol.messages.Ack;
-import nl.idgis.publisher.utils.ConfigUtils;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
-
-import akka.actor.ActorRef;
-import akka.actor.Props;
-import akka.actor.Terminated;
-import akka.actor.UntypedActor;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
-
-import nl.idgis.publisher.database.AsyncDatabaseHelper;
-
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
-import com.typesafe.config.Config;
-
-import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
-import static nl.idgis.publisher.database.QDataSource.dataSource;
 
 public class Harvester extends UntypedActor {
 	
