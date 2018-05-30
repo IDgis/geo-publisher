@@ -806,12 +806,13 @@ public class DatasetManager extends UntypedActor {
 		CompletableFuture<Void> future = new CompletableFuture<>();
 		
 		asyncHttpClient.prepareGet(url.toExternalForm())
+			.setFollowRedirects(true)
 			.execute(new AsyncCompletionHandler<Response>() {
-
+				
 				@Override
 				public Response onCompleted(Response response) throws Exception {
 					int statusCode = response.getStatusCode();
-					if(statusCode == 200) {
+					if(statusCode >= 200 && statusCode < 400) {
 						log.debug("metadata attachment download completed");
 						
 						String contentType = response.getContentType();
