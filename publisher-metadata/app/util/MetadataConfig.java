@@ -27,18 +27,24 @@ public class MetadataConfig {
 	
 	private final Boolean rasterUrlDisplay;
 	
+	private final Boolean portalMetadataUrlDisplay;
+	
 	private final String downloadUrlPrefixExternal;
 	
 	private final String downloadUrlPrefixInternal;
 	
 	private final String rasterUrlPrefix;
 	
+	private final String portalMetadataUrlPrefixExternal;
+	
+	private final String portalMetadataUrlPrefixInternal;
+	
 	private final String viewerUrlPublicPrefix;
 	
 	private final String viewerUrlWmsOnlyPrefix;
 	
 	private final String viewerUrlSecurePrefix;
-		
+	
 	private final String browseGraphicWmsRequest;
 	
 	private final String metadataStylesheetPrefix;
@@ -66,6 +72,8 @@ public class MetadataConfig {
 		
 		rasterUrlDisplay = metadata.getBoolean("raster-url-display");
 		
+		portalMetadataUrlDisplay = metadata.getBoolean("portal-metadata-url-display");
+		
 		metadataUrlPrefix = "http://" + host + path + (path.endsWith("/") ? "" : "/") + "metadata/";
 		
 		downloadUrlPrefixExternal = metadata.getString("download-url-prefix-external");
@@ -73,6 +81,10 @@ public class MetadataConfig {
 		downloadUrlPrefixInternal = metadata.getString("download-url-prefix-internal");
 		
 		rasterUrlPrefix = metadata.getString("raster-url-prefix");
+		
+		portalMetadataUrlPrefixExternal = metadata.getString("portal-metadata-url-prefix-external");
+		
+		portalMetadataUrlPrefixInternal = metadata.getString("portal-metadata-url-prefix-internal");
 		
 		viewerUrlPublicPrefix = metadata.getString("viewer-url-prefix-public");
 		
@@ -136,6 +148,10 @@ public class MetadataConfig {
 	public Boolean getRasterUrlDisplay() {
 		return rasterUrlDisplay;
 	}
+	
+	public Boolean getPortalMetadataUrlDisplay() {
+		return portalMetadataUrlDisplay;
+	}
 
 	public Optional<String> getDownloadUrlPrefixExternal() {
 		return Optional.ofNullable(downloadUrlPrefixExternal);
@@ -147,6 +163,14 @@ public class MetadataConfig {
 	
 	public Optional<String> getRasterUrlPrefix() {
 		return Optional.ofNullable(rasterUrlPrefix);
+	}
+	
+	public Optional<String> getPortalMetadataUrlPrefixExternal() {
+		return Optional.ofNullable(portalMetadataUrlPrefixExternal);
+	}
+	
+	public Optional<String> getPortalMetadataUrlPrefixInternal() {
+		return Optional.ofNullable(portalMetadataUrlPrefixInternal);
 	}
 	
 	public Optional<String> getViewerUrlWmsOnlyPrefix() {

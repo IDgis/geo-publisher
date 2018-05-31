@@ -281,6 +281,35 @@ public class DatasetMetadata extends AbstractMetadata {
 			
 			metadataDocument.removeServiceLinkage();
 			
+			final boolean metadataConfidential = tx.query().from(sourceDatasetVersion)
+					.where(sourceDatasetVersion.sourceDatasetId.eq(sourceDatasetId)
+							.and(sourceDatasetVersion.id.eq(new SQLSubQuery().from(sourceDatasetVersionSub)
+									.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDatasetId))
+									.unique(sourceDatasetVersionSub.id.max()))))
+				.singleResult(sourceDatasetVersion.metadataConfidential);
+			
+			if(config.getPortalMetadataUrlDisplay()) {
+				if(metadataConfidential) {
+					config.getPortalMetadataUrlPrefixInternal().ifPresent(portalMetadataUrlPrefix -> {
+						try {
+							metadataDocument.addServiceLinkage(
+									portalMetadataUrlPrefix + fileIdentifier, "UKST", null);
+						} catch(NotFound nf) {
+							throw new RuntimeException(nf);
+						}
+					});
+				} else {
+					config.getPortalMetadataUrlPrefixExternal().ifPresent(portalMetadataUrlPrefix -> {
+						try {
+							metadataDocument.addServiceLinkage(
+									portalMetadataUrlPrefix + fileIdentifier, "UKST", null);
+						} catch(NotFound nf) {
+							throw new RuntimeException(nf);
+						}
+					});
+				}
+			}
+			
 			Consumer<List<Tuple>> columnAliasWriter = columnTuples -> {
 				if(columnTuples.isEmpty()) {
 					return;
@@ -364,9 +393,7 @@ public class DatasetMetadata extends AbstractMetadata {
 						.and(dataset.id.eq(datasetId)))
 					.uniqueResult(sourceDatasetVersion.type);
 				
-				if("RASTER".equals(datasetType) 
-						&& config.getRasterUrlDisplay()) {
-					
+				if("RASTER".equals(datasetType) && config.getRasterUrlDisplay()) {
 					if(sourceDatasetConfidential) {
 						config.getDownloadUrlPrefixInternal().ifPresent(downloadUrlPrefix -> {
 							try {
