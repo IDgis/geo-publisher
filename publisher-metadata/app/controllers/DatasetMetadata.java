@@ -243,14 +243,19 @@ public class DatasetMetadata extends AbstractMetadata {
 					}
 					
 					if(attachments.containsKey(supplementalInformation)) {
-						String updatedSupplementalInformation = 
-							type + "|" + 
-								routes.Attachment.get(attachments.get(supplementalInformation).toString(), fileName)
-								.absoluteURL(false, config.getHost());
+						String contentType = tx.query().from(sourceDatasetMetadataAttachment)
+							.where(sourceDatasetMetadataAttachment.id.eq(attachments.get(supplementalInformation).intValue()))
+							.singleResult(sourceDatasetMetadataAttachment.contentType);
 						
-						metadataDocument.updateSupplementalInformation(
-							supplementalInformation,
-							updatedSupplementalInformation);
+						if(contentType != null && !contentType.contains("text/html")) {
+							String updatedSupplementalInformation = 
+									type + "|" + 
+										routes.Attachment.get(attachments.get(supplementalInformation).toString(), fileName)
+										.absoluteURL(false, config.getHost());
+								
+							metadataDocument.updateSupplementalInformation(
+								supplementalInformation, updatedSupplementalInformation);
+						}
 					} else {
 						metadataDocument.removeSupplementalInformation(supplementalInformation);
 					}
