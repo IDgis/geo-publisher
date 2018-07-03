@@ -74,7 +74,7 @@ public class MetadataConfig {
 		
 		portalMetadataUrlDisplay = metadata.getBoolean("portal-metadata-url-display");
 		
-		metadataUrlPrefix = "http://" + host + path + (path.endsWith("/") ? "" : "/") + "metadata/";
+		metadataUrlPrefix = "https://" + host + path + (path.endsWith("/") ? "" : "/") + "metadata/";
 		
 		downloadUrlPrefixExternal = metadata.getString("download-url-prefix-external");
 		

@@ -250,9 +250,10 @@ public class DatasetMetadata extends AbstractMetadata {
 						if(contentType != null && !contentType.contains("text/html")) {
 							String updatedSupplementalInformation = 
 									type + "|" + 
-										routes.Attachment.get(attachments.get(supplementalInformation).toString(), fileName)
-										.absoluteURL(false, config.getHost());
-								
+										"https://" +
+										config.getHost() +
+										routes.Attachment.get(attachments.get(supplementalInformation).toString(), fileName);
+							
 							metadataDocument.updateSupplementalInformation(
 								supplementalInformation, updatedSupplementalInformation);
 						}
@@ -277,8 +278,9 @@ public class DatasetMetadata extends AbstractMetadata {
 					}
 					
 					String updatedbrowseGraphic =
-						routes.Attachment.get(attachments.get(browseGraphic).toString(), fileName)
-						.absoluteURL(false, config.getHost());
+						"https://" +
+						config.getHost() +
+						routes.Attachment.get(attachments.get(browseGraphic).toString(), fileName);
 					
 					metadataDocument.updateDatasetBrowseGraphic(browseGraphic, updatedbrowseGraphic);
 				}
