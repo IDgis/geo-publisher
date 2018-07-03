@@ -23,14 +23,14 @@ public class GroupsLayersCommon extends Controller {
 	
 	protected static String makeOldPreviewUrl(String serviceId, String layerId){
 		StringBuilder url = new StringBuilder();
-		url.append("http://");
+		url.append("https://");
 		url.append(getConfig("publisher.preview.geoserverDomain"));
 		url.append(getConfig ("publisher.preview.geoserverPath"));
 		url.append("/" + serviceId);
 		url.append("/wms?");
 		url.append(getConfig("publisher.preview.serviceRequest"));
 		url.append("&");
-		url.append("layers="  + serviceId + ":"+ layerId);
+		url.append("layers=" + serviceId + ":"+ layerId);
 		url.append("&");
 		url.append("styles=" + getConfig("publisher.preview.styles"));
 		url.append("&");
