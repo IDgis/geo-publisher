@@ -72,7 +72,7 @@ public class Service {
 	 */
 	private static StringBuilder getGeoserverUrlPrefix(){
 		StringBuilder url = new StringBuilder();
-		url.append("http://");
+		url.append("https://");
 		url.append(getConfig("publisher.preview.geoserverDomain"));
 		url.append("/geoserver");
 		return url;
