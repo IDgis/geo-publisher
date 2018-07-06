@@ -53,6 +53,7 @@ import static nl.idgis.publisher.database.QPublishedService.publishedService;
 import static nl.idgis.publisher.database.QEnvironment.environment;
 import static nl.idgis.publisher.database.QDatasetCopy.datasetCopy;
 import static nl.idgis.publisher.database.QDatasetView.datasetView;
+import static nl.idgis.publisher.database.QService.service;
 
 import java.io.IOException;
 import java.sql.Timestamp;
@@ -296,25 +297,7 @@ public class DatasetMetadata extends AbstractMetadata {
 				.singleResult(sourceDatasetVersion.metadataConfidential);
 			
 			if(config.getPortalMetadataUrlDisplay()) {
-				if(metadataConfidential) {
-					config.getPortalMetadataUrlPrefixInternal().ifPresent(portalMetadataUrlPrefix -> {
-						try {
-							metadataDocument.addServiceLinkage(
-									portalMetadataUrlPrefix + fileIdentifier, "UKST", null);
-						} catch(NotFound nf) {
-							throw new RuntimeException(nf);
-						}
-					});
-				} else {
-					config.getPortalMetadataUrlPrefixExternal().ifPresent(portalMetadataUrlPrefix -> {
-						try {
-							metadataDocument.addServiceLinkage(
-									portalMetadataUrlPrefix + fileIdentifier, "UKST", null);
-						} catch(NotFound nf) {
-							throw new RuntimeException(nf);
-						}
-					});
-				}
+				insertPortalMetadataUrl(metadataDocument, metadataConfidential, "dataset/", fileIdentifier);
 			}
 			
 			Consumer<List<Tuple>> columnAliasWriter = columnTuples -> {
@@ -372,6 +355,7 @@ public class DatasetMetadata extends AbstractMetadata {
 				}
 				
 				SQLQuery serviceQuery = tx.query().from(publishedService)
+						.join(service).on(service.id.eq(publishedService.serviceId))
 						.join(publishedServiceDataset).on(publishedServiceDataset.serviceId.eq(publishedService.serviceId))
 						.join(environment).on(environment.id.eq(publishedService.environmentId));
 					
@@ -429,7 +413,9 @@ public class DatasetMetadata extends AbstractMetadata {
 						environment.confidential,
 						environment.url,
 						environment.wmsOnly,
-						publishedServiceDataset.layerName);
+						publishedServiceDataset.layerName,
+						service.wmsMetadataFileIdentification,
+						service.wfsMetadataFileIdentification);
 				
 				if(!serviceTuples.isEmpty()) {
 					if("VECTOR".equals(datasetType)) {
@@ -526,6 +512,12 @@ public class DatasetMetadata extends AbstractMetadata {
 					boolean wmsOnly = serviceInfo.get("wmsOnly") != null ? 
 							serviceInfo.get("wmsOnly").asBoolean() : false;
 					
+					boolean confidential = serviceInfo.get("confidential") != null ? 
+							serviceInfo.get("confidential").asBoolean() : false;
+					
+					String wmsIdentification = serviceTuples.get(i).get(service.wmsMetadataFileIdentification);
+					String wfsIdentification = serviceTuples.get(i).get(service.wfsMetadataFileIdentification);
+					
 					for(ServiceType serviceType : ServiceType.values()) {
 						String linkage = getServiceLinkage(environmentUrl, serviceName, serviceType);
 						String protocol = serviceType.getProtocol();
@@ -539,13 +531,24 @@ public class DatasetMetadata extends AbstractMetadata {
 										(lastWMSLinkage == null || !linkage.equals(lastWMSLinkage))) {
 									lastWMSLinkage = linkage;
 									metadataDocument.addServiceLinkage(linkage, protocol, scopedName);
+									
+									if(config.getPortalMetadataUrlDisplay()) {
+										insertPortalMetadataUrl(metadataDocument, confidential,
+												"service/", wmsIdentification);
+									}
 								}
 								
 								// only add wfs url when linkage hasn't been added already
 								if("OGC:WFS".equals(protocol) && 
+										!serviceTuples.get(i).get(environment.wmsOnly) &&
 										(lastWFSLinkage == null || !linkage.equals(lastWFSLinkage))) {
 									lastWFSLinkage = linkage;
 									metadataDocument.addServiceLinkage(linkage, protocol, scopedName);
+									
+									if(config.getPortalMetadataUrlDisplay()) {
+										insertPortalMetadataUrl(metadataDocument, confidential,
+												"service/", wfsIdentification);
+									}
 								}
 							}
 						}
@@ -556,6 +559,34 @@ public class DatasetMetadata extends AbstractMetadata {
 			return new DefaultResource("application/xml", metadataDocument.getContent());
 		} catch(Exception e) {
 			throw new RuntimeException(e);
+		}
+	}
+	
+	private void insertPortalMetadataUrl(
+			MetadataDocument metadataDocument,
+			boolean confidential,
+			String type,
+			String identification) {
+		if(confidential) {
+			config.getPortalMetadataUrlPrefixInternal().ifPresent(portalMetadataUrlPrefix -> {
+				try {
+					metadataDocument.addServiceLinkage(
+							portalMetadataUrlPrefix + type + identification,
+							"UKST", null);
+				} catch(NotFound nf) {
+					throw new RuntimeException(nf);
+				}
+			});
+		} else {
+			config.getPortalMetadataUrlPrefixExternal().ifPresent(portalMetadataUrlPrefix -> {
+				try {
+					metadataDocument.addServiceLinkage(
+							portalMetadataUrlPrefix + type + identification,
+							"UKST", null);
+				} catch(NotFound nf) {
+					throw new RuntimeException(nf);
+				}
+			});
 		}
 	}
 
