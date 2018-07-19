@@ -121,16 +121,14 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 			.join(genericLayer).on(genericLayer.id.eq(leafLayer.genericLayerId))
 			.leftJoin(tiledLayer).on(tiledLayer.genericLayerId.eq(genericLayer.id)) // optional
 			.join(dataset).on(dataset.id.eq(leafLayer.datasetId)))
-			.join(importJob).on(importJob.id.in(
+			.join(importJob).on(importJob.id.eq(
 				new SQLSubQuery().from(importJob)
-				.groupBy(importJob.datasetId)
+				.join(jobState).on(jobState.jobId.eq(importJob.jobId))
 				.where(
 					importJob.datasetId.eq(dataset.id)
-					.and(new SQLSubQuery().from(jobState)
-						.where(jobState.jobId.eq(importJob.jobId)
-							.and(jobState.state.eq(JobState.SUCCEEDED.name())))
-						.exists()))
-				.list(importJob.id.max())))
+					.and(jobState.state.eq(JobState.SUCCEEDED.name())))
+				.groupBy(importJob.datasetId)
+				.unique(importJob.id.max())))
 			.join(jobState).on(jobState.jobId.eq(importJob.jobId)
 				.and(jobState.state.eq(JobState.SUCCEEDED.name())))
 			.join(sourceDatasetVersion).on(sourceDatasetVersion.id.eq(importJob.sourceDatasetVersionId))
