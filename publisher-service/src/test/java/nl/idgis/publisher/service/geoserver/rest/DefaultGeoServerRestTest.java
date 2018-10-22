@@ -587,7 +587,7 @@ public class DefaultGeoServerRestTest {
 				new Attribute("the_geom")));		
 		service.postFeatureType(workspace, dataStore, featureType).get();
 		
-		service.putLayer(workspace, new Layer("test", new StyleRef("green"), Arrays.asList(new StyleRef("red")))).get();
+		service.putLayer(workspace, new Layer("test", new StyleRef("green"), Arrays.asList(new StyleRef("red")), false)).get();
 		
 		Layer layer = service.getLayer(workspace, featureType).get();
 		assertEquals("green", layer.getDefaultStyle().getStyleName());
@@ -648,12 +648,12 @@ public class DefaultGeoServerRestTest {
 		h.getNodeList("//sld:CssParameter", sld).item(0).setTextContent("#FF0000");		
 		service.postStyle(new Style("red", sld)).get();
 		
-		service.putLayer(workspace, new Layer("test", new StyleRef("green"), null)).get();
+		service.putLayer(workspace, new Layer("test", new StyleRef("green"), null, false)).get();
 		Layer layer = service.getLayer(workspace, featureType).get();
 		assertEquals("green", layer.getDefaultStyle().getStyleName());
 		assertEquals(Collections.emptyList(), layer.getAdditionalStyles());
 		
-		service.putLayer(workspace, new Layer("test", new StyleRef("green"), Collections.singletonList(new StyleRef("red")))).get();
+		service.putLayer(workspace, new Layer("test", new StyleRef("green"), Collections.singletonList(new StyleRef("red")), false)).get();
 		layer = service.getLayer(workspace, featureType).get();
 		assertEquals("green", layer.getDefaultStyle().getStyleName());
 		assertEquals(Collections.singletonList(new StyleRef("red")), layer.getAdditionalStyles());

@@ -1237,7 +1237,9 @@ public class DefaultGeoServerRest implements GeoServerRest {
 			List<StyleRef> additionalStyles = layer.map("styles/style/name", 
 				name -> new StyleRef(name.string().get())); 
 			
-			return new Layer(coverage.getName(), defaultStyle, additionalStyles);
+			boolean queryable = Boolean.parseBoolean(layer.stringOrNull("queryable"));
+			
+			return new Layer(coverage.getName(), defaultStyle, additionalStyles, queryable);
 		});
 	}
 	
@@ -1251,7 +1253,9 @@ public class DefaultGeoServerRest implements GeoServerRest {
 			List<StyleRef> additionalStyles = layer.map("styles/style/name", 
 				name -> new StyleRef(name.string().get())); 
 			
-			return new Layer(featureType.getName(), defaultStyle, additionalStyles);
+			boolean queryable = Boolean.parseBoolean(layer.stringOrNull("queryable"));
+			
+			return new Layer(featureType.getName(), defaultStyle, additionalStyles, queryable);
 		});
 	}
 	
@@ -1266,6 +1270,10 @@ public class DefaultGeoServerRest implements GeoServerRest {
 			sw.writeStartElement("layer");
 				sw.writeStartElement("name");
 					sw.writeCharacters(layer.getName());
+				sw.writeEndElement();
+				
+				sw.writeStartElement("queryable");
+					sw.writeCharacters(String.valueOf(layer.isQueryable()));
 				sw.writeEndElement();
 				
 				String defaultStyleName = layer.getDefaultStyle().getStyleName();
