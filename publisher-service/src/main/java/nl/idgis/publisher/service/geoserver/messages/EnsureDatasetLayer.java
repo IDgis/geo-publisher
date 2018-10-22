@@ -4,15 +4,14 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import nl.idgis.publisher.domain.web.tree.Tiling;
-
 import nl.idgis.publisher.service.geoserver.rest.Layer;
 import nl.idgis.publisher.service.geoserver.rest.MetadataLink;
 import nl.idgis.publisher.service.geoserver.rest.StyleRef;
 
 public abstract class EnsureDatasetLayer extends EnsureLayer {
-
-	private static final long serialVersionUID = -6905763318052888376L;
-
+	
+	private static final long serialVersionUID = 3753307750991615374L;
+	
 	protected final String defaultStyleName, groupStyleName;
 	
 	protected final List<String> additionalStyleNames;
@@ -20,9 +19,12 @@ public abstract class EnsureDatasetLayer extends EnsureLayer {
 	protected final List<String> keywords;
 	
 	protected final List<String> metadataLinks;
+	
+	protected final boolean wmsOnly;
 
-	protected EnsureDatasetLayer(String layerId, String title, String abstr, List<String> keywords, List<String> metadataLinks, 
-		Tiling tilingSettings, String defaultStyleName, String groupStyleName, List<String> additionalStyleNames, boolean reimported) {
+	protected EnsureDatasetLayer(String layerId, String title, String abstr, List<String> keywords, List<String> metadataLinks,
+			boolean wmsOnly, Tiling tilingSettings, String defaultStyleName, String groupStyleName, List<String> additionalStyleNames,
+		boolean reimported) {
 		
 		super(layerId, title, abstr, tilingSettings, reimported);
 		
@@ -31,6 +33,7 @@ public abstract class EnsureDatasetLayer extends EnsureLayer {
 		this.defaultStyleName = defaultStyleName;
 		this.groupStyleName = groupStyleName;
 		this.additionalStyleNames = additionalStyleNames;
+		this.wmsOnly = wmsOnly;
 	}
 	
 	public List<String> getKeywords() {
@@ -55,13 +58,18 @@ public abstract class EnsureDatasetLayer extends EnsureLayer {
 			new StyleRef(defaultStyleName), 
 			additionalStyleNames.stream()
 				.map(styleName -> new StyleRef(styleName))
-				.collect(Collectors.toList()));
+				.collect(Collectors.toList()),
+			!wmsOnly);
 	}
 	
 	public List<MetadataLink> getMetadataLinks() {
 		return metadataLinks.stream()
 			.map(metadataLink -> new MetadataLink("application/xml", "ISO19115:2003", metadataLink))
 			.collect(Collectors.toList());
+	}
+
+	public boolean isWmsOnly() {
+		return wmsOnly;
 	}
 	
 }

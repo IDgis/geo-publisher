@@ -11,10 +11,13 @@ public class Layer {
 	
 	private final List<StyleRef> additionalStyles;
 	
-	public Layer(String name, StyleRef defaultStyle, List<StyleRef> additionalStyles) {
+	private final boolean queryable;
+	
+	public Layer(String name, StyleRef defaultStyle, List<StyleRef> additionalStyles, boolean queryable) {
 		this.name = name;
 		this.defaultStyle = defaultStyle;
 		this.additionalStyles = additionalStyles == null ? Collections.emptyList() : additionalStyles;
+		this.queryable = queryable;
 	}
 
 	public String getName() {
@@ -27,6 +30,10 @@ public class Layer {
 
 	public List<StyleRef> getAdditionalStyles() {
 		return additionalStyles;
+	}
+
+	public boolean isQueryable() {
+		return queryable;
 	}
 
 	@Override

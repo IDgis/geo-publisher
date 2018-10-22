@@ -174,6 +174,7 @@ public class EnsureService extends UntypedActor {
 										layer.getAbstract(), 
 										layer.getKeywords(),
 										metadataLinks,
+										layer.isWmsOnly(),
 										layer.getTiling().orElse(null),
 										defaultStyleName,
 										datasetRef.getStyleRef()
@@ -193,6 +194,7 @@ public class EnsureService extends UntypedActor {
 										layer.getAbstract(), 
 										layer.getKeywords(),
 										metadataLinks,
+										layer.isWmsOnly(),
 										layer.getTiling().orElse(null),
 										defaultStyleName,
 										datasetRef.getStyleRef()
