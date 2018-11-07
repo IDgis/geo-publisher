@@ -39,6 +39,7 @@ ext {
 	h2Version = '1.4.180'
 	jodatimeVersion = '2.3'
 	geoserverVersion = '2.12.1'
+	gtChartsVersion = '20.0'
 	commonsIOVersion = '2.4'
 	deegreeVersion = '3.4-RC1'
 	logbackVersion= '1.1.2'
@@ -755,6 +756,7 @@ project(':publisher-geoserver') {
 		provisioningWebapp "nl.idgis.sys:provisioning-registration-war:${provisionRegistrationVersion}@war"
 		
 		geoserver "org.geoserver.extension:gs-charts:${geoserverVersion}"
+		geoserver "org.geotools:gt-charts:${gtChartsVersion}"
 		geoserver "org.geoserver.extension:gs-dxf-core:${geoserverVersion}"
 	}
 
