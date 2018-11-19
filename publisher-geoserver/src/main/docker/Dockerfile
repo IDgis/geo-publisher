@@ -27,7 +27,7 @@ ENV PATH="$CATALINA_HOME/bin:$PATH"
 
 # Copy webapps, jars, start script and tomcat configuration:
 COPY /webapps/geoserver /var/lib/tomcat7/webapps/geoserver
-COPY /geowebcache_empty.xml /var/lib/tomcat7/webapps/geoserver/WEB-INF/classes
+COPY /geowebcache_empty.xml /var/lib/tomcat7/webapps/geoserver/data/gwc/geowebcache.xml
 COPY /webapps/provisioning-registration-war /var/lib/tomcat7/webapps/provisioning-registration-war
 COPY /lib/* /usr/share/tomcat7/lib
 COPY /start.sh /opt/start.sh
