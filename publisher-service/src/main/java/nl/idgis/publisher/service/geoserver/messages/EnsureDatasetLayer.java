@@ -21,7 +21,7 @@ public abstract class EnsureDatasetLayer extends EnsureLayer {
 	protected final List<String> metadataLinks;
 	
 	protected final boolean wmsOnly;
-
+	
 	protected EnsureDatasetLayer(String layerId, String title, String abstr, List<String> keywords, List<String> metadataLinks,
 			boolean wmsOnly, Tiling tilingSettings, String defaultStyleName, String groupStyleName, List<String> additionalStyleNames,
 		boolean reimported) {
@@ -39,19 +39,19 @@ public abstract class EnsureDatasetLayer extends EnsureLayer {
 	public List<String> getKeywords() {
 		return keywords;
 	}
-
+	
 	public String getDefaultStyleName() {
 		return defaultStyleName;
 	}
-
+	
 	public String getGroupStyleName() {
 		return groupStyleName;
 	}
-
+	
 	public List<String> getAdditionalStyleNames() {
 		return additionalStyleNames;
 	}
-
+	
 	public Layer getLayer() {
 		return new Layer(
 			layerId, 
@@ -67,7 +67,7 @@ public abstract class EnsureDatasetLayer extends EnsureLayer {
 			.map(metadataLink -> new MetadataLink("application/xml", "ISO19115:2003", metadataLink))
 			.collect(Collectors.toList());
 	}
-
+	
 	public boolean isWmsOnly() {
 		return wmsOnly;
 	}
