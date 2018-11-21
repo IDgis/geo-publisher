@@ -84,22 +84,25 @@ public class DatasetMetadata extends AbstractMetadata {
 	
 	private final DatasetQueryBuilder dqb;
 	
+	private final boolean isNGR;
+	
 	@Inject
 	public DatasetMetadata(MetadataConfig config, QueryDSL q, DatasetQueryBuilder dqb, Security s) throws Exception {
-		this(config, q, dqb, s, new MetadataDocumentFactory(), "/");
+		this(config, q, dqb, s, new MetadataDocumentFactory(), "/", false);
 	}
 	
-	public DatasetMetadata(MetadataConfig config, QueryDSL q, DatasetQueryBuilder dqb, Security s, MetadataDocumentFactory mdf, String prefix) {
+	public DatasetMetadata(MetadataConfig config, QueryDSL q, DatasetQueryBuilder dqb, Security s, MetadataDocumentFactory mdf, String prefix, boolean isNGR) {
 		super(config, q, s, prefix);
 		
 		this.mdf = mdf;
 		this.dqb = dqb;
+		this.isNGR = isNGR;
 		urlPattern = Pattern.compile(".*/(.*)(\\?.*)?$");
 	}
 	
 	@Override
 	public DatasetMetadata withPrefix(String prefix) {
-		return new DatasetMetadata(config, q, dqb, s, mdf, prefix);
+		return new DatasetMetadata(config, q, dqb, s, mdf, prefix, prefix.equals("/metadata/ngr/dataset/"));
 	}
 	
 	@Override
@@ -607,6 +610,7 @@ public class DatasetMetadata extends AbstractMetadata {
 			sourceDatasetVersion.metadataConfidential,
 			sourceDatasetVersion.revision,
 			sourceDatasetMetadata.document).stream()
+			.filter(tuple -> !isNGR || datasetAllowed(tuple, sourceDataset.metadataFileIdentification, "Mag niet in Nationaal Georegister"))
 			.map(tuple -> tupleToDatasetDescription(tuple, sourceDataset.metadataFileIdentification, false));
 	}
 	
@@ -616,7 +620,21 @@ public class DatasetMetadata extends AbstractMetadata {
 			sourceDatasetVersion.metadataConfidential,
 			sourceDatasetVersion.revision,
 			sourceDatasetMetadata.document).stream()
+			.filter(tuple -> !isNGR || datasetAllowed(tuple, dataset.metadataFileIdentification, "Mag niet in Nationaal Georegister"))
 			.map(tuple -> tupleToDatasetDescription(tuple, dataset.metadataFileIdentification, true));
+	}
+	
+	private boolean datasetAllowed(Tuple tuple, Expression<String> identificationExpression, String allowedValue) {
+		MetadataDocument metadataDocument;
+		try {
+			metadataDocument = mdf.parseDocument(tuple.get(sourceDatasetMetadata.document));
+			List<String> useLimitations = metadataDocument.getUseLimitations();
+			return !useLimitations.contains(allowedValue);
+		} catch (Exception e) {
+			Logger.info(tuple.get(identificationExpression) + ": metadata document doesn't exist");
+		}
+		
+		return false;
 	}
 
 	private ResourceDescription tupleToDatasetDescription(Tuple tuple, Expression<String> identificationExpression, boolean published) {
