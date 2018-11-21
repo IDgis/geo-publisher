@@ -4,7 +4,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class Layer {
-
+	
 	private final String name;
 	
 	private final StyleRef defaultStyle;
@@ -19,36 +19,34 @@ public class Layer {
 		this.additionalStyles = additionalStyles == null ? Collections.emptyList() : additionalStyles;
 		this.queryable = queryable;
 	}
-
+	
 	public String getName() {
 		return name;
 	}
-
+	
 	public StyleRef getDefaultStyle() {
 		return defaultStyle;
 	}
-
+	
 	public List<StyleRef> getAdditionalStyles() {
 		return additionalStyles;
 	}
-
+	
 	public boolean isQueryable() {
 		return queryable;
 	}
-
+	
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime
-				* result
-				+ ((additionalStyles == null) ? 0 : additionalStyles.hashCode());
-		result = prime * result
-				+ ((defaultStyle == null) ? 0 : defaultStyle.hashCode());
+		result = prime * result + ((additionalStyles == null) ? 0 : additionalStyles.hashCode());
+		result = prime * result + ((defaultStyle == null) ? 0 : defaultStyle.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
+		result = prime * result + (queryable ? 1231 : 1237);
 		return result;
 	}
-
+	
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -73,13 +71,15 @@ public class Layer {
 				return false;
 		} else if (!name.equals(other.name))
 			return false;
+		if (queryable != other.queryable)
+			return false;
 		return true;
 	}
-
+	
 	@Override
 	public String toString() {
-		return "Layer [name=" + name + ", defaultStyle=" + defaultStyle
-				+ ", additionalStyles=" + additionalStyles + "]";
+		return "Layer [name=" + name + ", defaultStyle=" + defaultStyle + ", additionalStyles="
+				+ additionalStyles + ", queryable=" + queryable + "]";
 	}
 	
 }
