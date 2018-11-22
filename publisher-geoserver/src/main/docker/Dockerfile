@@ -39,7 +39,8 @@ RUN chmod +x /opt/start.sh && \
 	chown tomcat7:tomcat7 $CATALINA_TMPDIR && \ 
 	mkdir -p $GEOSERVER_DATA_DIR && \
 	chown tomcat7:tomcat7 $GEOSERVER_DATA_DIR && \
-	chown -R tomcat7:tomcat7 /var/lib/tomcat7/webapps/
+	chown -R tomcat7:tomcat7 /var/lib/tomcat7/webapps/ && \
+	chown -R tomcat7:tomcat7 /var/lib/tomcat7/conf/
 	
 # Download and install the core fonts:
 ENV MSCOREFONTS_BASE="http://kent.dl.sourceforge.net/project/corefonts/the%20fonts/final/"
