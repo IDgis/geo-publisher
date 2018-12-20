@@ -809,7 +809,7 @@ project(':publisher-geoserver') {
 project(':publisher-console') {
 	apply plugin: 'application'
 	apply plugin: DockerRemoteConfig
-
+	
 	mainClassName = 'nl.idgis.publisher.console.App'
 	
 	dependencies {
@@ -823,7 +823,7 @@ project(':publisher-console') {
 		from tarTree(distTar.archivePath)
 		into "${project.buildDir}/docker"
 	}
-
+	
 	task createDockerfile(type: Dockerfile) {
 		destFile = file("${project.buildDir}/docker/Dockerfile")
 		from 'azul/zulu-openjdk:8'
@@ -831,12 +831,49 @@ project(':publisher-console') {
 		runCommand 'chmod +x /opt/bin/publisher-console'
 		entryPoint "/opt/bin/publisher-console"
 	}
-
+	
 	task buildImage(type: DockerBuildImage) {
 		dependsOn rootProject.pullJavaImage, createDockerfile, unpackTar
-
+		
 		inputDir = file("${project.buildDir}/docker")
 		tag = "idgis/geopublisher_console:${project.version}"
+	}
+}
+
+project(':publisher-database-cleanup') {
+	apply plugin: 'application'
+	apply plugin: DockerRemoteConfig
+	
+	mainClassName = 'nl.idgis.publisher.database.cleanup.App'
+	
+	dependencies {
+		compile 'org.postgresql:postgresql:42.2.5'
+		compile 'org.slf4j:slf4j-api:1.7.25'
+		compile 'ch.qos.logback:logback-classic:1.2.3'
+		compile 'ch.qos.logback:logback-core:1.2.3'
+		compile 'commons-io:commons-io:2.6'
+	}
+	
+	task unpackTar(type: Copy) {
+		dependsOn distTar
+
+		from tarTree(distTar.archivePath)
+		into "${project.buildDir}/docker"
+	}
+	
+	task createDockerfile(type: Dockerfile) {
+		destFile = file("${project.buildDir}/docker/Dockerfile")
+		from 'azul/zulu-openjdk:8'
+		copyFile "publisher-database-cleanup-${project.version}", '/opt'
+		runCommand 'chmod +x /opt/bin/publisher-database-cleanup'
+		entryPoint "/opt/bin/publisher-database-cleanup"
+	}
+	
+	task buildImage(type: DockerBuildImage) {
+		dependsOn rootProject.pullJavaImage, createDockerfile, unpackTar
+		
+		inputDir = file("${project.buildDir}/docker")
+		tag = "idgis/geopublisher_database_cleanup:${project.version}"
 	}
 }
 
