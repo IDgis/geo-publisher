@@ -11,6 +11,10 @@
 	play.Play.application().configuration().getString("publisher.client.url") 
 }
 
+@clientLogo() = @{
+	play.Play.application().configuration().getString("publisher.client.logo")
+}
+
 @layout.application(
 	title = Domain.message("web.application.title"),
 	jsMain = routes.Assets.at("js/dashboard/main.js").url,
@@ -26,7 +30,7 @@
 				<div class="well">
 					<a href="@clientUrl()">
 						<img class="img-responsive" alt="logo" 
-							src="@routes.Assets.at(play.Play.application().configuration().getString("publisher.client.logo"))">
+							src="@clientLogo()">
 					</a>
 				</div>
 			</div>
