@@ -2,6 +2,7 @@ package controllers;
 
 import static models.Domain.from;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -11,20 +12,38 @@ import java.io.StringReader;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
+import javax.xml.namespace.NamespaceContext;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import javax.xml.transform.stax.StAXSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.Validator;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathFactory;
 
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.ErrorHandler;
+import org.xml.sax.SAXParseException;
+
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import actions.DefaultAuthenticator;
+import akka.actor.ActorSelection;
 import models.Domain;
 import models.Domain.Function;
 import models.Domain.Function3;
-
 import nl.idgis.publisher.domain.query.GetStyleParentGroups;
 import nl.idgis.publisher.domain.query.GetStyleParentLayers;
 import nl.idgis.publisher.domain.query.ListStyles;
@@ -34,13 +53,8 @@ import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.Style;
-import nl.idgis.publisher.schemas.SchemaUtils;
 import nl.idgis.publisher.schemas.SchemaRef;
-
-import org.xml.sax.ErrorHandler;
-import org.xml.sax.SAXException;
-import org.xml.sax.SAXParseException;
-
+import nl.idgis.publisher.schemas.SchemaUtils;
 import play.Logger;
 import play.Play;
 import play.data.Form;
@@ -55,17 +69,13 @@ import play.mvc.Http.MultipartFormData;
 import play.mvc.Http.MultipartFormData.FilePart;
 import play.mvc.Result;
 import play.mvc.Security;
+
 import views.html.styles.form;
 import views.html.styles.list;
 import views.html.styles.stylePagerBody;
 import views.html.styles.stylePagerFooter;
 import views.html.styles.stylePagerHeader;
 import views.html.styles.uploadFileForm;
-import actions.DefaultAuthenticator;
-
-import akka.actor.ActorSelection;
-
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 @Security.Authenticated (DefaultAuthenticator.class)
 public class Styles extends Controller {
@@ -166,9 +176,88 @@ public class Styles extends Controller {
 			});
 	}
 	
-
+	private static XPath getXpath() {
+		Map<String, String> ns = new HashMap<>();
+		ns.put("sld", "http://www.opengis.net/sld");
+		ns.put("ogc", "http://www.opengis.net/ogc");
+		
+		Map<String, String> pf = new HashMap<>();
+		for(Map.Entry<String, String> e : ns.entrySet()) {
+			pf.put(e.getValue(), e.getKey());
+		}
+		
+		NamespaceContext nc = new NamespaceContext() {
+			
+			@Override
+			public String getNamespaceURI(String pf) {
+				return ns.get(pf);
+			}
+			
+			@Override
+			public String getPrefix(String ns) {
+				return pf.get(ns);
+			}
+			
+			@Override
+			@SuppressWarnings("rawtypes")
+			public Iterator getPrefixes(String ns) {
+				return Arrays.asList(getPrefix(ns)).iterator();
+			}
+			
+		};
+		
+		XPathFactory xf = XPathFactory.newInstance();
+		XPath xp = xf.newXPath();
+		xp.setNamespaceContext(nc);
+		return xp;
+	}
+	
+	private static boolean checkXmlElementIsEmpty(String xmlContent, String path) throws Exception {
+		ByteArrayInputStream input = new ByteArrayInputStream(xmlContent.getBytes("UTF-8"));
+		
+		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		dbf.setNamespaceAware(true);
+		DocumentBuilder builder = dbf.newDocumentBuilder();
+		XPath xPath = Styles.getXpath();
+		
+		Document d = builder.parse(input);
+		NodeList nodeList = (NodeList) xPath.evaluate(path, d, XPathConstants.NODESET);
+		
+		for(int i = 0; i < nodeList.getLength(); i++) {
+			Node node = nodeList.item(i);
+			String content = node.getTextContent();
+			
+			if(content != null) {
+				content = content.trim();
+				if(content.length() == 0) {
+					return true;
+				}
+			}
+		}
+		
+		return false;
+	}
+	
 	private static XmlError isValidXml(String xmlContent, String sldScheme) {
 		try {
+			String ogcPropertyNamePath = 
+					"/sld:StyledLayerDescriptor/"
+					+ "sld:NamedLayer/"
+					+ "sld:UserStyle/"
+					+ "sld:FeatureTypeStyle/"
+					+ "sld:Rule/"
+					+ "sld:TextSymbolizer/"
+					+ "sld:Label/"
+					+ "ogc:PropertyName";
+			
+			boolean ogcPropertyEmpty = Styles.checkXmlElementIsEmpty(xmlContent, ogcPropertyNamePath);
+			if(ogcPropertyEmpty) {
+				return new XmlError(
+						Domain.message("web.application.page.styles.form.validate.ogc.propertyname.error"),
+						null
+				);
+			}
+			
 			final XMLStreamReader reader = XMLInputFactory.newInstance ().createXMLStreamReader (new StringReader (xmlContent));
 			final Validator validator100 = schemaPromise_1_0_0.get (30000).newValidator ();
 			final Validator validator110 = schemaPromise_1_1_0.get (30000).newValidator ();
@@ -183,18 +272,16 @@ public class Styles extends Controller {
 			} else {
 				throw new IOException("unknown sld scheme type");
 			}
-		} catch (IOException e) {
-			return new XmlError (e.getLocalizedMessage (), null);
 		} catch (SAXParseException e) {
 			return new XmlError (e.getLineNumber () + ":" + e.getColumnNumber() + ": " + e.getMessage (), e.getLineNumber ());
-		} catch (SAXException e) {
-			return new XmlError (e.getLocalizedMessage (), null);
 		} catch (XMLStreamException e) {
 			if (e.getLocation () != null) {
 				return new XmlError (e.getLocation ().getLineNumber () + ":" + e.getLocation ().getColumnNumber () + ": " + e.getLocalizedMessage (), e.getLocation ().getLineNumber ());
 			} else {
 				return new XmlError (e.getLocalizedMessage (), null);
 			}
+		} catch (Exception e) {
+			return new XmlError (e.getLocalizedMessage (), null);
 		}
 		
 		return null;

@@ -758,6 +758,7 @@ web.application.page.styles.form.field.definition.validation.required=Er dient e
 web.application.page.styles.form.field.sldscheme.validation.required=Er dient een sld schema type aangevinkt te worden.
 
 web.application.page.styles.form.field.definition.label=Defineren stijl
+web.application.page.styles.form.validate.ogc.propertyname.error=Er mag onder Rule/TextSymbolizer/Label geen ogc:PropertyName element zonder waarde bestaan
 web.application.page.styles.form.validate.option.sldScheme.1.0.0.label=SLD 1.0.0
 web.application.page.styles.form.validate.option.sldScheme.1.0.0.value=sld-scheme-1.0.0
 web.application.page.styles.form.validate.option.sldScheme.1.1.0.label=SLD 1.1.0
