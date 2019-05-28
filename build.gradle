@@ -1,0 +1,13 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  compile 'org.springframework:spring-jdbc:5.1.7.RELEASE'
+  compile 'org.postgresql:postgresql:42.2.5'
+  compile 'com.fasterxml.jackson.core:jackson-databind:2.9.9'
+  compile 'commons-io:commons-io:2.6'
+}
