@@ -18,6 +18,7 @@ with recursive service_layer_structure as (
 	where not st.child_layer_id = any(anchestors)
 )
 select
+	sls.service_id,
 	sls.anchestors,
 	jsonb_agg(
 		case
@@ -37,6 +38,5 @@ left join publisher.dataset d on d.id = ll.dataset_id
 left join publisher.last_import_job lij on lij.dataset_id = ll.dataset_id
 left join publisher.import_job ij on ij.job_id = lij.job_id
 left join publisher.source_dataset_version sdv on sdv.id = ij.source_dataset_version_id
-where sls.service_id = ?
-group by sls.anchestors
-order by sls.anchestors
+group by 1, 2
+order by 1, 2

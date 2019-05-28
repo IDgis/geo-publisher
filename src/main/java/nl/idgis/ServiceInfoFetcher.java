@@ -13,7 +13,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.StreamSupport;
 
 import javax.sql.DataSource;
 
@@ -67,7 +66,7 @@ public class ServiceInfoFetcher {
 		return null;
 	}
 	
-	private static JsonNode removeAllLayerIds(JsonNode layer) {
+	private static void removeAllLayerIds(JsonNode layer) {
 		((ObjectNode)layer).remove("id");
 		JsonNode layers = layer.get("layers");
 		if (layers != null) {
@@ -75,15 +74,13 @@ public class ServiceInfoFetcher {
 				removeAllLayerIds(childLayer);
 			}
 		}
-		
-		return layer;
 	}
 	
-	private static JsonNode ensureUniqueLayerNames(JsonNode layer) {
-		return makeLayerNamesUnique(layer, new HashSet<>());
+	private static void makeLayerNamesUnique(JsonNode layer) {
+		makeLayerNamesUnique(layer, new HashSet<>());
 	}
 	
-	private static JsonNode makeLayerNamesUnique(JsonNode layer, Set<String> layerNames) {
+	private static void makeLayerNamesUnique(JsonNode layer, Set<String> layerNames) {
 		JsonNode name = layer.get("name");
 		if (name == null) {
 			throw new IllegalStateException("name field is missing");
@@ -111,39 +108,51 @@ public class ServiceInfoFetcher {
 				makeLayerNamesUnique(childLayer, layerNames);
 			}
 		}
-		
-		return layer;
 	}
 	
-	public JsonNode fetchServiceInfo(int serviceId) throws SQLException, IOException {
-		JsonNode root = fetchServiceInfo(serviceId, (ObjectNode serviceTree, JsonNode layers, Integer[] anchestors) -> {
-			if (anchestors.length == 0) {
-				serviceTree = om.createObjectNode();
-				serviceTree.set("layers", layers);
-			} else {
-				if (serviceTree == null) {
-					throw new IllegalStateException("no service tree available");
-				}
-				
-				ObjectNode currentLayer = serviceTree;
-				for (int anchestor : anchestors) {
-					JsonNode child = findChildLayerById(currentLayer, anchestor);
-					if (child == null) {
-						throw new IllegalStateException("failed to traverse anchestors");
-					}
-					currentLayer = (ObjectNode)child;
-				}
-				
-				currentLayer.set("layers", layers);
-			}
-			
-			return serviceTree;
+	private void fetchAllServiceInfos(DataSourceConsumer<JsonNode> consumer) throws SQLException, IOException {
+		fetchAllServiceInfos(defaultServiceInfoBuilder, root -> {
+			consumer.accept(postProcessServiceInfo(root));
 		});
+	}
+	
+	public interface DataSourceConsumer<T> {
 		
-		if (root == null) {
-			return null;
+		void accept(T t) throws SQLException, IOException;
+	}
+	
+	public <T> void fetchAllServiceInfos(ServiceInfoBuilder<T> builder, DataSourceConsumer<? super T> consumer) throws SQLException, IOException {
+		try (Connection c = DataSourceUtils.getConnection(dataSource); 
+				PreparedStatement stmt = c.prepareStatement(serviceQuery)) {
+			
+			T serviceInfo = null;
+			int lastServiceId = -1;
+			try (ResultSet rs = stmt.executeQuery()) {
+				while (rs.next()) {
+					int serviceId = rs.getInt(1);
+					Integer[] anchestors = (Integer[])rs.getArray(2).getArray();
+					JsonNode layers = om.readTree(rs.getBinaryStream(3));
+					
+					if (serviceId != lastServiceId) {
+						if (serviceInfo != null) {
+							consumer.accept(serviceInfo);
+						}
+						
+						lastServiceId = serviceId;
+						serviceInfo = null;
+					}
+					
+					serviceInfo = builder.accept(serviceInfo, layers, anchestors);
+				}
+				
+				if (serviceInfo != null) {
+					consumer.accept(serviceInfo);
+				}
+			}
 		}
-		
+	}
+	
+	private static JsonNode postProcessServiceInfo(JsonNode root) {
 		JsonNode layers = root.get("layers");
 		if (layers == null) {
 			throw new IllegalStateException("layers field is missing at root level");
@@ -153,11 +162,21 @@ public class ServiceInfoFetcher {
 			throw new IllegalStateException("Unexpected number (!= 1) of root layers: " + layers.size());
 		}
 		
-		return StreamSupport.stream(layers.spliterator(), false)
-				.map(ServiceInfoFetcher::removeAllLayerIds)
-				.map(ServiceInfoFetcher::ensureUniqueLayerNames)
-				.findFirst()
-				.get();
+		JsonNode rootLayer = layers.get(0);
+		removeAllLayerIds(rootLayer);
+		makeLayerNamesUnique(rootLayer);
+		
+		return rootLayer;
+	}
+	
+	public JsonNode fetchServiceInfo(int serviceId) throws SQLException, IOException {
+		JsonNode root = fetchServiceInfo(serviceId, defaultServiceInfoBuilder);
+		
+		if (root == null) {
+			return null;
+		}
+		
+		return postProcessServiceInfo(root);
 	}
 	
 	@FunctionalInterface
@@ -166,17 +185,41 @@ public class ServiceInfoFetcher {
 		T accept(T serviceInfo, JsonNode layers, Integer[] anchestors);
 	}
 	
+	private final ServiceInfoBuilder<ObjectNode> defaultServiceInfoBuilder = (ObjectNode serviceInfo, JsonNode layers, Integer[] anchestors) -> {
+		if (anchestors.length == 0) {
+			serviceInfo = om.createObjectNode();
+			serviceInfo.set("layers", layers);
+		} else {
+			if (serviceInfo == null) {
+				throw new IllegalStateException("no service info available");
+			}
+			
+			ObjectNode currentLayer = serviceInfo;
+			for (int anchestor : anchestors) {
+				JsonNode child = findChildLayerById(currentLayer, anchestor);
+				if (child == null) {
+					throw new IllegalStateException("failed to traverse anchestors");
+				}
+				currentLayer = (ObjectNode)child;
+			}
+			
+			currentLayer.set("layers", layers);
+		}
+		
+		return serviceInfo;
+	};
+	
 	private <T> T fetchServiceInfo(int serviceId, ServiceInfoBuilder<T> builder) throws SQLException, IOException {
 		T serviceInfo = null;
 		
 		try (Connection c = DataSourceUtils.getConnection(dataSource); 
-				PreparedStatement stmt = c.prepareStatement(serviceQuery)) {
+				PreparedStatement stmt = c.prepareStatement("select * from (" + serviceQuery + ") s where s.service_id = ?")) {
 			
 			stmt.setInt(1, serviceId);
 			try (ResultSet rs = stmt.executeQuery()) {
 				while (rs.next()) {
-					Integer[] anchestors = (Integer[])rs.getArray(1).getArray();
-					JsonNode layers = om.readTree(rs.getBinaryStream(2));
+					Integer[] anchestors = (Integer[])rs.getArray(2).getArray();
+					JsonNode layers = om.readTree(rs.getBinaryStream(3));
 					serviceInfo = builder.accept(serviceInfo, layers, anchestors);
 				}
 			}
@@ -210,8 +253,47 @@ public class ServiceInfoFetcher {
 		dataSource.setPassword("postgres");
 		
 		ServiceInfoFetcher sif = new ServiceInfoFetcher(dataSource);
+		System.out.println("fetching all services:");
+		fetchAllWithSingleQuery(sif);
+		fetchAllWithMultipleQueries(sif);
 		
-		try(BufferedOutputStream os = new BufferedOutputStream(new FileOutputStream("services.json"))) {
+		System.out.println("done: " + (System.currentTimeMillis() - startTime) +" ms");
+	}
+	
+	public static void fetchAllWithSingleQuery(ServiceInfoFetcher sif) throws Exception {		
+		long startTime = System.currentTimeMillis();
+		
+		System.out.print("- with a single query... ");
+		System.out.flush();
+		
+		try(BufferedOutputStream os = new BufferedOutputStream(new FileOutputStream("services-single.json"))) {
+			JsonFactory jf = new JsonFactory();
+			
+			try(JsonGenerator jg = jf.createGenerator(os, JsonEncoding.UTF8)
+				.useDefaultPrettyPrinter()
+				.setCodec(sif.om)) {
+			
+				jg.writeStartObject();
+				jg.writeArrayFieldStart("services");
+				
+				sif.fetchAllServiceInfos(jg::writeTree);
+				
+				jg.writeEndArray();
+				jg.writeEndObject();
+			}
+		}
+		
+		System.out.println("done: " + (System.currentTimeMillis() - startTime) +" ms");
+	}
+	
+	
+	public static void fetchAllWithMultipleQueries(ServiceInfoFetcher sif) throws Exception {
+		long startTime = System.currentTimeMillis();
+		
+		System.out.print("- with multiple queries... ");
+		System.out.flush();
+		
+		try(BufferedOutputStream os = new BufferedOutputStream(new FileOutputStream("services-multiple.json"))) {
 			JsonFactory jf = new JsonFactory();
 			
 			try(JsonGenerator jg = jf.createGenerator(os, JsonEncoding.UTF8)
