@@ -156,7 +156,9 @@ public class ServiceMetadata extends AbstractMetadata {
 			}
 			
 			List<Tuple> serviceDatasetTuples = serviceDatasetQuery
-				.where(publishedServiceDataset.serviceId.eq(serviceId))
+				.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
+				.where(publishedServiceDataset.serviceId.eq(serviceId)
+					.and(sourceDataset.deleteTime.isNull()))
 				.orderBy(dataset.id.asc(), publishedServiceDataset.layerName.asc())
 				.list(
 					dataset.id,
