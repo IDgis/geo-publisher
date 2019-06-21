@@ -9,14 +9,12 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import javax.sql.DataSource;
 
 import org.apache.commons.io.IOUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.jdbc.datasource.SimpleDriverDataSource;
 
@@ -26,7 +24,9 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.springframework.stereotype.Component;
 
+@Component
 public class ServiceInfoFetcher {
 	
 	private final DataSource dataSource;
@@ -35,7 +35,7 @@ public class ServiceInfoFetcher {
 	
 	private final ObjectMapper om = new ObjectMapper();
 	
-	public ServiceInfoFetcher(DataSource dataSource) throws Exception {
+	public ServiceInfoFetcher(@Autowired DataSource dataSource) throws Exception {
 		this.dataSource = dataSource;
 		
 		final String resourceName = "service.sql";
@@ -110,18 +110,20 @@ public class ServiceInfoFetcher {
 		}
 	}
 	
-	private void fetchAllServiceInfos(DataSourceConsumer<JsonNode> consumer) throws SQLException, IOException {
-		fetchAllServiceInfos(defaultServiceInfoBuilder, root -> {
-			consumer.accept(postProcessServiceInfo(root));
+	public List<JsonNode> fetchAllServiceInfos() throws SQLException, IOException {
+		List<JsonNode> serviceInfos = new ArrayList<>();
+		fetchAllServiceInfos(this::serviceInfoBuilder, serviceInfo -> {
+			serviceInfos.add(postProcessServiceInfo(serviceInfo));
 		});
+		return serviceInfos;
 	}
 	
-	public interface DataSourceConsumer<T> {
+	private interface DataSourceConsumer<T> {
 		
 		void accept(T t) throws SQLException, IOException;
 	}
 	
-	public <T> void fetchAllServiceInfos(ServiceInfoBuilder<T> builder, DataSourceConsumer<? super T> consumer) throws SQLException, IOException {
+	private <T> void fetchAllServiceInfos(ServiceInfoBuilder<T> builder, DataSourceConsumer<? super T> consumer) throws SQLException, IOException {
 		try (Connection c = DataSourceUtils.getConnection(dataSource); 
 				PreparedStatement stmt = c.prepareStatement(serviceQuery)) {
 			
@@ -132,8 +134,9 @@ public class ServiceInfoFetcher {
 					int serviceId = rs.getInt(1);
 					Integer[] anchestors = (Integer[])rs.getArray(2).getArray();
 					JsonNode layers = om.readTree(rs.getBinaryStream(3));
-					
+
 					if (serviceId != lastServiceId) {
+						System.out.println("serviceId: " + serviceId);
 						if (serviceInfo != null) {
 							consumer.accept(serviceInfo);
 						}
@@ -169,14 +172,14 @@ public class ServiceInfoFetcher {
 		return rootLayer;
 	}
 	
-	public JsonNode fetchServiceInfo(int serviceId) throws SQLException, IOException {
-		JsonNode root = fetchServiceInfo(serviceId, defaultServiceInfoBuilder);
+	public Optional<JsonNode> fetchServiceInfo(int serviceId) throws SQLException, IOException {
+		JsonNode root = fetchServiceInfo(serviceId, this::serviceInfoBuilder);
 		
 		if (root == null) {
-			return null;
+			return Optional.empty();
 		}
 		
-		return postProcessServiceInfo(root);
+		return Optional.of(postProcessServiceInfo(root));
 	}
 	
 	@FunctionalInterface
@@ -185,7 +188,7 @@ public class ServiceInfoFetcher {
 		T accept(T serviceInfo, JsonNode layers, Integer[] anchestors);
 	}
 	
-	private final ServiceInfoBuilder<ObjectNode> defaultServiceInfoBuilder = (ObjectNode serviceInfo, JsonNode layers, Integer[] anchestors) -> {
+	private final ObjectNode serviceInfoBuilder(ObjectNode serviceInfo, JsonNode layers, Integer[] anchestors) {
 		if (anchestors.length == 0) {
 			serviceInfo = om.createObjectNode();
 			serviceInfo.set("layers", layers);
@@ -226,94 +229,5 @@ public class ServiceInfoFetcher {
 		}
 		
 		return serviceInfo;
-	}
-	
-	public List<Integer> fetchAllServiceIds() throws SQLException {
-		List<Integer> retval = new ArrayList<>();
-		
-		try (Connection c = DataSourceUtils.getConnection(dataSource); 
-				Statement stmt = c.createStatement();
-				ResultSet rs = stmt.executeQuery("select id from publisher.service order by 1")) {
-			
-			while (rs.next()) {
-				retval.add(rs.getInt(1));
-			}
-		}
-		
-		return retval;
-	}
-	
-	public static void main(String[] args) throws Exception {
-		long startTime = System.currentTimeMillis();
-		
-		SimpleDriverDataSource dataSource = new SimpleDriverDataSource();
-		dataSource.setDriverClass(org.postgresql.Driver.class);
-		dataSource.setUrl("jdbc:postgresql://192.168.99.100:5432/publisher");
-		dataSource.setUsername("postgres");
-		dataSource.setPassword("postgres");
-		
-		ServiceInfoFetcher sif = new ServiceInfoFetcher(dataSource);
-		System.out.println("fetching all services:");
-		fetchAllWithSingleQuery(sif);
-		fetchAllWithMultipleQueries(sif);
-		
-		System.out.println("done: " + (System.currentTimeMillis() - startTime) +" ms");
-	}
-	
-	public static void fetchAllWithSingleQuery(ServiceInfoFetcher sif) throws Exception {		
-		long startTime = System.currentTimeMillis();
-		
-		System.out.print("- with a single query... ");
-		System.out.flush();
-		
-		try(BufferedOutputStream os = new BufferedOutputStream(new FileOutputStream("services-single.json"))) {
-			JsonFactory jf = new JsonFactory();
-			
-			try(JsonGenerator jg = jf.createGenerator(os, JsonEncoding.UTF8)
-				.useDefaultPrettyPrinter()
-				.setCodec(sif.om)) {
-			
-				jg.writeStartObject();
-				jg.writeArrayFieldStart("services");
-				
-				sif.fetchAllServiceInfos(jg::writeTree);
-				
-				jg.writeEndArray();
-				jg.writeEndObject();
-			}
-		}
-		
-		System.out.println("done: " + (System.currentTimeMillis() - startTime) +" ms");
-	}
-	
-	
-	public static void fetchAllWithMultipleQueries(ServiceInfoFetcher sif) throws Exception {
-		long startTime = System.currentTimeMillis();
-		
-		System.out.print("- with multiple queries... ");
-		System.out.flush();
-		
-		try(BufferedOutputStream os = new BufferedOutputStream(new FileOutputStream("services-multiple.json"))) {
-			JsonFactory jf = new JsonFactory();
-			
-			try(JsonGenerator jg = jf.createGenerator(os, JsonEncoding.UTF8)
-				.useDefaultPrettyPrinter()
-				.setCodec(sif.om)) {
-			
-				jg.writeStartObject();
-				jg.writeArrayFieldStart("services");
-				
-				List<Integer> serviceIds = sif.fetchAllServiceIds();
-				for (int serviceId : serviceIds) {
-					JsonNode serviceInfo = sif.fetchServiceInfo(serviceId);
-					jg.writeTree(serviceInfo);
-				}
-				
-				jg.writeEndArray();
-				jg.writeEndObject();
-			}
-		}
-		
-		System.out.println("done: " + (System.currentTimeMillis() - startTime) +" ms");
 	}
 }

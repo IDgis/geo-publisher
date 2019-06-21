@@ -1,8 +1,12 @@
 apply plugin: 'java'
-apply plugin: 'eclipse'
+apply plugin: 'application'
 
 repositories {
   mavenCentral()
+}
+
+application {
+  mainClassName = 'nl.idgis.ServiceInfoService'
 }
 
 dependencies {
@@ -10,4 +14,6 @@ dependencies {
   compile 'org.postgresql:postgresql:42.2.5'
   compile 'com.fasterxml.jackson.core:jackson-databind:2.9.9'
   compile 'commons-io:commons-io:2.6'
+  compile 'org.springframework.boot:spring-boot-starter-web:2.1.6.RELEASE'
+  compile 'org.apache.commons:commons-dbcp2:2.6.0'
 }
