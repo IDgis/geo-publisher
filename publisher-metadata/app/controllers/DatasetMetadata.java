@@ -536,8 +536,11 @@ public class DatasetMetadata extends AbstractMetadata {
 									metadataDocument.addServiceLinkage(linkage, protocol, scopedName);
 									
 									if(config.getPortalMetadataUrlDisplay()) {
-										insertPortalMetadataUrl(metadataDocument, confidential,
-												"service/", wmsIdentification);
+										insertPortalMetadataUrl(
+												metadataDocument, 
+												confidential,
+												"service/", 
+												wmsIdentification);
 									}
 								}
 								
@@ -549,8 +552,11 @@ public class DatasetMetadata extends AbstractMetadata {
 									metadataDocument.addServiceLinkage(linkage, protocol, scopedName);
 									
 									if(config.getPortalMetadataUrlDisplay()) {
-										insertPortalMetadataUrl(metadataDocument, confidential,
-												"service/", wfsIdentification);
+										insertPortalMetadataUrl(
+												metadataDocument, 
+												confidential,
+												"service/", 
+												wfsIdentification);
 									}
 								}
 							}
@@ -570,12 +576,12 @@ public class DatasetMetadata extends AbstractMetadata {
 			boolean confidential,
 			String type,
 			String identification) {
-		if(confidential) {
+		if(confidential && s.isTrusted()) {
 			config.getPortalMetadataUrlPrefixInternal().ifPresent(portalMetadataUrlPrefix -> {
 				try {
 					metadataDocument.addServiceLinkage(
-							portalMetadataUrlPrefix + type + identification,
-							"UKST", null);
+						portalMetadataUrlPrefix + type + identification, "UKST", null
+					);
 				} catch(NotFound nf) {
 					throw new RuntimeException(nf);
 				}
@@ -584,8 +590,8 @@ public class DatasetMetadata extends AbstractMetadata {
 			config.getPortalMetadataUrlPrefixExternal().ifPresent(portalMetadataUrlPrefix -> {
 				try {
 					metadataDocument.addServiceLinkage(
-							portalMetadataUrlPrefix + type + identification,
-							"UKST", null);
+						portalMetadataUrlPrefix + type + identification, "UKST", null
+					);
 				} catch(NotFound nf) {
 					throw new RuntimeException(nf);
 				}
