@@ -141,13 +141,13 @@ public class ServiceMetadata extends AbstractMetadata {
 				.list(publishedServiceKeyword.keyword);
 			
 			SQLQuery serviceDatasetQuery = tx.query().from(publishedServiceDataset)
-				.join(dataset).on(dataset.id.eq(publishedServiceDataset.datasetId));
+				.join(dataset).on(dataset.id.eq(publishedServiceDataset.datasetId))
+				.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId));
 			
 			if(!s.isTrusted()) {
 				// do not generate links to confidential (= inaccessible) metadata documents.
 				
 				serviceDatasetQuery
-					.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
 					.join(sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
 					.where(sourceDatasetVersion.id.in(new SQLSubQuery().from(sourceDatasetVersion)
 							.where(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
@@ -156,7 +156,6 @@ public class ServiceMetadata extends AbstractMetadata {
 			}
 			
 			List<Tuple> serviceDatasetTuples = serviceDatasetQuery
-				.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
 				.where(publishedServiceDataset.serviceId.eq(serviceId)
 					.and(sourceDataset.deleteTime.isNull()))
 				.orderBy(dataset.id.asc(), publishedServiceDataset.layerName.asc())
