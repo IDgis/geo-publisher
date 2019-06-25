@@ -420,6 +420,19 @@ public class DatasetMetadata extends AbstractMetadata {
 						service.wmsMetadataFileIdentification,
 						service.wfsMetadataFileIdentification);
 				
+				boolean serviceTuplesHasWmsOnly = false;
+				for(Tuple t : serviceTuples) {
+					if(t.get(environment.wmsOnly)) serviceTuplesHasWmsOnly = true;
+				}
+				
+				if(serviceTuplesHasWmsOnly) {
+					for(Tuple t : serviceTuples) {
+						if(!t.get(environment.wmsOnly)) {
+							serviceTuples.remove(t);
+						}
+					}
+				}
+				
 				if(!serviceTuples.isEmpty()) {
 					if("VECTOR".equals(datasetType)) {
 						if(sourceDatasetConfidential) {
