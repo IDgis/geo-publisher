@@ -7,4 +7,5 @@ FROM azul/zulu-openjdk:11
 
 COPY --from=builder /build/install/service-info-service /service-info-service
 
+EXPOSE 8080
 CMD /service-info-service/bin/service-info-service
