@@ -1,14 +1,11 @@
 package nl.idgis;
 
-import java.io.BufferedOutputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.*;
 
 import javax.sql.DataSource;
@@ -16,15 +13,11 @@ import javax.sql.DataSource;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.datasource.DataSourceUtils;
-import org.springframework.jdbc.datasource.SimpleDriverDataSource;
+import org.springframework.stereotype.Component;
 
-import com.fasterxml.jackson.core.JsonEncoding;
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.springframework.stereotype.Component;
 
 @Component
 public class ServiceInfoFetcher {
@@ -136,7 +129,6 @@ public class ServiceInfoFetcher {
 					JsonNode layers = om.readTree(rs.getBinaryStream(3));
 
 					if (serviceId != lastServiceId) {
-						System.out.println("serviceId: " + serviceId);
 						if (serviceInfo != null) {
 							consumer.accept(serviceInfo);
 						}
