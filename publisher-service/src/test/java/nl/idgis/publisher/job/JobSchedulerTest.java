@@ -42,7 +42,7 @@ public class JobSchedulerTest {
 
 	@Test
 	public void testCronExpression() throws Exception {
-		CronExpression cronExpression = new CronExpression(JobScheduler.ON_THE_HOUR);
+		CronExpression cronExpression = new CronExpression(JobScheduler.EVERY_HALF_HOUR);
 		
 		TestActorRef<JobScheduler> ref = TestActorRef.create(actorSystem, JobScheduler.props(null, null, null, null, null, null));
 		JobScheduler jobSystem = ref.underlyingActor();
@@ -73,7 +73,7 @@ public class JobSchedulerTest {
 		assertNotNull(interval);
 		assertEquals(TimeUnit.MILLISECONDS, interval.unit());
 		assertEquals(
-			60 * 60 * 1000 // one hour
+			30 * 60 * 1000 // one hour
 			- 60 * 1000 // minus one minute
 			- 1000 // minus one second
 			- 1, // minus one millisecond
