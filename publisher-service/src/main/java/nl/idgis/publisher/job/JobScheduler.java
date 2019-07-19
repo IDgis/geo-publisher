@@ -33,7 +33,7 @@ import scala.concurrent.duration.FiniteDuration;
 
 public class JobScheduler extends UntypedActor {	
 	
-	protected static final String ON_THE_HOUR = "* 0 * * * ?";
+	protected static final String EVERY_HALF_HOUR = "0 0,30 * * * ?";
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
@@ -94,7 +94,7 @@ public class JobScheduler extends UntypedActor {
 			"initiator");
 		
 		createJobsIntervals = new HashMap<>();
-		createJobsIntervals.put(new CreateHarvestJobs(), Either.right(new CronExpression(ON_THE_HOUR)));
+		createJobsIntervals.put(new CreateHarvestJobs(), Either.right(new CronExpression(EVERY_HALF_HOUR)));
 		createJobsIntervals.put(new CreateImportJobs(), Either.left(Duration.apply(10, TimeUnit.SECONDS)));
 		
 		createJobsIntervals.keySet().stream()
