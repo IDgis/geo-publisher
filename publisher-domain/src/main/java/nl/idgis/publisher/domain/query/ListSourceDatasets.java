@@ -9,7 +9,7 @@ import nl.idgis.publisher.domain.web.SourceDatasetStats;
 
 public class ListSourceDatasets implements DomainQuery<Page<SourceDatasetStats>>{
 	
-	private static final long serialVersionUID = -7951148810454840884L;
+	private static final long serialVersionUID = 732324860360822541L;
 	
 	private final String dataSourceId;
 	private final String categoryId;
@@ -17,24 +17,25 @@ public class ListSourceDatasets implements DomainQuery<Page<SourceDatasetStats>>
 	private final Boolean withErrors;
 	private final Boolean withNotifications;
 	private final Boolean withDataset;
+	private final Boolean inArchive;
 	private final ListSourceDatasetsOrderBy orderBy;
 	private final Long page;
 	private final Long itemsPerPage;
 	
-	public ListSourceDatasets (final DataSource dataSource, final Category category, String searchString, final Boolean withErrors, final Boolean withNotifications, final Boolean withDataset, final ListSourceDatasetsOrderBy orderBy, final Long page) {
-		this(dataSource, category, searchString, withErrors, withNotifications, withDataset, orderBy, page, null);
+	public ListSourceDatasets (final DataSource dataSource, final Category category, String searchString, final Boolean withErrors, final Boolean withNotifications, final Boolean withDataset, final Boolean inArchive, final ListSourceDatasetsOrderBy orderBy, final Long page) {
+		this(dataSource, category, searchString, withErrors, withNotifications, withDataset, inArchive, orderBy, page, null);
 	}
 	
-	public ListSourceDatasets (final DataSource dataSource, final Category category, String searchString, final Boolean withErrors, final Boolean withNotifications, final Boolean withDataset, final ListSourceDatasetsOrderBy orderBy, final Long page, final Long itemsPerPage) {
+	public ListSourceDatasets (final DataSource dataSource, final Category category, String searchString, final Boolean withErrors, final Boolean withNotifications, final Boolean withDataset, final Boolean inArchive, final ListSourceDatasetsOrderBy orderBy, final Long page, final Long itemsPerPage) {
 		this(dataSource == null ? null : dataSource.id (), 
-			category == null ? null : category.id (), searchString, withErrors, withNotifications, withDataset, orderBy, page, itemsPerPage);
+			category == null ? null : category.id (), searchString, withErrors, withNotifications, withDataset, inArchive, orderBy, page, itemsPerPage);
 	}
 	
-	public ListSourceDatasets (String dataSourceId, String categoryId, String searchString, final Boolean withErrors, final Boolean withNotifications, final Boolean withDataset, final ListSourceDatasetsOrderBy orderBy, final Long page) {
-		this(dataSourceId, categoryId, searchString, withErrors, withNotifications, withDataset, orderBy, page, null);
+	public ListSourceDatasets (String dataSourceId, String categoryId, String searchString, final Boolean withErrors, final Boolean withNotifications, final Boolean withDataset, final Boolean inArchive, final ListSourceDatasetsOrderBy orderBy, final Long page) {
+		this(dataSourceId, categoryId, searchString, withErrors, withNotifications, withDataset, inArchive, orderBy, page, null);
 	}
 	
-	public ListSourceDatasets (String dataSourceId, String categoryId, String searchString, final Boolean withErrors, final Boolean withNotifications, final Boolean withDataset, final ListSourceDatasetsOrderBy orderBy, final Long page, final Long itemsPerPage) {
+	public ListSourceDatasets (String dataSourceId, String categoryId, String searchString, final Boolean withErrors, final Boolean withNotifications, final Boolean withDataset, final Boolean inArchive, final ListSourceDatasetsOrderBy orderBy, final Long page, final Long itemsPerPage) {
 		this.dataSourceId = dataSourceId;
 		this.categoryId = categoryId;
 		this.searchString = searchString;
@@ -42,6 +43,7 @@ public class ListSourceDatasets implements DomainQuery<Page<SourceDatasetStats>>
 		this.withErrors = withErrors;
 		this.withNotifications = withNotifications;
 		this.withDataset = withDataset;
+		this.inArchive = inArchive;
 		this.orderBy = orderBy;
 		this.itemsPerPage = itemsPerPage;
 	}
@@ -72,6 +74,10 @@ public class ListSourceDatasets implements DomainQuery<Page<SourceDatasetStats>>
 	
 	public Boolean getWithDataset() {
 		return withDataset;
+	}
+	
+	public Boolean getInArchive() {
+		return inArchive;
 	}
 	
 	public ListSourceDatasetsOrderBy getOrderBy() {

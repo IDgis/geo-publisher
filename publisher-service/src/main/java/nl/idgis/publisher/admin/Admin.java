@@ -721,6 +721,14 @@ private String getEnumName(Enum e){
 				}
 			}
 			
+			if (msg.getInArchive () != null) {
+				if(msg.getInArchive ()) {
+					baseQuery.where(sourceDatasetVersion.archived.isTrue());
+				} else {
+					baseQuery.where(sourceDatasetVersion.archived.isFalse());
+				}
+			}
+			
 			if(msg.getOrderBy().equals(ListSourceDatasetsOrderBy.TITLE)) {
 				baseQuery.orderBy(sourceDatasetVersion.name.trim().asc());
 			} else if(msg.getOrderBy().equals(ListSourceDatasetsOrderBy.PHYSICAL_NAME)) {
