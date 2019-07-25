@@ -8,10 +8,10 @@ import nl.idgis.publisher.metadata.MetadataDocument;
 
 public final class UnavailableDataset extends Dataset {
 	
-	private static final long serialVersionUID = -7356158542863853484L;
+	private static final long serialVersionUID = 1636259342254453619L;
 	
-	public UnavailableDataset(String id, String name, String alternateTitle, String categoryId, ZonedDateTime revisionDate, Set<Log> logs, boolean confidential, boolean metadataConfidential, boolean wmsOnly, MetadataDocument metadata, String physicalName, String refreshFrequency) {
-		super(id, name, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata, physicalName, refreshFrequency);
+	public UnavailableDataset(String id, String name, String alternateTitle, String categoryId, ZonedDateTime revisionDate, Set<Log> logs, boolean confidential, boolean metadataConfidential, boolean wmsOnly, MetadataDocument metadata, String physicalName, String refreshFrequency, boolean archived) {
+		super(id, name, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata, physicalName, refreshFrequency, archived);
 	}
 
 	@Override
@@ -20,7 +20,7 @@ public final class UnavailableDataset extends Dataset {
 				+ ", categoryId=" + categoryId + ", revisionDate=" + revisionDate + ", logs=" + logs + ", confidential="
 				+ confidential + ", metadataConfidential=" + metadataConfidential + ", metadata=" + metadata
 				+ ", wmsOnly=" + wmsOnly + ", physicalName=" + physicalName + ", refreshFrequency=" 
-				+ refreshFrequency + "]";
+				+ refreshFrequency + ", archived=" + archived + "]";
 	}
 	
 }

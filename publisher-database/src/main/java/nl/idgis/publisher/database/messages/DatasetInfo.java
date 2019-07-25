@@ -10,7 +10,7 @@ import nl.idgis.publisher.domain.job.JobState;
 
 public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 	
-	private static final long serialVersionUID = 5854139357908268835L;
+	private static final long serialVersionUID = -7361807219154731593L;
 	
 	private String sourceDatasetId, sourceDatasetName;
 	private String categoryId, categoryName;
@@ -25,6 +25,7 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 	private final boolean confidential;
 	private final boolean wmsOnly;
 	private final String physicalName;
+	private final boolean archived;
 
 	public DatasetInfo(String id, String name, String sourceDatasetId,
 			String sourceDatasetName, String categoryId, String categoryName,
@@ -39,7 +40,8 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 			final boolean confidential,
 			final boolean wmsOnly,
 			final String metadataFileId,
-			final String physicalName) {
+			final String physicalName,
+			final boolean archived) {
 		super(id, name);
 		
 		this.sourceDatasetId = sourceDatasetId;
@@ -58,6 +60,7 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 		this.wmsOnly = wmsOnly;
 		this.metadataFileId = metadataFileId;
 		this.physicalName = physicalName;
+		this.archived = archived;
 	}
 	
 	private static JobState toJobState(String jobStateName) {
@@ -131,6 +134,10 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 	public String getPhysicalName () {
 		return physicalName;
 	}
+	
+	public boolean isArchived () {
+		return archived;
+	}
 
 	@Override
 	public String toString() {
@@ -139,6 +146,7 @@ public class DatasetInfo extends BaseDatasetInfo implements Serializable {
 				+ filterConditions + ", metadataFileId=" + metadataFileId + ", imported=" + imported
 				+ ", sourceDatasetColumnsChanged=" + sourceDatasetColumnsChanged + ", lastImportTime=" + lastImportTime
 				+ ", lastImportJobState=" + lastImportJobState + ", notifications=" + notifications + ", layerCount="
-				+ layerCount + ", confidential=" + confidential + ", wmsOnly=" + wmsOnly + ", physicalName=" + physicalName + "]";
+				+ layerCount + ", confidential=" + confidential + ", wmsOnly=" + wmsOnly + ", physicalName=" + physicalName
+				+ ", archived=" + archived + "]";
 	}
 }

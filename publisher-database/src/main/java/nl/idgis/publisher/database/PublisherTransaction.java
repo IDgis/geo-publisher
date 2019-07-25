@@ -584,7 +584,8 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				t.get (sourceDatasetVersion.confidential),
 				t.get (sourceDatasetVersion.wmsOnly),
 				t.get (dataset.metadataFileIdentification),
-				t.get (sourceDatasetVersion.physicalName)
+				t.get (sourceDatasetVersion.physicalName),
+				t.get (sourceDatasetVersion.archived)
 			);
 	}
 

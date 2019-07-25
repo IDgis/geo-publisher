@@ -10,7 +10,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public final class SourceDataset extends Identifiable {
 	
-	private static final long serialVersionUID = -1850790551624100146L;
+	private static final long serialVersionUID = 3687830352275634751L;
 	
 	private final String name, alternateTitle;
 	private final EntityRef category;
@@ -22,6 +22,7 @@ public final class SourceDataset extends Identifiable {
 	private final List<Notification> notifications;
 	private final String externalId;
 	private final String physicalName;
+	private final boolean archived;
 	
 	@JsonCreator
 	public SourceDataset (
@@ -36,7 +37,8 @@ public final class SourceDataset extends Identifiable {
 			final @JsonProperty("wmsOnly") boolean wmsOnly,
 			final @JsonProperty("notifications") List<Notification> notifications,
 			final @JsonProperty("externalId") String externalId,
-			final @JsonProperty("physicalName") String physicalName) {
+			final @JsonProperty("physicalName") String physicalName,
+			final @JsonProperty("archived") boolean archived) {
 		super(id);
 		
 		if (type == null) {
@@ -54,6 +56,7 @@ public final class SourceDataset extends Identifiable {
 		this.notifications = notifications;
 		this.externalId = externalId;
 		this.physicalName = physicalName;
+		this.archived = archived;
 	}
 
 	@JsonGetter
@@ -109,5 +112,10 @@ public final class SourceDataset extends Identifiable {
 	@JsonGetter
 	public String physicalName() {
 		return this.physicalName;
+	}
+	
+	@JsonGetter
+	public boolean archived() {
+		return this.archived;
 	}
 }

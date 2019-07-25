@@ -185,7 +185,8 @@ public class DatasetAdmin extends AbstractAdmin {
 				datasetInfo.isConfidential (),
 				datasetInfo.isWmsOnly(),
 				datasetInfo.getMetadataFileId (),
-				datasetInfo.getPhysicalName()
+				datasetInfo.getPhysicalName(),
+				datasetInfo.isArchived()
 		);
 	}
 	
@@ -208,7 +209,8 @@ public class DatasetAdmin extends AbstractAdmin {
 				t.get (sourceDatasetVersion.confidential),
 				t.get (sourceDatasetVersion.wmsOnly),
 				t.get (dataset.metadataFileIdentification),
-				t.get (sourceDatasetVersion.physicalName)
+				t.get (sourceDatasetVersion.physicalName),
+				t.get (sourceDatasetVersion.archived)
 			);
 	}
 	
