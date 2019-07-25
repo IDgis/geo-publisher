@@ -13,7 +13,7 @@ import com.mysema.query.annotations.QueryProjection;
 
 public class SourceDatasetInfo implements Serializable {
 	
-	private static final long serialVersionUID = -1725040137428766476L;
+	private static final long serialVersionUID = -6995747677580063305L;
 	
 	private String dataSourceId, dataSourceName;
 	private final String id, name, alternateTitle;
@@ -34,6 +34,8 @@ public class SourceDatasetInfo implements Serializable {
 	private final String externalId;
 	
 	private final String physicalName;
+	
+	private final boolean archived;
 
 	@QueryProjection
 	public SourceDatasetInfo(String id, String name, String alternateTitle, String dataSourceId,
@@ -46,7 +48,8 @@ public class SourceDatasetInfo implements Serializable {
 			final boolean confidential,
 			final boolean wmsOnly,
 			final String externalId,
-			final String physicalName) {
+			final String physicalName,
+			final boolean archived) {
 		super();
 		
 		if (type == null) {
@@ -70,6 +73,7 @@ public class SourceDatasetInfo implements Serializable {
 		this.wmsOnly = wmsOnly;
 		this.externalId = externalId;
 		this.physicalName = physicalName;
+		this.archived = archived;
 	}
 
 	private DatasetLog<?> parseLogParameters (final DatasetLogType logType, final String value) {
@@ -151,5 +155,9 @@ public class SourceDatasetInfo implements Serializable {
 	
 	public String physicalName() {
 		return physicalName;
+	}
+	
+	public boolean isArchived () {
+		return archived;
 	}
 }

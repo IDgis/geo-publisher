@@ -409,7 +409,8 @@ public class DatasetManager extends UntypedActor {
 						sourceDatasetVersion.wmsOnly,
 						sourceDatasetVersion.metadataConfidential,
 						sourceDatasetVersion.physicalName,
-						sourceDatasetVersion.refreshFrequency))
+						sourceDatasetVersion.refreshFrequency,
+						sourceDatasetVersion.archived))
 			.collect(
 				tx.query().from(sourceDatasetVersionLog)
 				.where(sourceDatasetVersionLog.sourceDatasetVersionId.eq(versionId))
@@ -439,6 +440,7 @@ public class DatasetManager extends UntypedActor {
 						byte[] metadataContent = baseInfo.get(sourceDatasetMetadata.document);
 						String physicalName = baseInfo.get(sourceDatasetVersion.physicalName);
 						String refreshFrequency = baseInfo.get(sourceDatasetVersion.refreshFrequency);
+						boolean archived = baseInfo.get(sourceDatasetVersion.archived);
 						
 						MetadataDocument metadata;
 						if(metadataContent == null) {
@@ -508,7 +510,8 @@ public class DatasetManager extends UntypedActor {
 									metadata,
 									new Table(columnInfo.list()),
 									physicalName,
-									refreshFrequency);
+									refreshFrequency,
+									archived);
 								break;
 							case "RASTER":
 								dataset = new RasterDataset(
@@ -523,7 +526,8 @@ public class DatasetManager extends UntypedActor {
 									wmsOnly,
 									metadata,
 									physicalName,
-									refreshFrequency);
+									refreshFrequency,
+									archived);
 								break;
 							default:
 								dataset = new UnavailableDataset(
@@ -538,7 +542,8 @@ public class DatasetManager extends UntypedActor {
 									wmsOnly,
 									metadata,
 									physicalName,
-									refreshFrequency);
+									refreshFrequency,
+									archived);
 								break;
 						}
 						
@@ -630,6 +635,7 @@ public class DatasetManager extends UntypedActor {
 			boolean wmsOnly = dataset.isWmsOnly();
 			String physicalName = dataset.getPhysicalName();
 			String refreshFrequency = dataset.getRefreshFrequency();
+			boolean archived = dataset.isArchived();
 			
 			return tx.insert(sourceDatasetVersion)
 				.set(sourceDatasetVersion.sourceDatasetId, sourceDatasetId)
@@ -643,6 +649,7 @@ public class DatasetManager extends UntypedActor {
 				.set(sourceDatasetVersion.wmsOnly, wmsOnly)
 				.set(sourceDatasetVersion.physicalName, physicalName)
 				.set(sourceDatasetVersion.refreshFrequency, refreshFrequency)
+				.set(sourceDatasetVersion.archived, archived)
 				.executeWithKey(sourceDatasetVersion.id);
 			}).thenCompose(sourceDatasetVersionId -> {
 				log.debug("sourceDatasetVersionId: {}", sourceDatasetVersionId);

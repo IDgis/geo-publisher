@@ -10,7 +10,7 @@ import nl.idgis.publisher.metadata.MetadataDocument;
 
 public abstract class Dataset implements Serializable {
 	
-	private static final long serialVersionUID = 5958577175815972860L;
+	private static final long serialVersionUID = 8782715911253428018L;
 	
 	protected final String id, name, alternateTitle;
 	
@@ -30,7 +30,9 @@ public abstract class Dataset implements Serializable {
 	
 	protected final String refreshFrequency;
 	
-	Dataset(String id, String name, String alternateTitle, String categoryId, ZonedDateTime revisionDate, Set<Log> logs, boolean confidential, boolean metadataConfidential, boolean wmsOnly, MetadataDocument metadata, String physicalName, String refreshFrequency) {
+	protected final boolean archived;
+	
+	Dataset(String id, String name, String alternateTitle, String categoryId, ZonedDateTime revisionDate, Set<Log> logs, boolean confidential, boolean metadataConfidential, boolean wmsOnly, MetadataDocument metadata, String physicalName, String refreshFrequency, boolean archived) {
 		this.id = id;
 		this.name = name;
 		this.alternateTitle = alternateTitle;
@@ -43,6 +45,7 @@ public abstract class Dataset implements Serializable {
 		this.metadata = metadata;
 		this.physicalName = physicalName;
 		this.refreshFrequency = refreshFrequency;
+		this.archived = archived;
 	}
 
 	public String getId() {
@@ -88,12 +91,21 @@ public abstract class Dataset implements Serializable {
 	public String getRefreshFrequency() {
 		return refreshFrequency;
 	}
+	
+	public boolean isArchived() {
+		return archived;
+	}
 
+	public Optional<MetadataDocument> getMetadata() {
+		return Optional.ofNullable(metadata);
+	}
+	
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((alternateTitle == null) ? 0 : alternateTitle.hashCode());
+		result = prime * result + (archived ? 1231 : 1237);
 		result = prime * result + ((categoryId == null) ? 0 : categoryId.hashCode());
 		result = prime * result + (confidential ? 1231 : 1237);
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
@@ -106,11 +118,7 @@ public abstract class Dataset implements Serializable {
 		result = prime * result + (wmsOnly ? 1231 : 1237);
 		return result;
 	}
-
-	public Optional<MetadataDocument> getMetadata() {
-		return Optional.ofNullable(metadata);
-	}
-
+	
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -124,6 +132,8 @@ public abstract class Dataset implements Serializable {
 			if (other.alternateTitle != null)
 				return false;
 		} else if (!alternateTitle.equals(other.alternateTitle))
+			return false;
+		if (archived != other.archived)
 			return false;
 		if (categoryId == null) {
 			if (other.categoryId != null)

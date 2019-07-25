@@ -95,23 +95,23 @@ public class DataSources extends Controller {
 	
 	public static Promise<Result> list (final String search, final Boolean withErrors, 
 			final Boolean withNotifications, final Boolean withDataset, 
-			final String orderBy, final long page) {
+			final Boolean inArchive, final String orderBy, final long page) {
 		return listByDataSourceAndCategory (null, null, search, withErrors, withNotifications, 
-				withDataset, orderBy, page);
+				withDataset, inArchive, orderBy, page);
 	}
 	
 	public static Promise<Result> listByDataSource (final String dataSourceId, final String search, 
 			final Boolean withErrors, final Boolean withNotifications, final Boolean withDataset, 
-			final String orderBy, final long page) {
+			final Boolean inArchive, final String orderBy, final long page) {
 		return listByDataSourceAndCategory (dataSourceId, null, search, withErrors, withNotifications, 
-				withDataset, orderBy, page);
+				withDataset, inArchive, orderBy, page);
 	}
 	
 	public static Promise<Result> listByCategory (final String categoryId, final String search, 
 			final Boolean withErrors, final Boolean withNotifications, final Boolean withDataset,
-			final String orderBy, final long page) {
+			final Boolean inArchive, final String orderBy, final long page) {
 		return listByDataSourceAndCategory (null, categoryId, search, withErrors, withNotifications, 
-				withDataset, orderBy, page);
+				withDataset, inArchive, orderBy, page);
 	}
 	
 	public static Promise<Result> listByDataSourceAndCategoryJson (final String dataSourceId, final String categoryId) {
@@ -119,7 +119,7 @@ public class DataSources extends Controller {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
 		return from(database)
-			.query(new ListSourceDatasets (dataSourceId, categoryId, null, null, null, null, ListSourceDatasetsOrderBy.TITLE, null))
+			.query(new ListSourceDatasets (dataSourceId, categoryId, null, null, null, null, null, ListSourceDatasetsOrderBy.TITLE, null))
 			.execute(new Function<Page<SourceDatasetStats>, Result>() {
 
 				@Override
@@ -148,16 +148,16 @@ public class DataSources extends Controller {
 	
 	public static Promise<Result> listByDataSourceAndCategory (final String dataSourceId, 
 			final String categoryId, final String search, final Boolean withErrors, 
-			final Boolean withNotifications, final Boolean withDataset, final String orderBy,
-			final long page) {
+			final Boolean withNotifications, final Boolean withDataset, final Boolean inArchive, 
+			final String orderBy, final long page) {
 			return listByDataSourceAndCategoryAndSearchString (dataSourceId, categoryId, search, withErrors, 
-					withNotifications, withDataset, orderBy, page);
+					withNotifications, withDataset, inArchive, orderBy, page);
 	}
 	
 	private static Promise<Result> listByDataSourceAndCategoryAndSearchString (final String dataSourceId, 
 			final String categoryId, final String search, final Boolean withErrors, 
-			final Boolean withNotifications, final Boolean withDataset, final String orderBy,
-			final long page) {
+			final Boolean withNotifications, final Boolean withDataset, final Boolean inArchive, 
+			final String orderBy, final long page) {
 		// Hack: force the database actor to be loaded:
 		if (Database.instance == null) {
 			throw new NullPointerException ();
@@ -183,6 +183,7 @@ public class DataSources extends Controller {
 								withErrors, 
 								withNotifications, 
 								withDataset, 
+								inArchive,
 								ListSourceDatasetsOrderBy.PHYSICAL_NAME, 
 								page);
 						break;
@@ -193,6 +194,7 @@ public class DataSources extends Controller {
 								withErrors, 
 								withNotifications, 
 								withDataset, 
+								inArchive,
 								ListSourceDatasetsOrderBy.TITLE, 
 								page);
 					}
@@ -203,7 +205,7 @@ public class DataSources extends Controller {
 								@Override
 								public Result apply (final Page<SourceDatasetStats> sourceDatasets) throws Throwable {
 									
-									return ok (list.render (sourceDatasets, dataSources.values (), categories.values (), currentDataSource, currentCategory, search, withErrors, withNotifications, withDataset, orderBy));
+									return ok (list.render (sourceDatasets, dataSources.values (), categories.values (), currentDataSource, currentCategory, search, withErrors, withNotifications, withDataset, inArchive, orderBy));
 								}
 								
 							});
@@ -261,7 +263,7 @@ public class DataSources extends Controller {
 				
 				if(sourceDatasetStats.currentPage() < sourceDatasetStats.pageCount()) {	
 					from(database)
-						.query(new ListSourceDatasets (currentDataSource, currentCategory, search, withErrors, null, null, ListSourceDatasetsOrderBy.TITLE, sourceDatasetStats.currentPage() + 1, itemsPerPage))
+						.query(new ListSourceDatasets (currentDataSource, currentCategory, search, withErrors, null, null, null, ListSourceDatasetsOrderBy.TITLE, sourceDatasetStats.currentPage() + 1, itemsPerPage))
 						.execute(nextSourceDatasetStats -> processPage(out, nextSourceDatasetStats))
 						.onFailure(t -> {
 							Logger.error("generating csv output failed", t);
@@ -278,7 +280,7 @@ public class DataSources extends Controller {
 	        	out.write(toLine(Arrays.asList("id", "name", "category", "datasets", "error")));
 	        	
 	        	from(database)
-					.query(new ListSourceDatasets (currentDataSource, currentCategory, search, withErrors, null, null, ListSourceDatasetsOrderBy.TITLE, 1l, itemsPerPage))
+					.query(new ListSourceDatasets (currentDataSource, currentCategory, search, withErrors, null, null, null, ListSourceDatasetsOrderBy.TITLE, 1l, itemsPerPage))
 					.execute(sourceDatasetStats -> processPage(out, sourceDatasetStats))
 					.onFailure(t -> {
 						Logger.error("generating csv output failed", t);

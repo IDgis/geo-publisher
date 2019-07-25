@@ -536,7 +536,8 @@ private String getEnumName(Enum e){
 						sourceDatasetVersion.confidential,
 						sourceDatasetVersion.wmsOnly,
 						sourceDataset.externalIdentification,
-						sourceDatasetVersion.physicalName
+						sourceDatasetVersion.physicalName,
+						sourceDatasetVersion.archived
 					)).thenApply(sourceDatasetInfoOptional -> 
 						sourceDatasetInfoOptional.map(sourceDatasetInfo -> 
 							new SourceDataset(
@@ -557,7 +558,8 @@ private String getEnumName(Enum e){
 								sourceDatasetInfo.isWmsOnly (),
 								Collections.<Notification>emptyList(),
 								sourceDatasetInfo.externalId(),
-								sourceDatasetInfo.physicalName()
+								sourceDatasetInfo.physicalName(),
+								sourceDatasetInfo.isArchived()
 							)));	
 	}
 
@@ -656,7 +658,11 @@ private String getEnumName(Enum e){
 							.and(sourceDatasetVersionSub.id.gt(sourceDatasetVersion.id)))
 						.notExists()))
 				.join (dataSource).on(dataSource.id.eq(sourceDataset.dataSourceId))
-				.leftJoin (category).on(sourceDatasetVersion.categoryId.eq(category.id));
+				.leftJoin (category).on(sourceDatasetVersion.categoryId.eq(category.id))
+				.where (sourceDatasetVersion.archived.isFalse()
+					.or(new SQLSubQuery().from(dataset)
+						.where(dataset.sourceDatasetId.eq(sourceDataset.id))
+						.exists()));
 			
 			String categoryId = msg.categoryId();
 			if(categoryId != null) {				
@@ -715,6 +721,14 @@ private String getEnumName(Enum e){
 				}
 			}
 			
+			if (msg.getInArchive () != null) {
+				if(msg.getInArchive ()) {
+					baseQuery.where(sourceDatasetVersion.archived.isTrue());
+				} else {
+					baseQuery.where(sourceDatasetVersion.archived.isFalse());
+				}
+			}
+			
 			if(msg.getOrderBy().equals(ListSourceDatasetsOrderBy.TITLE)) {
 				baseQuery.orderBy(sourceDatasetVersion.name.trim().asc());
 			} else if(msg.getOrderBy().equals(ListSourceDatasetsOrderBy.PHYSICAL_NAME)) {
@@ -729,7 +743,7 @@ private String getEnumName(Enum e){
 			singlePage(listQuery, page, itemsPerPage);
 			
 			return f
-				.collect(listQuery					
+				.collect(listQuery
 					.groupBy(sourceDataset.identification).groupBy(sourceDatasetVersion.name)
 					.groupBy(dataSource.identification).groupBy(dataSource.name)
 					.groupBy(category.identification).groupBy(category.name)
@@ -755,7 +769,8 @@ private String getEnumName(Enum e){
 						sourceDatasetVersion.confidential,
 						sourceDatasetVersion.wmsOnly,
 						sourceDataset.externalIdentification,
-						sourceDatasetVersion.physicalName
+						sourceDatasetVersion.physicalName,
+						sourceDatasetVersion.archived
 					)))
 				.collect(baseQuery.count()).thenApply((list, count) -> {
 					Page.Builder<SourceDatasetStats> pageBuilder = new Page.Builder<> ();
@@ -773,7 +788,8 @@ private String getEnumName(Enum e){
 							sourceDatasetInfo.isWmsOnly(),
 							Collections.<Notification>emptyList(),
 							sourceDatasetInfo.externalId(),
-							sourceDatasetInfo.physicalName()
+							sourceDatasetInfo.physicalName(),
+							sourceDatasetInfo.isArchived()
 						);
 						
 						pageBuilder.add (new SourceDatasetStats (

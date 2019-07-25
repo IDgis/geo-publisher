@@ -191,7 +191,7 @@ public abstract class AbstractDatabaseTest {
 		
 		MetadataDocument metadata = MetadataDocumentTest.getDocument("dataset_metadata.xml");
 		
-		return new VectorDataset(id, "My Test Table", "alternate title", "testCategory", revision, Collections.<Log>emptySet(), false, false, false, metadata, table, null, null);
+		return new VectorDataset(id, "My Test Table", "alternate title", "testCategory", revision, Collections.<Log>emptySet(), false, false, false, metadata, table, null, null, false);
 	}
 	
 	protected VectorDataset createAnotherVectorDataset() throws Exception {
@@ -209,7 +209,8 @@ public abstract class AbstractDatabaseTest {
 				MetadataDocumentTest.getDocument("dataset_metadata.xml"),
 				dataset.getTable(),
 				dataset.getPhysicalName(),
-				dataset.getRefreshFrequency());
+				dataset.getRefreshFrequency(),
+				dataset.isArchived());
 	}
 	
 	protected UnavailableDataset createUnavailableDataset() {
@@ -223,7 +224,7 @@ public abstract class AbstractDatabaseTest {
 		ZonedDateTime revision = ZonedDateTime.of(
 				LocalDate.now().atStartOfDay(), ZoneId.of("Europe/Amsterdam"));
 		
-		return new UnavailableDataset(id, "My Test Table", "alternate title", "testCategory", revision, logs, false, false, false, null, null, null);
+		return new UnavailableDataset(id, "My Test Table", "alternate title", "testCategory", revision, logs, false, false, false, null, null, null, false);
 	}
 	
 	protected ExecutionContext dispatcher() {

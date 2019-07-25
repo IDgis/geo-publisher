@@ -56,6 +56,8 @@ public class ProviderDatasetConverter extends StreamConverter {
 	
 	private final String wmsOnlyValue;
 	
+	private final String archivedValue;
+	
 	public ProviderDatasetConverter(ActorRef provider, Config harvesterConfig) throws Exception {
 		this.provider = provider;
 		
@@ -63,6 +65,7 @@ public class ProviderDatasetConverter extends StreamConverter {
 		dataPublicValue = ConfigUtils.getOptionalString(harvesterConfig, "dataPublicValue");
 		metadataPublicValue = ConfigUtils.getOptionalString(harvesterConfig, "metadataPublicValue");
 		wmsOnlyValue = ConfigUtils.getOptionalString(harvesterConfig,"wmsOnlyValue");
+		archivedValue = ConfigUtils.getOptionalString(harvesterConfig,"archivedValue");
 		
 		log.debug("confidentialPath: {}", confidentialPath);
 		log.debug("dataPublicValue: {}", dataPublicValue);
@@ -123,6 +126,7 @@ public class ProviderDatasetConverter extends StreamConverter {
 			boolean confidential = true;
 			boolean metadataConfidential = true;
 			boolean wmsOnly = false;
+			boolean archived = false;
 			
 			if(attachments.containsKey(AttachmentType.METADATA)) {
 				Attachment attachment = attachments.get(AttachmentType.METADATA);
@@ -158,6 +162,11 @@ public class ProviderDatasetConverter extends StreamConverter {
 									wmsOnly = useLimitations.contains(wmsOnlyValue);
 									log.debug("wmsOnly: {}", wmsOnly);
 								}
+								
+								if(archivedValue != null) {
+									archived = useLimitations.contains(archivedValue);
+									log.debug("archived: {}", archived);
+								}
 							} 
 						} catch(Exception e) {
 							log.error(e, "Couldn't process metadata");
@@ -190,15 +199,15 @@ public class ProviderDatasetConverter extends StreamConverter {
 					.collect(Collectors.toList());
 				
 				Table table = new Table(columns);
-				dataset = new VectorDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata, table, physicalName, refreshFrequency);
+				dataset = new VectorDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata, table, physicalName, refreshFrequency, archived);
 			} else if(msg instanceof RasterDatasetInfo) {
 				log.debug("raster dataset info type");
 				
-				dataset = new RasterDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata, physicalName, refreshFrequency);
+				dataset = new RasterDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata, physicalName, refreshFrequency, archived);
 			} else {
 				log.debug("unhandled dataset info type");
 				
-				dataset = new UnavailableDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata, physicalName, refreshFrequency);
+				dataset = new UnavailableDataset(identification, title, alternateTitle, categoryId, revisionDate, logs, confidential, metadataConfidential, wmsOnly, metadata, physicalName, refreshFrequency, archived);
 			}
 			
 			log.debug("resulting dataset: {}", dataset);

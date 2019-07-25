@@ -150,7 +150,8 @@ public class ColumnDiffTest extends AbstractServiceTest {
 			null,
 			newTable,
 			null,
-			null);
+			null,
+			false);
 		
 		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", newSourceDataset), Updated.class).get();
 		
@@ -189,7 +190,8 @@ public class ColumnDiffTest extends AbstractServiceTest {
 			null,
 			newTable,
 			null,
-			null);
+			null,
+			false);
 		
 		f.ask(datasetManager, new RegisterSourceDataset("testDataSource", newSourceDataset), Updated.class).get();
 		

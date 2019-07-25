@@ -190,7 +190,7 @@ public class Datasets extends Controller {
 			return new Constant<Page<SourceDatasetStats>> (new Page.Builder<SourceDatasetStats> ().build ());
 		}
 		
-		return new ListSourceDatasets (dataSourceId, categoryId, null, null, null, null, ListSourceDatasetsOrderBy.TITLE, null); 
+		return new ListSourceDatasets (dataSourceId, categoryId, null, null, null, null, null, ListSourceDatasetsOrderBy.TITLE, null); 
 	}
 	
 	private static DomainQuery<List<Column>> listSourceDatasetColumns (final String dataSourceId, final String sourceDatasetId) {
