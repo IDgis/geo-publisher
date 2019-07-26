@@ -59,21 +59,21 @@ public class ServiceInfoFetcher {
 		return null;
 	}
 	
-	private static void removeAllLayerIds(JsonNode layer) {
-		((ObjectNode)layer).remove("id");
+	private static void removeAllLayerIds(ObjectNode layer) {
+		layer.remove("id");
 		JsonNode layers = layer.get("layers");
 		if (layers != null) {
 			for (JsonNode childLayer : layers) {
-				removeAllLayerIds(childLayer);
+				removeAllLayerIds((ObjectNode)childLayer);
 			}
 		}
 	}
 	
-	private static void makeLayerNamesUnique(JsonNode layer) {
+	private static void makeLayerNamesUnique(ObjectNode layer) {
 		makeLayerNamesUnique(layer, new HashSet<>());
 	}
 	
-	private static void makeLayerNamesUnique(JsonNode layer, Set<String> layerNames) {
+	private static void makeLayerNamesUnique(ObjectNode layer, Set<String> layerNames) {
 		JsonNode name = layer.get("name");
 		if (name == null) {
 			throw new IllegalStateException("name field is missing");
@@ -98,7 +98,7 @@ public class ServiceInfoFetcher {
 		JsonNode layers = layer.get("layers");
 		if (layers != null) {
 			for (JsonNode childLayer : layers) {
-				makeLayerNamesUnique(childLayer, layerNames);
+				makeLayerNamesUnique((ObjectNode)childLayer, layerNames);
 			}
 		}
 	}
@@ -157,7 +157,8 @@ public class ServiceInfoFetcher {
 			throw new IllegalStateException("Unexpected number (!= 1) of root layers: " + layers.size());
 		}
 		
-		JsonNode rootLayer = layers.get(0);
+		ObjectNode rootLayer = (ObjectNode)layers.get(0);
+		rootLayer.remove("type");
 		removeAllLayerIds(rootLayer);
 		makeLayerNamesUnique(rootLayer);
 		
