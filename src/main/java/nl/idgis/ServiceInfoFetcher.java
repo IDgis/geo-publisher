@@ -121,19 +121,19 @@ public class ServiceInfoFetcher {
 				PreparedStatement stmt = c.prepareStatement(serviceQuery)) {
 			
 			T serviceInfo = null;
-			int lastServiceId = -1;
+			String lastServiceName = null;
 			try (ResultSet rs = stmt.executeQuery()) {
 				while (rs.next()) {
-					int serviceId = rs.getInt(1);
+					String serviceName = rs.getString(1);
 					Integer[] anchestors = (Integer[])rs.getArray(2).getArray();
 					JsonNode layers = om.readTree(rs.getBinaryStream(3));
 
-					if (serviceId != lastServiceId) {
+					if (!serviceName.equals(lastServiceName)) {
 						if (serviceInfo != null) {
 							consumer.accept(serviceInfo);
 						}
-						
-						lastServiceId = serviceId;
+
+						lastServiceName = serviceName;
 						serviceInfo = null;
 					}
 					
@@ -164,8 +164,8 @@ public class ServiceInfoFetcher {
 		return rootLayer;
 	}
 	
-	public Optional<JsonNode> fetchServiceInfo(int serviceId) throws SQLException, IOException {
-		JsonNode root = fetchServiceInfo(serviceId, this::serviceInfoBuilder);
+	public Optional<JsonNode> fetchServiceInfo(String serviceName) throws SQLException, IOException {
+		JsonNode root = fetchServiceInfo(serviceName, this::serviceInfoBuilder);
 		
 		if (root == null) {
 			return Optional.empty();
@@ -204,13 +204,13 @@ public class ServiceInfoFetcher {
 		return serviceInfo;
 	};
 	
-	private <T> T fetchServiceInfo(int serviceId, ServiceInfoBuilder<T> builder) throws SQLException, IOException {
+	private <T> T fetchServiceInfo(String serviceName, ServiceInfoBuilder<T> builder) throws SQLException, IOException {
 		T serviceInfo = null;
 		
 		try (Connection c = DataSourceUtils.getConnection(dataSource); 
-				PreparedStatement stmt = c.prepareStatement("select * from (" + serviceQuery + ") s where s.service_id = ?")) {
+				PreparedStatement stmt = c.prepareStatement("select s.* from (" + serviceQuery + ") s where s.service_name = ?")) {
 			
-			stmt.setInt(1, serviceId);
+			stmt.setString(1, serviceName);
 			try (ResultSet rs = stmt.executeQuery()) {
 				while (rs.next()) {
 					Integer[] anchestors = (Integer[])rs.getArray(2).getArray();

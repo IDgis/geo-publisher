@@ -36,9 +36,9 @@ public class ServiceInfoController {
         return root;
     }
 
-    @RequestMapping("/services/{id}")
-    public JsonNode service(@PathVariable("id") int id) throws Exception {
-        return serviceInfoFetcher.fetchServiceInfo(id)
+    @RequestMapping("/services/{name}")
+    public JsonNode service(@PathVariable("name") String name) throws Exception {
+        return serviceInfoFetcher.fetchServiceInfo(name)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 }

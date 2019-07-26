@@ -1,14 +1,15 @@
 with recursive service_layer_structure as (
 	select
-		s.id service_id,
+		gl.name service_name,
 		null::int parent_layer_id,
 		s.generic_layer_id child_layer_id,
 		null::integer layer_order,
 		array[]::int[] anchestors		
 	from publisher.service s
+	join publisher.generic_layer gl on gl.id = s.generic_layer_id
 	union all
 	select
-		st.service_id,
+		st.service_name,
 		ls.parent_layer_id,
 		ls.child_layer_id,
 		ls.layer_order,
@@ -18,7 +19,7 @@ with recursive service_layer_structure as (
 	where not st.child_layer_id = any(anchestors)
 )
 select
-	sls.service_id,
+	sls.service_name,
 	sls.anchestors,
 	jsonb_agg(
 		case
