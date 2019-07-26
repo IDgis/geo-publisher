@@ -305,7 +305,8 @@ public class DatasetAdmin extends AbstractAdmin {
 					.count()
 					.as (publishedServiceCountPath),
 			sourceDatasetVersion.confidential,
-			sourceDatasetVersion.wmsOnly
+			sourceDatasetVersion.wmsOnly,
+			sourceDatasetVersion.archived
 		};
 	}
 	
