@@ -525,6 +525,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 				new SQLSubQuery ().from (leafLayer).where (leafLayer.datasetId.eq (dataset.id)).count ().as (layerCountPath),
 				sourceDatasetVersion.confidential,
 				sourceDatasetVersion.wmsOnly,
+				sourceDatasetVersion.archived,
 				dataset.metadataFileIdentification
 			)) {
 			
