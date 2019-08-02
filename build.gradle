@@ -886,6 +886,45 @@ project(':publisher-database-cleanup') {
 	}
 }
 
+project(':publisher-service-info-service') {
+    apply plugin: 'application'
+    apply plugin: DockerRemoteConfig
+    
+    mainClassName = 'nl.idgis.ServiceInfoService'
+
+    dependencies {
+        compile 'org.springframework:spring-jdbc:5.1.7.RELEASE'
+        compile 'org.postgresql:postgresql:42.2.5'
+        compile 'com.fasterxml.jackson.core:jackson-databind:2.9.9'
+        compile 'commons-io:commons-io:2.6'
+        compile 'org.springframework.boot:spring-boot-starter-web:2.1.6.RELEASE'
+        compile 'org.apache.commons:commons-dbcp2:2.6.0'
+    }
+    
+	task unpackTar(type: Copy) {
+		dependsOn distTar
+
+		from tarTree(distTar.archivePath)
+		into "${project.buildDir}/docker"
+	}
+	
+	task createDockerfile(type: Dockerfile) {
+		destFile = file("${project.buildDir}/docker/Dockerfile")
+		from 'azul/zulu-openjdk:8'
+		copyFile "publisher-service-info-service-${project.version}", '/opt'
+		runCommand 'chmod +x /opt/bin/publisher-service-info-service'
+		exposePort 8080
+		entryPoint "/opt/bin/publisher-service-info-service"
+	}
+	
+	task buildImage(type: DockerBuildImage) {
+		dependsOn rootProject.pullJavaImage, createDockerfile, unpackTar
+		
+		inputDir = file("${project.buildDir}/docker")
+		tag = "idgis/geopublisher_service_info_service:${project.version}"
+	}
+}
+
 // measure task execution time
 if(!gradle.startParameter.continuous) {
 	gradle.addListener(new TimingListener())
