@@ -39,19 +39,19 @@ public class ServiceInfoFetcher {
 		serviceQuery = IOUtils.toString(is, "utf-8");
 	}
 	
-	private static JsonNode findChildLayerById(JsonNode layer, int id) {
+	private static JsonNode findChildLayerById(JsonNode layer, int internalId) {
 		JsonNode layers = layer.get("layers");
 		if (layers == null) {
 			throw new IllegalStateException("layers field is missing");
 		}
 		
 		for (JsonNode childLayer : layers) {
-			JsonNode idNode = childLayer.get("id");
+			JsonNode idNode = childLayer.get("internal_id");
 			if (idNode == null) {
-				throw new IllegalStateException("id field is missing");
+				throw new IllegalStateException("internal_id field is missing");
 			}
 		
-			if (idNode.asInt() == id) {
+			if (idNode.asInt() == internalId) {
 				return childLayer;
 			}
 		}
@@ -59,12 +59,12 @@ public class ServiceInfoFetcher {
 		return null;
 	}
 	
-	private static void removeAllLayerIds(ObjectNode layer) {
-		layer.remove("id");
+	private static void removeAllInternalLayerIds(ObjectNode layer) {
+		layer.remove("internal_id");
 		JsonNode layers = layer.get("layers");
 		if (layers != null) {
 			for (JsonNode childLayer : layers) {
-				removeAllLayerIds((ObjectNode)childLayer);
+				removeAllInternalLayerIds((ObjectNode)childLayer);
 			}
 		}
 	}
@@ -121,19 +121,19 @@ public class ServiceInfoFetcher {
 				PreparedStatement stmt = c.prepareStatement(serviceQuery)) {
 			
 			T serviceInfo = null;
-			String lastServiceName = null;
+			String lastServiceId = null;
 			try (ResultSet rs = stmt.executeQuery()) {
 				while (rs.next()) {
-					String serviceName = rs.getString(1);
+					String serviceId = rs.getString(1);
 					Integer[] anchestors = (Integer[])rs.getArray(2).getArray();
 					JsonNode layers = om.readTree(rs.getBinaryStream(3));
 
-					if (!serviceName.equals(lastServiceName)) {
+					if (!serviceId.equals(lastServiceId)) {
 						if (serviceInfo != null) {
 							consumer.accept(serviceInfo);
 						}
 
-						lastServiceName = serviceName;
+						lastServiceId = serviceId;
 						serviceInfo = null;
 					}
 					
@@ -159,14 +159,14 @@ public class ServiceInfoFetcher {
 		
 		ObjectNode rootLayer = (ObjectNode)layers.get(0);
 		rootLayer.remove("type");
-		removeAllLayerIds(rootLayer);
+		removeAllInternalLayerIds(rootLayer);
 		makeLayerNamesUnique(rootLayer);
 		
 		return rootLayer;
 	}
 	
-	public Optional<JsonNode> fetchServiceInfo(String serviceName) throws SQLException, IOException {
-		JsonNode root = fetchServiceInfo(serviceName, this::serviceInfoBuilder);
+	public Optional<JsonNode> fetchServiceInfo(String id) throws SQLException, IOException {
+		JsonNode root = fetchServiceInfo(id, this::serviceInfoBuilder);
 		
 		if (root == null) {
 			return Optional.empty();
@@ -205,13 +205,13 @@ public class ServiceInfoFetcher {
 		return serviceInfo;
 	};
 	
-	private <T> T fetchServiceInfo(String serviceName, ServiceInfoBuilder<T> builder) throws SQLException, IOException {
+	private <T> T fetchServiceInfo(String serviceId, ServiceInfoBuilder<T> builder) throws SQLException, IOException {
 		T serviceInfo = null;
 		
 		try (Connection c = DataSourceUtils.getConnection(dataSource); 
-				PreparedStatement stmt = c.prepareStatement("select s.* from (" + serviceQuery + ") s where s.service_name = ?")) {
+				PreparedStatement stmt = c.prepareStatement("select s.* from (" + serviceQuery + ") s where s.service_id = ?")) {
 			
-			stmt.setString(1, serviceName);
+			stmt.setString(1, serviceId);
 			try (ResultSet rs = stmt.executeQuery()) {
 				while (rs.next()) {
 					Integer[] anchestors = (Integer[])rs.getArray(2).getArray();
