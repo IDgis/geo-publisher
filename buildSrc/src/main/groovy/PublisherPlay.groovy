@@ -7,8 +7,6 @@ import org.gradle.jvm.tasks.Jar
 
 import org.gradle.play.plugins.PlayPlugin
 
-import com.github.houbie.gradle.lesscss.LesscTask
-
 import com.bmuschko.gradle.docker.tasks.image.Dockerfile
 import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
 
@@ -28,7 +26,6 @@ class PublisherPlay implements Plugin<Project> {
 		project.model {
 			components {
 				play {
-				
 					binaries.all { binary ->
 						def lessDestinationDir = "${project.buildDir}/less/"
 						def extractLessTask = tasks.taskName('extract', 'less')
@@ -61,19 +58,6 @@ class PublisherPlay implements Plugin<Project> {
 							}
 
 							binary.assets.builtBy task
-						}
-
-						project.tasks.create(tasks.taskName('compile', 'less'), LesscTask) { task ->
-							description = 'Compiles all less source files'
-							sourceDir 'app/assets', lessDestinationDir
-							include '**/*.less'
-							exclude '**/_*.less'
-							exclude 'lib/**'
-							destinationDir = project.file("${project.buildDir}/${binary.name}/lessAssets")
-
-							binary.assets.addAssetDir destinationDir
-							binary.assets.builtBy task
-							dependsOn extractLessTask
 						}
 					}
 				}
