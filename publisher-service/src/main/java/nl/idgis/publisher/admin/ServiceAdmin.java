@@ -35,6 +35,8 @@ import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.QService;
 import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.ServicePublish;
+import nl.idgis.publisher.mx.messages.ServiceUpdateType;
+import nl.idgis.publisher.mx.messages.StagingServiceUpdate;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.manager.messages.PublishService;
 
@@ -51,16 +53,17 @@ public class ServiceAdmin extends AbstractAdmin {
 	
 	protected final static QGenericLayer child = new QGenericLayer("child"), parent = new QGenericLayer("parent");
 	
-	private final ActorRef serviceManager;
+	private final ActorRef serviceManager, messageBroker;
 	
-	public ServiceAdmin(ActorRef database, ActorRef serviceManager) {
+	public ServiceAdmin(ActorRef database, ActorRef serviceManager, ActorRef messageBroker) {
 		super(database); 
 		
 		this.serviceManager = serviceManager;
+		this.messageBroker = messageBroker;
 	}
 	
-	public static Props props(ActorRef database, ActorRef serviceManager) {
-		return Props.create(ServiceAdmin.class, database, serviceManager);
+	public static Props props(ActorRef database, ActorRef serviceManager, ActorRef messageBroker) {
+		return Props.create(ServiceAdmin.class, database, serviceManager, messageBroker);
 	}
 
 	@Override
@@ -240,8 +243,17 @@ public class ServiceAdmin extends AbstractAdmin {
 					isPublished ()
 			));		
 	}
-	
+
 	private CompletableFuture<Response<?>> handlePutService(Service theService) {
+		return performPutService(theService).whenComplete( (response, throwable) -> {
+			if (response != null && response.getOperationResponse() == CrudResponse.OK) {
+				log.debug("sending update notification to message broker");
+				messageBroker.tell(new StagingServiceUpdate(ServiceUpdateType.CREATE, theService.id()), getSelf());
+			}
+		});
+	}
+	
+	private CompletableFuture<Response<?>> performPutService(Service theService) {
 		String serviceId = theService.id();
 		String serviceName = theService.name();
 		log.debug ("handle update/create service: " + serviceId);

@@ -25,6 +25,7 @@ import nl.idgis.publisher.job.manager.JobManager;
 import nl.idgis.publisher.loader.Loader;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
+import nl.idgis.publisher.mx.MessageBroker;
 import nl.idgis.publisher.service.manager.ServiceManager;
 import nl.idgis.publisher.service.provisioning.ProvisioningSystem;
 import nl.idgis.publisher.tree.Tree;
@@ -184,8 +185,10 @@ public class ServiceApp extends UntypedActor {
 			geoserverConfig, rasterFolderConfig, zooKeeperConfig, metadataUrlPrefix), "provisioning-system");
 		
 		getContext().actorOf(JobScheduler.props(database, jobManager, harvester, loader, provisioningSystem, serviceManager), "job-scheduler");
-		
-		getContext().actorOf(AdminParent.props(database, harvester, loader, provisioningSystem, jobManager, serviceManager), "admin");
+
+		ActorRef messageBroker = getContext().actorOf(MessageBroker.props(), "message-broker");
+
+		getContext().actorOf(AdminParent.props(database, harvester, loader, provisioningSystem, jobManager, serviceManager, messageBroker), "admin");
 		
 		if(log.isDebugEnabled()) {
 			ActorSystem system = getContext().system();
