@@ -68,7 +68,11 @@ import nl.idgis.publisher.domain.web.Message;
 import nl.idgis.publisher.domain.web.Notification;
 import nl.idgis.publisher.domain.web.PutDataset;
 import nl.idgis.publisher.domain.web.Status;
+import nl.idgis.publisher.mx.messages.ServiceUpdateType;
+import nl.idgis.publisher.mx.messages.StagingServiceUpdate;
+import nl.idgis.publisher.service.manager.messages.GetServicesWithDataset;
 import nl.idgis.publisher.utils.StreamUtils;
+import nl.idgis.publisher.utils.TypedIterable;
 import nl.idgis.publisher.utils.TypedList;
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -87,12 +91,17 @@ public class DatasetAdmin extends AbstractAdmin {
 	
 	private final ObjectMapper objectMapper = new ObjectMapper ();
 
-	public DatasetAdmin(ActorRef database) {
+	private final ActorRef serviceManager, messageBroker;
+
+	public DatasetAdmin(ActorRef database, ActorRef serviceManager, ActorRef messageBroker) {
 		super(database);
+
+		this.serviceManager = serviceManager;
+		this.messageBroker = messageBroker;
 	}
 	
-	public static Props props(ActorRef database) {
-		return Props.create(DatasetAdmin.class, database);
+	public static Props props(ActorRef database, ActorRef serviceManager, ActorRef messageBroker) {
+		return Props.create(DatasetAdmin.class, database, serviceManager, messageBroker);
 	}
 
 	@Override
@@ -573,8 +582,27 @@ public class DatasetAdmin extends AbstractAdmin {
 			.execute ()
 			.thenCompose (deleteCount -> deleteHelper (key, deleteCount, deleteClauses.subList (1, deleteClauses.size ())));
 	}
-	
+
 	private CompletableFuture<Response<?>> handleDeleteDataset(String id) {
+		return f.ask(serviceManager, new GetServicesWithDataset(id), TypedIterable.class)
+			.thenApply(itr -> ((TypedIterable<Object>) itr).cast(String.class))
+			.thenCompose(serviceIds -> {
+				return performDeleteDataset(id).whenComplete( (response, throwable) -> {
+					if (response != null && response.getOperationResponse() == CrudResponse.OK) {
+						for (String serviceId : serviceIds) {
+							log.debug("sending 'create' update notification to message broker");
+							messageBroker.tell(
+									new StagingServiceUpdate(
+											ServiceUpdateType.CREATE,
+											serviceId),
+									getSelf());
+						}
+					}
+				});
+			});
+	}
+	
+	private CompletableFuture<Response<?>> performDeleteDataset(String id) {
 		return db
 			.transactional (tx -> {
 				

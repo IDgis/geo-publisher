@@ -25,10 +25,10 @@ public class AdminParent extends AbstractAdminParent {
 		createAdminActor(Admin.props(database, harvester, loader, provisioning), "admin");
 		createAdminActor(DataSourceAdmin.props(database, harvester), "data-source");
 		createAdminActor(CategoryAdmin.props(database), "category");
-		createAdminActor(DatasetAdmin.props(database), "dataset");
+		createAdminActor(DatasetAdmin.props(database, serviceManager, messageBroker), "dataset");
 		createAdminActor(ServiceAdmin.props(database, serviceManager, messageBroker), "service");
-		createAdminActor(LayerAdmin.props(database), "layer");
-		createAdminActor(LayerGroupAdmin.props(database, serviceManager), "layergroup");
+		createAdminActor(LayerAdmin.props(database, serviceManager, messageBroker), "layer");
+		createAdminActor(LayerGroupAdmin.props(database, serviceManager, messageBroker), "layergroup");
 		createAdminActor(TiledLayerAdmin.props(database), "tiledlayer");
 		createAdminActor(StyleAdmin.props(database), "style");
 		createAdminActor(JobCreator.props(database, serviceManager, jobManager, harvester), "job-creator");

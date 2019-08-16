@@ -81,8 +81,14 @@ public class ServiceAdmin extends AbstractAdmin {
 		
 		doQuery (ListServices.class, this::handleListServicesWithQuery);
 	}
-	
+
 	private CompletableFuture<Boolean> handlePerformPublish(PerformPublish performPublish) {
+		return performPerformPublish(performPublish).whenComplete( (response, throwable) -> {
+			// TODO: send update event via messageBroker
+		});
+	}
+	
+	private CompletableFuture<Boolean> performPerformPublish(PerformPublish performPublish) {
 		return f.ask(
 			serviceManager, 
 			new PublishService(
@@ -247,7 +253,7 @@ public class ServiceAdmin extends AbstractAdmin {
 	private CompletableFuture<Response<?>> handlePutService(Service theService) {
 		return performPutService(theService).whenComplete( (response, throwable) -> {
 			if (response != null && response.getOperationResponse() == CrudResponse.OK) {
-				log.debug("sending update notification to message broker");
+				log.debug("sending 'create' update notification to message broker");
 				messageBroker.tell(new StagingServiceUpdate(ServiceUpdateType.CREATE, theService.id()), getSelf());
 			}
 		});
@@ -335,6 +341,15 @@ public class ServiceAdmin extends AbstractAdmin {
 	}
 
 	private CompletableFuture<Response<?>> handleDeleteService(String serviceId) {
+		return performDeleteService(serviceId).whenComplete( (response, throwable) -> {
+			if (response != null && response.getOperationResponse() == CrudResponse.OK) {
+				log.debug("sending 'remove' update notification to message broker");
+				messageBroker.tell(new StagingServiceUpdate(ServiceUpdateType.REMOVE, serviceId), getSelf());
+			}
+		});
+	}
+
+	private CompletableFuture<Response<?>> performDeleteService(String serviceId) {
 		log.debug ("handleDeleteService: " + serviceId);
 		return db.transactional(tx ->
 				tx.query().from(service)
