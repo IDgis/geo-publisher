@@ -13,20 +13,21 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestController
-public class ServiceInfoController {
+@RequestMapping("/staging/services")
+public class StagingController {
 
-    private final ServiceInfoFetcher serviceInfoFetcher;
+    private final StagingFetcher stagingFetcher;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public ServiceInfoController(@Autowired ServiceInfoFetcher serviceInfoFetcher) {
-        this.serviceInfoFetcher = serviceInfoFetcher;
+    public StagingController(@Autowired StagingFetcher serviceInfoFetcher) {
+        this.stagingFetcher = serviceInfoFetcher;
     }
 
-    @RequestMapping("/services")
+    @RequestMapping
     public JsonNode services() throws Exception {
         ArrayNode services = objectMapper.createArrayNode();
-        for (JsonNode serviceInfo : serviceInfoFetcher.fetchAllServiceInfos()) {
+        for (JsonNode serviceInfo : stagingFetcher.fetchAllServiceInfos()) {
             services.add(serviceInfo);
         }
 
@@ -36,9 +37,9 @@ public class ServiceInfoController {
         return root;
     }
 
-    @RequestMapping("/services/{id}")
+    @RequestMapping("/{id}")
     public JsonNode service(@PathVariable("id") String id) throws Exception {
-        return serviceInfoFetcher.fetchServiceInfo(id)
+        return stagingFetcher.fetchServiceInfo(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 }
