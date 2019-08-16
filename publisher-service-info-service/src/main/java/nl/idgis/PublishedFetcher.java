@@ -2,6 +2,8 @@ package nl.idgis;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.stereotype.Component;
@@ -24,6 +26,34 @@ public class PublishedFetcher {
         this.dataSource = dataSource;
     }
 
+    private void modifyContent(ObjectNode node) {
+        modifyContent(node, false);
+    }
+
+    private void modifyContent(ObjectNode node, boolean isLayer) {
+        JsonNode layers = node.get("layers");
+        if (layers != null) {
+            if (!layers.isArray()) {
+                throw new IllegalStateException("layers value is not an array");
+            }
+
+            ArrayNode layersReplacement = om.createArrayNode();
+            for (JsonNode child : layers) {
+                ObjectNode childLayer = ((ObjectNode)child.get("layer"));
+                if (childLayer == null) {
+                    throw new IllegalStateException("layer attribute is missing");
+                }
+                modifyContent(childLayer, true);
+                layersReplacement.add(childLayer);
+            }
+
+            node.put("layers", layersReplacement);
+            if (isLayer) {
+                node.put("type", "group");
+            }
+        }
+    }
+
     public List<JsonNode> fetchAllServiceInfos(String environment) throws SQLException, IOException {
         List<JsonNode> serviceInfos = new ArrayList<>();
 
@@ -38,7 +68,8 @@ public class PublishedFetcher {
 
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    JsonNode content = om.readTree(rs.getBinaryStream(1));
+                    ObjectNode content = (ObjectNode)om.readTree(rs.getBinaryStream(1));
+                    modifyContent(content);
                     serviceInfos.add(content);
                 }
             }
@@ -63,7 +94,9 @@ public class PublishedFetcher {
 
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
-                    return Optional.of(om.readTree(rs.getBinaryStream(1)));
+                    ObjectNode content = (ObjectNode)om.readTree(rs.getBinaryStream(1));
+                    modifyContent(content);
+                    return Optional.of(content);
                 }
             }
         }
