@@ -69,40 +69,6 @@ public class StagingRepository {
 		}
 	}
 	
-	private static void makeLayerNamesUnique(ObjectNode layer) {
-		makeLayerNamesUnique(layer, new HashSet<>());
-	}
-	
-	private static void makeLayerNamesUnique(ObjectNode layer, Set<String> layerNames) {
-		JsonNode name = layer.get("name");
-		if (name == null) {
-			throw new IllegalStateException("name field is missing");
-		}
-		
-		String nameText = name.asText();				
-		if (layerNames.contains(nameText)) {
-			int postFix = 2;
-			String newName;
-			
-			do {
-				newName = nameText + "-" + postFix;
-				postFix++;
-			} while (layerNames.contains(newName));
-			
-			layerNames.add(newName);
-			((ObjectNode)layer).put("name", newName);
-		} else {
-			layerNames.add(nameText);
-		}
-		
-		JsonNode layers = layer.get("layers");
-		if (layers != null) {
-			for (JsonNode childLayer : layers) {
-				makeLayerNamesUnique((ObjectNode)childLayer, layerNames);
-			}
-		}
-	}
-	
 	public List<JsonNode> getAllServiceInfos() throws SQLException, IOException {
 		List<JsonNode> serviceInfos = new ArrayList<>();
 		getAllServiceInfos(this::serviceInfoBuilder, serviceInfo -> {
@@ -160,7 +126,7 @@ public class StagingRepository {
 		ObjectNode rootLayer = (ObjectNode)layers.get(0);
 		rootLayer.remove("type");
 		removeAllInternalLayerIds(rootLayer);
-		makeLayerNamesUnique(rootLayer);
+		Utils.makeLayerNamesUnique(rootLayer);
 		
 		return rootLayer;
 	}

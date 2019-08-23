@@ -26,11 +26,12 @@ public class PublicationRepository {
         this.dataSource = dataSource;
     }
 
-    private void modifyContent(ObjectNode node) {
-        modifyContent(node, false);
+    private void postProcessServiceInfo(ObjectNode node) {
+        postProcessServiceInfo(node, false);
+        Utils.makeLayerNamesUnique(node);
     }
 
-    private void modifyContent(ObjectNode node, boolean isLayer) {
+    private void postProcessServiceInfo(ObjectNode node, boolean isLayer) {
         JsonNode layers = node.get("layers");
         if (layers != null) {
             if (!layers.isArray()) {
@@ -43,7 +44,7 @@ public class PublicationRepository {
                 if (childLayer == null) {
                     throw new IllegalStateException("layer attribute is missing");
                 }
-                modifyContent(childLayer, true);
+                postProcessServiceInfo(childLayer, true);
                 layersReplacement.add(childLayer);
             }
 
@@ -69,7 +70,7 @@ public class PublicationRepository {
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     ObjectNode content = (ObjectNode)om.readTree(rs.getBinaryStream(1));
-                    modifyContent(content);
+                    postProcessServiceInfo(content);
                     serviceInfos.add(content);
                 }
             }
@@ -95,7 +96,7 @@ public class PublicationRepository {
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     ObjectNode content = (ObjectNode)om.readTree(rs.getBinaryStream(1));
-                    modifyContent(content);
+                    postProcessServiceInfo(content);
                     return Optional.of(content);
                 }
             }
