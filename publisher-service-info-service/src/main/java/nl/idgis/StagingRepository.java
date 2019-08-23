@@ -223,4 +223,44 @@ public class StagingRepository {
 		
 		return serviceInfo;
 	}
+
+	public List<JsonNode> getAllStyleRefs() throws SQLException {
+		List<JsonNode> styleRefs = new ArrayList<>();
+
+		try (Connection c = DataSourceUtils.getConnection(dataSource);
+			 PreparedStatement stmt = c.prepareStatement(
+					 "select s.identification, s.name " +
+						 "from publisher.style s")) {
+
+			try (ResultSet rs = stmt.executeQuery()) {
+				while (rs.next()) {
+					ObjectNode styleRef = om.createObjectNode();
+					styleRef.put("id", rs.getString(1));
+					styleRef.put("name", rs.getString(2));
+					styleRefs.add(styleRef);
+				}
+			}
+		}
+
+		return styleRefs;
+	}
+
+	public Optional<byte[]> getStyleBody(String id) throws SQLException {
+		try (Connection c = DataSourceUtils.getConnection(dataSource);
+			 PreparedStatement stmt = c.prepareStatement(
+					 "select s.definition " +
+						 "from publisher.style s " +
+						 "where s.identification = ?")) {
+
+			stmt.setString(1, id);
+
+			try (ResultSet rs = stmt.executeQuery()) {
+				if (rs.next()) {
+					return Optional.of(rs.getBytes(1));
+				}
+			}
+		}
+
+		return Optional.empty();
+	}
 }
