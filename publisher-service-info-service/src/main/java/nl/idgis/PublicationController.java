@@ -6,13 +6,17 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Optional;
+
 @RestController
-@RequestMapping("/publication/{environment}/services")
+@RequestMapping("/publication/{environment}")
 public class PublicationController {
 
     private final PublicationFetcher publicationFetcher;
@@ -23,7 +27,7 @@ public class PublicationController {
         this.publicationFetcher = publicationFetcher;
     }
 
-    @RequestMapping
+    @RequestMapping("/services")
     public JsonNode services(@PathVariable("environment") String environment) throws Exception {
         ArrayNode services = objectMapper.createArrayNode();
         for (JsonNode serviceInfo : publicationFetcher.fetchAllServiceInfos(environment)) {
@@ -36,9 +40,34 @@ public class PublicationController {
         return root;
     }
 
-    @RequestMapping("/{id}")
+    @RequestMapping("/services/{id}")
     public JsonNode service(@PathVariable("environment") String environment, @PathVariable("id") String id) throws Exception {
         return publicationFetcher.fetchServiceInfo(environment, id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    }
+
+    @RequestMapping("/styles")
+    public JsonNode styles(@PathVariable("environment") String environment) throws Exception {
+        ArrayNode styleRefs = objectMapper.createArrayNode();
+        for (JsonNode styleRef : publicationFetcher.fetchAllStyleRefs(environment)) {
+            styleRefs.add(styleRef);
+        }
+
+        ObjectNode root = objectMapper.createObjectNode();
+        root.set("styles", styleRefs);
+
+        return root;
+    }
+
+    @RequestMapping("/styles/{id}")
+    public ResponseEntity<Object> style(@PathVariable("environment") String environment, @PathVariable("id") String id) throws Exception {
+        return publicationFetcher.fetchStyleBody(environment, id)
+                .map(styleBody ->
+                        ResponseEntity.ok()
+                            .contentType(MediaType.APPLICATION_XML)
+                            .<Object>body(styleBody))
+                .orElseGet(() ->
+                        ResponseEntity.status(HttpStatus.NOT_FOUND)
+                            .body("Unknown style: " + id));
     }
 }

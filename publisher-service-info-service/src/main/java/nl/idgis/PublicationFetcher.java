@@ -103,4 +103,53 @@ public class PublicationFetcher {
 
         return Optional.empty();
     }
+
+    public List<JsonNode> fetchAllStyleRefs(String environment) throws SQLException {
+        List<JsonNode> styleRefs = new ArrayList<>();
+
+        try (Connection c = DataSourceUtils.getConnection(dataSource);
+             PreparedStatement stmt = c.prepareStatement(
+                     "select pss.identification, pss.name " +
+                         "from publisher.published_service_style pss " +
+                         "join publisher.published_service ps on ps.service_id = pss.service_id " +
+                         "join publisher.environment e on e.id = ps.environment_id " +
+                         "where e.identification = ?")) {
+
+            stmt.setString(1, environment);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    ObjectNode styleRef = om.createObjectNode();
+                    styleRef.put("id", rs.getString(1));
+                    styleRef.put("name", rs.getString(2));
+                    styleRefs.add(styleRef);
+                }
+            }
+        }
+
+        return styleRefs;
+    }
+
+    public Optional<byte[]> fetchStyleBody(String environment, String id) throws SQLException {
+        try (Connection c = DataSourceUtils.getConnection(dataSource);
+             PreparedStatement stmt = c.prepareStatement(
+                     "select pss.definition " +
+                         "from publisher.published_service_style pss " +
+                         "join publisher.published_service ps on ps.service_id = pss.service_id " +
+                         "join publisher.environment e on e.id = ps.environment_id " +
+                         "where e.identification = ? " +
+                         "and pss.identification = ?")) {
+
+            stmt.setString(1, environment);
+            stmt.setString(2, id);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(rs.getBytes(1));
+                }
+            }
+        }
+
+        return Optional.empty();
+    }
 }
