@@ -54,7 +54,7 @@ public class PublicationRepository {
         }
     }
 
-    public List<JsonNode> fetchAllServiceInfos(String environment) throws SQLException, IOException {
+    public List<JsonNode> getAllServiceInfos(String environment) throws SQLException, IOException {
         List<JsonNode> serviceInfos = new ArrayList<>();
 
         try (Connection c = DataSourceUtils.getConnection(dataSource);
@@ -79,7 +79,7 @@ public class PublicationRepository {
     }
 
 
-    public Optional<JsonNode> fetchServiceInfo(String environment, String id) throws SQLException, IOException {
+    public Optional<JsonNode> getServiceInfo(String environment, String id) throws SQLException, IOException {
         try (Connection c = DataSourceUtils.getConnection(dataSource);
              PreparedStatement stmt = c.prepareStatement(
                      "select ps.content " +
@@ -104,7 +104,7 @@ public class PublicationRepository {
         return Optional.empty();
     }
 
-    public List<JsonNode> fetchAllStyleRefs(String environment) throws SQLException {
+    public List<JsonNode> getAllStyleRefs(String environment) throws SQLException {
         List<JsonNode> styleRefs = new ArrayList<>();
 
         try (Connection c = DataSourceUtils.getConnection(dataSource);
@@ -130,7 +130,7 @@ public class PublicationRepository {
         return styleRefs;
     }
 
-    public Optional<byte[]> fetchStyleBody(String environment, String id) throws SQLException {
+    public Optional<byte[]> getStyleBody(String environment, String id) throws SQLException {
         try (Connection c = DataSourceUtils.getConnection(dataSource);
              PreparedStatement stmt = c.prepareStatement(
                      "select pss.definition " +

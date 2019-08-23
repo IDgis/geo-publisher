@@ -103,9 +103,9 @@ public class StagingRepository {
 		}
 	}
 	
-	public List<JsonNode> fetchAllServiceInfos() throws SQLException, IOException {
+	public List<JsonNode> getAllServiceInfos() throws SQLException, IOException {
 		List<JsonNode> serviceInfos = new ArrayList<>();
-		fetchAllServiceInfos(this::serviceInfoBuilder, serviceInfo -> {
+		getAllServiceInfos(this::serviceInfoBuilder, serviceInfo -> {
 			serviceInfos.add(postProcessServiceInfo(serviceInfo));
 		});
 		return serviceInfos;
@@ -116,7 +116,7 @@ public class StagingRepository {
 		void accept(T t) throws SQLException, IOException;
 	}
 	
-	private <T> void fetchAllServiceInfos(ServiceInfoBuilder<T> builder, DataSourceConsumer<? super T> consumer) throws SQLException, IOException {
+	private <T> void getAllServiceInfos(ServiceInfoBuilder<T> builder, DataSourceConsumer<? super T> consumer) throws SQLException, IOException {
 		try (Connection c = DataSourceUtils.getConnection(dataSource); 
 				PreparedStatement stmt = c.prepareStatement(serviceQuery)) {
 			
@@ -165,8 +165,8 @@ public class StagingRepository {
 		return rootLayer;
 	}
 	
-	public Optional<JsonNode> fetchServiceInfo(String id) throws SQLException, IOException {
-		JsonNode root = fetchServiceInfo(id, this::serviceInfoBuilder);
+	public Optional<JsonNode> getServiceInfo(String id) throws SQLException, IOException {
+		JsonNode root = getServiceInfo(id, this::serviceInfoBuilder);
 		
 		if (root == null) {
 			return Optional.empty();
@@ -205,7 +205,7 @@ public class StagingRepository {
 		return serviceInfo;
 	};
 	
-	private <T> T fetchServiceInfo(String serviceId, ServiceInfoBuilder<T> builder) throws SQLException, IOException {
+	private <T> T getServiceInfo(String serviceId, ServiceInfoBuilder<T> builder) throws SQLException, IOException {
 		T serviceInfo = null;
 		
 		try (Connection c = DataSourceUtils.getConnection(dataSource); 

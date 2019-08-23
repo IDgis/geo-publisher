@@ -28,7 +28,7 @@ public class PublicationController {
     @RequestMapping("/services")
     public JsonNode services(@PathVariable("environment") String environment) throws Exception {
         ArrayNode services = objectMapper.createArrayNode();
-        for (JsonNode serviceInfo : publicationRepository.fetchAllServiceInfos(environment)) {
+        for (JsonNode serviceInfo : publicationRepository.getAllServiceInfos(environment)) {
             services.add(serviceInfo);
         }
 
@@ -40,14 +40,14 @@ public class PublicationController {
 
     @RequestMapping("/services/{id}")
     public JsonNode service(@PathVariable("environment") String environment, @PathVariable("id") String id) throws Exception {
-        return publicationRepository.fetchServiceInfo(environment, id)
+        return publicationRepository.getServiceInfo(environment, id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
     @RequestMapping("/styles")
     public JsonNode styles(@PathVariable("environment") String environment) throws Exception {
         ArrayNode styleRefs = objectMapper.createArrayNode();
-        for (JsonNode styleRef : publicationRepository.fetchAllStyleRefs(environment)) {
+        for (JsonNode styleRef : publicationRepository.getAllStyleRefs(environment)) {
             styleRefs.add(styleRef);
         }
 
@@ -59,7 +59,7 @@ public class PublicationController {
 
     @RequestMapping("/styles/{id}")
     public ResponseEntity<Object> style(@PathVariable("environment") String environment, @PathVariable("id") String id) throws Exception {
-        return publicationRepository.fetchStyleBody(environment, id)
+        return publicationRepository.getStyleBody(environment, id)
                 .map(styleBody ->
                         ResponseEntity.ok()
                             .contentType(MediaType.APPLICATION_XML)

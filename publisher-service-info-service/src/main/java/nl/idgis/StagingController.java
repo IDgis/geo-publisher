@@ -27,7 +27,7 @@ public class StagingController {
     @RequestMapping
     public JsonNode services() throws Exception {
         ArrayNode services = objectMapper.createArrayNode();
-        for (JsonNode serviceInfo : stagingRepository.fetchAllServiceInfos()) {
+        for (JsonNode serviceInfo : stagingRepository.getAllServiceInfos()) {
             services.add(serviceInfo);
         }
 
@@ -39,7 +39,7 @@ public class StagingController {
 
     @RequestMapping("/{id}")
     public JsonNode service(@PathVariable("id") String id) throws Exception {
-        return stagingRepository.fetchServiceInfo(id)
+        return stagingRepository.getServiceInfo(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 }
