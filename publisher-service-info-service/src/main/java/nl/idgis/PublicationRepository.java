@@ -16,13 +16,13 @@ import java.util.List;
 import java.util.Optional;
 
 @Component
-public class PublicationFetcher {
+public class PublicationRepository {
 
     private final DataSource dataSource;
 
     private final ObjectMapper om = new ObjectMapper();
 
-    public PublicationFetcher(@Autowired DataSource dataSource) {
+    public PublicationRepository(@Autowired DataSource dataSource) {
         this.dataSource = dataSource;
     }
 

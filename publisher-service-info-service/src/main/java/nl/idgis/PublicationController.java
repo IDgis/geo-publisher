@@ -13,24 +13,22 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.Optional;
-
 @RestController
 @RequestMapping("/publication/{environment}")
 public class PublicationController {
 
-    private final PublicationFetcher publicationFetcher;
+    private final PublicationRepository publicationRepository;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public PublicationController(@Autowired PublicationFetcher publicationFetcher) {
-        this.publicationFetcher = publicationFetcher;
+    public PublicationController(@Autowired PublicationRepository publicationRepository) {
+        this.publicationRepository = publicationRepository;
     }
 
     @RequestMapping("/services")
     public JsonNode services(@PathVariable("environment") String environment) throws Exception {
         ArrayNode services = objectMapper.createArrayNode();
-        for (JsonNode serviceInfo : publicationFetcher.fetchAllServiceInfos(environment)) {
+        for (JsonNode serviceInfo : publicationRepository.fetchAllServiceInfos(environment)) {
             services.add(serviceInfo);
         }
 
@@ -42,14 +40,14 @@ public class PublicationController {
 
     @RequestMapping("/services/{id}")
     public JsonNode service(@PathVariable("environment") String environment, @PathVariable("id") String id) throws Exception {
-        return publicationFetcher.fetchServiceInfo(environment, id)
+        return publicationRepository.fetchServiceInfo(environment, id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
     @RequestMapping("/styles")
     public JsonNode styles(@PathVariable("environment") String environment) throws Exception {
         ArrayNode styleRefs = objectMapper.createArrayNode();
-        for (JsonNode styleRef : publicationFetcher.fetchAllStyleRefs(environment)) {
+        for (JsonNode styleRef : publicationRepository.fetchAllStyleRefs(environment)) {
             styleRefs.add(styleRef);
         }
 
@@ -61,7 +59,7 @@ public class PublicationController {
 
     @RequestMapping("/styles/{id}")
     public ResponseEntity<Object> style(@PathVariable("environment") String environment, @PathVariable("id") String id) throws Exception {
-        return publicationFetcher.fetchStyleBody(environment, id)
+        return publicationRepository.fetchStyleBody(environment, id)
                 .map(styleBody ->
                         ResponseEntity.ok()
                             .contentType(MediaType.APPLICATION_XML)

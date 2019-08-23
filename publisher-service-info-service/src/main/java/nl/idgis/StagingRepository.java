@@ -20,7 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 @Component
-public class StagingFetcher {
+public class StagingRepository {
 	
 	private final DataSource dataSource;
 	
@@ -28,11 +28,11 @@ public class StagingFetcher {
 	
 	private final ObjectMapper om = new ObjectMapper();
 	
-	public StagingFetcher(@Autowired DataSource dataSource) throws Exception {
+	public StagingRepository(@Autowired DataSource dataSource) throws Exception {
 		this.dataSource = dataSource;
 		
 		final String resourceName = "service.sql";
-		final InputStream is = StagingFetcher.class.getResourceAsStream(resourceName);
+		final InputStream is = StagingRepository.class.getResourceAsStream(resourceName);
 		if (is == null) {
 			throw new IllegalStateException("resource is missing: " + resourceName);
 		}

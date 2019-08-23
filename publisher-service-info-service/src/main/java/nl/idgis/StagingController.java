@@ -16,18 +16,18 @@ import org.springframework.web.server.ResponseStatusException;
 @RequestMapping("/staging/services")
 public class StagingController {
 
-    private final StagingFetcher stagingFetcher;
+    private final StagingRepository stagingRepository;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public StagingController(@Autowired StagingFetcher serviceInfoFetcher) {
-        this.stagingFetcher = serviceInfoFetcher;
+    public StagingController(@Autowired StagingRepository stagingRepository) {
+        this.stagingRepository = stagingRepository;
     }
 
     @RequestMapping
     public JsonNode services() throws Exception {
         ArrayNode services = objectMapper.createArrayNode();
-        for (JsonNode serviceInfo : stagingFetcher.fetchAllServiceInfos()) {
+        for (JsonNode serviceInfo : stagingRepository.fetchAllServiceInfos()) {
             services.add(serviceInfo);
         }
 
@@ -39,7 +39,7 @@ public class StagingController {
 
     @RequestMapping("/{id}")
     public JsonNode service(@PathVariable("id") String id) throws Exception {
-        return stagingFetcher.fetchServiceInfo(id)
+        return stagingRepository.fetchServiceInfo(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 }
