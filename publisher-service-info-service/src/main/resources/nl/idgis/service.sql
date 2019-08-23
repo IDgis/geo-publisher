@@ -23,8 +23,8 @@ select
 	sls.anchestors,
 	jsonb_agg(
 		case
-			when sdv.type = 'VECTOR' then jsonb_build_object('dataSourceName', '"staging_data"."' || d.identification || '"')
-			when sdv.type = 'RASTER' then jsonb_build_object('dataSourceName', d.identification || '.tif')
+			when sdv.type = 'VECTOR' then jsonb_build_object('tableName', d.identification)
+			when sdv.type = 'RASTER' then jsonb_build_object('fileName', d.identification || '.tif')
 			else '{}'
 		end ||
 		jsonb_build_object(
