@@ -12,21 +12,21 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestController
-@RequestMapping("/published/{environment}/services")
-public class PublishedController {
+@RequestMapping("/publication/{environment}/services")
+public class PublicationController {
 
-    private final PublishedFetcher publishedFetcher;
+    private final PublicationFetcher publicationFetcher;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public PublishedController(@Autowired PublishedFetcher publishedFetcher) {
-        this.publishedFetcher = publishedFetcher;
+    public PublicationController(@Autowired PublicationFetcher publicationFetcher) {
+        this.publicationFetcher = publicationFetcher;
     }
 
     @RequestMapping
     public JsonNode services(@PathVariable("environment") String environment) throws Exception {
         ArrayNode services = objectMapper.createArrayNode();
-        for (JsonNode serviceInfo : publishedFetcher.fetchAllServiceInfos(environment)) {
+        for (JsonNode serviceInfo : publicationFetcher.fetchAllServiceInfos(environment)) {
             services.add(serviceInfo);
         }
 
@@ -38,7 +38,7 @@ public class PublishedController {
 
     @RequestMapping("/{id}")
     public JsonNode service(@PathVariable("environment") String environment, @PathVariable("id") String id) throws Exception {
-        return publishedFetcher.fetchServiceInfo(environment, id)
+        return publicationFetcher.fetchServiceInfo(environment, id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 }
