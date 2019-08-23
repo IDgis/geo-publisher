@@ -5,13 +5,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/publication/{environment}")
@@ -39,9 +37,8 @@ public class PublicationController {
     }
 
     @RequestMapping("/services/{id}")
-    public JsonNode service(@PathVariable("environment") String environment, @PathVariable("id") String id) throws Exception {
-        return publicationRepository.getServiceInfo(environment, id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    public ResponseEntity<JsonNode> service(@PathVariable("environment") String environment, @PathVariable("id") String id) throws Exception {
+        return ResponseEntity.of(publicationRepository.getServiceInfo(environment, id));
     }
 
     @RequestMapping("/styles")
@@ -58,14 +55,12 @@ public class PublicationController {
     }
 
     @RequestMapping("/styles/{id}")
-    public ResponseEntity<Object> style(@PathVariable("environment") String environment, @PathVariable("id") String id) throws Exception {
+    public ResponseEntity<byte[]> style(@PathVariable("environment") String environment, @PathVariable("id") String id) throws Exception {
         return publicationRepository.getStyleBody(environment, id)
                 .map(styleBody ->
                         ResponseEntity.ok()
                             .contentType(MediaType.APPLICATION_XML)
-                            .<Object>body(styleBody))
-                .orElseGet(() ->
-                        ResponseEntity.status(HttpStatus.NOT_FOUND)
-                            .body("Unknown style: " + id));
+                            .body(styleBody))
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 }

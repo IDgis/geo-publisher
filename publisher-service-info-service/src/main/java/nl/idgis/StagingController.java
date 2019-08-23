@@ -6,11 +6,10 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/staging/services")
@@ -38,8 +37,7 @@ public class StagingController {
     }
 
     @RequestMapping("/{id}")
-    public JsonNode service(@PathVariable("id") String id) throws Exception {
-        return stagingRepository.getServiceInfo(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    public ResponseEntity<JsonNode> service(@PathVariable("id") String id) throws Exception {
+        return ResponseEntity.of(stagingRepository.getServiceInfo(id));
     }
 }
