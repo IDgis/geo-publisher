@@ -32,6 +32,15 @@ public class PublicationRepository {
     }
 
     private void postProcessServiceInfo(ObjectNode node, boolean isLayer) {
+        for (String internalField : new String[]{
+                "formatRevision",
+                "rootId",
+                "confidential",
+                "wmsOnly",
+                "importTime"}) {
+            node.remove(internalField);
+        }
+
         JsonNode layers = node.get("layers");
         if (layers != null) {
             if (!layers.isArray()) {
