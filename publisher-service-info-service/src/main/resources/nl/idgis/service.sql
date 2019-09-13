@@ -23,7 +23,18 @@ select
 	sls.anchestors,
 	jsonb_agg(
 		case
-			when sdv.type = 'VECTOR' then jsonb_build_object('tableName', d.identification)
+			when sdv.type = 'VECTOR' then jsonb_build_object(
+				'tableName', d.identification,
+				'styleRefs', (
+					select jsonb_agg(
+						jsonb_build_object(
+							'name', s.name,
+							'id', s.identification) 
+						order by ls.style_order)
+					from publisher.layer_style ls
+					join publisher.style s on s.id = ls.style_id
+					where ls.layer_id = ll.id
+				))
 			when sdv.type = 'RASTER' then jsonb_build_object('fileName', d.identification || '.tif')
 			else '{}'
 		end ||
