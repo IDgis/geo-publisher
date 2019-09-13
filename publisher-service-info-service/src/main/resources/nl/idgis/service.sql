@@ -3,7 +3,8 @@ with recursive service_layer_structure as (
 		gl.identification service_id,
 		null::int parent_layer_id,
 		s.generic_layer_id child_layer_id,
-		null::integer layer_order,
+		null::int style_id,
+		null::int layer_order,
 		array[]::int[] anchestors		
 	from publisher.service s
 	join publisher.generic_layer gl on gl.id = s.generic_layer_id
@@ -12,6 +13,7 @@ with recursive service_layer_structure as (
 		st.service_id,
 		ls.parent_layer_id,
 		ls.child_layer_id,
+		ls.style_id style_id,
 		ls.layer_order,
 		st.anchestors || st.child_layer_id
 	from service_layer_structure st
@@ -23,17 +25,28 @@ select
 	sls.anchestors,
 	jsonb_agg(
 		case
-			when sdv.type = 'VECTOR' then jsonb_build_object(
-				'tableName', d.identification,
-				'styleRefs', (
-					select jsonb_agg(
-						jsonb_build_object(
-							'name', s.name,
-							'id', s.identification) 
-						order by ls.style_order)
-					from publisher.layer_style ls
-					join publisher.style s on s.id = ls.style_id
-					where ls.layer_id = ll.id
+			when sdv.type = 'VECTOR' then 
+				case
+					when sls.style_id is not null then jsonb_build_object(
+						'groupStyleRef', (
+							select jsonb_build_object(
+								'name', s.name,
+								'id', s.identification)
+							from publisher.style s
+							where s.id = sls.style_id))
+					else '{}'
+				end ||
+				jsonb_build_object(
+					'tableName', d.identification,
+					'styleRefs', (
+						select jsonb_agg(
+							jsonb_build_object(
+								'name', s.name,
+								'id', s.identification) 
+							order by ls.style_order)
+						from publisher.layer_style ls
+						join publisher.style s on s.id = ls.style_id
+						where ls.layer_id = ll.id
 				))
 			when sdv.type = 'RASTER' then jsonb_build_object('fileName', d.identification || '.tif')
 			else '{}'
