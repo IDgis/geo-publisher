@@ -44,6 +44,12 @@ public class PublicationRepository {
                 if (childLayer == null) {
                     throw new IllegalStateException("layer attribute is missing");
                 }
+
+                JsonNode groupStyleRef = child.get("styleRef");
+                if (groupStyleRef != null) {
+                    childLayer.put("groupStyleRef", groupStyleRef);
+                }
+
                 postProcessServiceInfo(childLayer, true);
                 layersReplacement.add(childLayer);
             }
