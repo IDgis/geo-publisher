@@ -76,6 +76,11 @@ select
 				end ||
 				jsonb_build_object(
 					'tableName', d.identification,
+					'columnNames', (
+						select array_agg(name order by index)
+						from publisher.dataset_column
+						where dataset_id = d.id
+					),
 					'styleRefs', (
 						select jsonb_agg(
 							jsonb_build_object(
