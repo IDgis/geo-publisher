@@ -51,7 +51,9 @@ select
 					from publisher.constants c
 					join publisher.service s on s.constants_id = c.id
 					where s.id = sls.internal_service_id)
-			else '{}'
+			else jsonb_build_object(
+				'metadataFileIdentification', d.metadata_file_identification
+			)
 		end ||
 		case
 			when ll.id is not null then jsonb_build_object(
