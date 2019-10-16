@@ -113,10 +113,34 @@ public class MetadataDocument {
 	}
 	
 	/*
+	 * reference system identifier
+	 * 
+	 */
+	
+	protected String getReferenceSystemIdentifierPath() {
+		return 
+			"/gmd:MD_Metadata" +
+			"/gmd:referenceSystemInfo" +
+			"/gmd:MD_ReferenceSystem" +
+			"/gmd:referenceSystemIdentifier" +
+			"/gmd:RS_Identifier" +
+			"/gmd:code" +
+			"/gco:CharacterString";
+	}
+	
+	public String getReferenceSystemIdentifier() throws NotFound {
+		return isoMetadata.getString(namespaces, getReferenceSystemIdentifierPath());
+	}
+	
+	public void setReferenceSystemIdentifier(String identifier) throws QueryFailure {
+		isoMetadata.updateString(namespaces, getReferenceSystemIdentifierPath(), identifier);
+	}
+	
+	/*
 	 * date
 	 * 
 	 */
-
+	
 	protected String getDatePath(Topic topic, String codeListValue) {
 		return getIdentificationPath(topic) +
 			"/gmd:citation" +
@@ -222,10 +246,10 @@ public class MetadataDocument {
 	}
 	
 	public void setServiceTitle (String title) throws QueryFailure {
-		isoMetadata.updateString(namespaces, getTitlePath(Topic.SERVICE), title);		
+		isoMetadata.updateString(namespaces, getTitlePath(Topic.SERVICE), title);
 	}
 	
-	public void setServiceAlternateTitle(String alternateTitle) throws QueryFailure {		
+	public void setServiceAlternateTitle(String alternateTitle) throws QueryFailure {
 		isoMetadata.updateString(namespaces, getAlternateTitlePath(Topic.SERVICE), alternateTitle);
 	}
 	
@@ -252,7 +276,7 @@ public class MetadataDocument {
 	}
 	
 	public void setServiceAbstract (String Abstract) throws QueryFailure {
-		isoMetadata.updateString(namespaces, getAbstractPath(Topic.SERVICE), Abstract);		
+		isoMetadata.updateString(namespaces, getAbstractPath(Topic.SERVICE), Abstract);
 	}
 	
 	public String getDatasetAbstract() throws NotFound {
