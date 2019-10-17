@@ -238,7 +238,7 @@ public class ServiceMetadata extends AbstractMetadata {
 				if(confidential) {
 					config.getViewerUrlSecurePrefix().ifPresent(viewerUrlPrefix -> {
 						try {
-							metadataDocument.addServiceLinkage(viewerUrlPrefix + "?service=" + serviceName, "website", null);
+							metadataDocument.addServiceLinkage(viewerUrlPrefix + "?service=" + serviceName, "website", null, null);
 						} catch(NotFound nf) {
 							throw new RuntimeException(nf);
 						}
@@ -246,7 +246,7 @@ public class ServiceMetadata extends AbstractMetadata {
 				} else if(environmentWmsOnly) {
 					config.getViewerUrlWmsOnlyPrefix().ifPresent(viewerUrlPrefix -> {
 						try {
-							metadataDocument.addServiceLinkage(viewerUrlPrefix + "?service=" + serviceName, "website", null);
+							metadataDocument.addServiceLinkage(viewerUrlPrefix + "?service=" + serviceName, "website", null, null);
 						} catch(NotFound nf) {
 							throw new RuntimeException(nf);
 						}
@@ -254,7 +254,7 @@ public class ServiceMetadata extends AbstractMetadata {
 				} else {
 					config.getViewerUrlPublicPrefix().ifPresent(viewerUrlPrefix -> {
 						try {
-							metadataDocument.addServiceLinkage(viewerUrlPrefix + "?service=" + serviceName, "website", null);
+							metadataDocument.addServiceLinkage(viewerUrlPrefix + "?service=" + serviceName, "website", null, null);
 						} catch(NotFound nf) {
 							throw new RuntimeException(nf);
 						}
@@ -269,7 +269,7 @@ public class ServiceMetadata extends AbstractMetadata {
 				if(serviceType == ServiceType.WMS) {
 					metadataDocument.addServiceBrowseGraphic(linkage + config.getBrowseGraphicWmsRequest() + scopedName);
 				}
-				metadataDocument.addServiceLinkage(linkage, serviceType.getProtocol(), scopedName);
+				metadataDocument.addServiceLinkage(linkage, serviceType.getProtocol(), scopedName, null);
 				metadataDocument.addSVCoupledResource(serviceType.getOperationName(), identifier, scopedName);
 			}
 			

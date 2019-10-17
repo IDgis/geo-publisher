@@ -779,12 +779,15 @@ public class MetadataDocument {
 	 * @param name content of the /gmd:name/gco:CharacterString node
 	 * @throws NotFound 
 	 */
-	public void addServiceLinkage(String linkage, String protocol, String name) throws NotFound{
+	public void addServiceLinkage(String linkage, String protocol, String name, String description) throws NotFound{
 		String parentPath = isoMetadata.addNode(namespaces, getDigitalTransferOptionsPath(), new String[]{"gmd:offLine"}, "gmd:onLine/gmd:CI_OnlineResource");
 		isoMetadata.addNode(namespaces, parentPath, "gmd:linkage/gmd:URL", linkage);
 		isoMetadata.addNode(namespaces, parentPath, "gmd:protocol/gco:CharacterString", protocol);
 		if(name != null) {
 			isoMetadata.addNode(namespaces, parentPath, "gmd:name/gco:CharacterString", name);
+		}
+		if(description != null) {
+			isoMetadata.addNode(namespaces, parentPath, "gmd:description/gco:CharacterString", description);
 		}
 	}
 	
@@ -1152,8 +1155,8 @@ public class MetadataDocument {
 		return removeServiceLinkage();
 	}
 	
-	public void addLocator(String linkage, String protocol, String name) throws NotFound{
-		addServiceLinkage(linkage, protocol, name);
+	public void addLocator(String linkage, String protocol, String name, String description) throws NotFound{
+		addServiceLinkage(linkage, protocol, name, description);
 	}
 	
 	
