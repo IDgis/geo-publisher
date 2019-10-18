@@ -48,6 +48,13 @@ public class XMLDocument {
 		return getString(HashBiMap.<String, String>create(), path);
 	}
 	
+	public Node getNode(BiMap<String, String> namespaces, String path) throws NotFound {
+		return xpath(Optional.of(namespaces))
+				.node(path)
+				.flatMap(node -> Optional.of(node.getItem()))
+				.orElseThrow(() -> new NotFound(namespaces, path));
+	}
+	
 	public String getString(BiMap<String, String> namespaces, String path) throws NotFound {
 		return xpath(Optional.of(namespaces))
 			.string(path)

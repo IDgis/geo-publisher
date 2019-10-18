@@ -18,6 +18,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.w3c.dom.Element;
+
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 
@@ -58,10 +60,12 @@ public class MetadataDocument {
 	public MetadataDocument(XMLDocument xmlDocument) {
 		namespaces = HashBiMap.create();
 		namespaces.put("gmd", "http://www.isotc211.org/2005/gmd");
+		namespaces.put("gmx", "http://www.isotc211.org/2005/gmx");
 		namespaces.put("gco", "http://www.isotc211.org/2005/gco");
 		namespaces.put("srv", "http://www.isotc211.org/2005/srv");
 		namespaces.put("xlink", "http://www.w3.org/1999/xlink");
 		namespaces.put("gml", "http://www.opengis.net/gml");
+		namespaces.put("xsi", "http://www.w3.org/2001/XMLSchema-instance");
 		
 		String rootNode = "/gmd:MD_Metadata";
 		if(xmlDocument.xpath(Optional.of(namespaces)).node(rootNode).isPresent()) {
@@ -91,7 +95,7 @@ public class MetadataDocument {
 		return isoMetadata.getContent();
 	}
 	
-	protected String dateToString(String pattern, Date date){		
+	protected String dateToString(String pattern, Date date){
 		Format formatter = new SimpleDateFormat(pattern);
 		return formatter.format(date);
 	}
@@ -110,6 +114,35 @@ public class MetadataDocument {
 	
 	protected String getIdentificationPath(Topic topic){
 		return (topic==Topic.DATASET?getDatasetIdentificationPath():getServiceIdentificationPath());
+	}
+	
+	/*
+	 * Schemas
+	 * 
+	 */
+	
+	protected String getSchemaLocationPath() {
+		return "/gmd:MD_Metadata/@xsi:schemaLocation";
+	}
+	
+	public void updateSchemas() throws QueryFailure {
+		String currentSchemaLocation = isoMetadata.getString(namespaces, getSchemaLocationPath());
+		
+		String[] newSchemaLocations = new String[] {
+			"http://www.isotc211.org/2005/gmx",
+			"http://schemas.opengis.net/iso/19139/20060504/gmx/gmx.xsd"
+		};
+			
+		StringBuilder builder = new StringBuilder(currentSchemaLocation);
+		
+		for(String newSchemaLocation : newSchemaLocations) {
+			if(!currentSchemaLocation.contains(newSchemaLocation)) builder.append(" " + newSchemaLocation);
+		}
+		
+		isoMetadata.updateString(namespaces, getSchemaLocationPath(), builder.toString());
+		
+		Element root = (Element) isoMetadata.getNode(namespaces, "/gmd:MD_Metadata");
+		root.setAttribute("xmlns:gmx", "http://www.isotc211.org/2005/gmx");
 	}
 	
 	/*
