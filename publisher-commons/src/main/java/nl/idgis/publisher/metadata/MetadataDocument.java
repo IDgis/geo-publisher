@@ -8,6 +8,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -652,7 +653,6 @@ public class MetadataDocument {
 	public void setMetaDataCreationDate(Date date) throws Exception{
 		isoMetadata.updateString(namespaces, getMetaDataCreationDatePath(), dateToString(METADATA_DATE_PATTERN, date));
 	}
-
 	
 	/*
 	 * DATASET
@@ -686,13 +686,40 @@ public class MetadataDocument {
 		}
 	}
 	
+	protected String getMaintenanceFrequencyCodePath() {
+		return 
+			getDatasetIdentificationPath() + 
+			"/gmd:resourceMaintenance"
+			+ "/gmd:MD_MaintenanceInformation"
+			+ "/gmd:maintenanceAndUpdateFrequency"
+			+ "/gmd:MD_MaintenanceFrequencyCode/"
+			+ "@codeListValue";
+	}
+	
 	public String getMaintenanceFrequencyCodeListValue() throws NotFound {
-		return isoMetadata.getString(namespaces, getDatasetIdentificationPath() + 
-				"/gmd:resourceMaintenance"
-				+ "/gmd:MD_MaintenanceInformation"
-				+ "/gmd:maintenanceAndUpdateFrequency"
-				+ "/gmd:MD_MaintenanceFrequencyCode/"
-				+ "@codeListValue");
+		return isoMetadata.getString(namespaces, getMaintenanceFrequencyCodePath());
+	}
+	
+	public void verifyMaintenanceFrequencyCodeListValue() throws QueryFailure {
+		List<String> allowed = new ArrayList<>();
+		allowed.add("continual");
+		allowed.add("daily");
+		allowed.add("weekly");
+		allowed.add("fortnightly");
+		allowed.add("monthly");
+		allowed.add("quarterly");
+		allowed.add("annually");
+		allowed.add("biannually");
+		allowed.add("asNeeded");
+		allowed.add("irregular");
+		allowed.add("notPlanned");
+		allowed.add("unknown");
+		
+		String maintenanceFrequencyCodeListValue = getMaintenanceFrequencyCodeListValue();
+		
+		if(!allowed.contains(maintenanceFrequencyCodeListValue)) {
+			isoMetadata.updateString(namespaces, getMaintenanceFrequencyCodePath(), "unknown");
+		}
 	}
 	
 	protected String getUseLimitationsPath() {
@@ -787,10 +814,6 @@ public class MetadataDocument {
 	public String getDistributionResponsiblePartyName(String role) throws Exception{
 		return isoMetadata.getString(namespaces, getDistributionResponsiblePartyNamePath(role));
 	}
-	
-	
-	
-	
 	
 	protected String getServiceLinkagePath() {
 		return getDigitalTransferOptionsPath() + "/gmd:onLine";
