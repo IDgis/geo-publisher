@@ -110,7 +110,7 @@ public class MetadataDocumentTest {
 		assertTrue("Still WMS link found", document.getServiceLinkage().isEmpty());
 		
 		// add new gmd:online childnode
-		document.addServiceLinkage("linkage", "protocol", "name");
+		document.addServiceLinkage("linkage", "protocol", "name", null);
 		List<ServiceLinkage> result = document.getServiceLinkage();		
 		assertFalse("No service linkage found", result.isEmpty());
 		
