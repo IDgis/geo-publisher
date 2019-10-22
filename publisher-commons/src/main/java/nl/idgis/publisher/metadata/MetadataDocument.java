@@ -20,6 +20,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -722,6 +724,11 @@ public class MetadataDocument {
 		}
 	}
 	
+	/*
+	 * use limitations
+	 * 
+	 */
+	
 	protected String getUseLimitationsPath() {
 		return getDatasetIdentificationPath() + "/gmd:resourceConstraints"
 				+ "/gmd:MD_Constraints/gmd:useLimitation/gco:CharacterString";
@@ -731,6 +738,41 @@ public class MetadataDocument {
 		return isoMetadata
 			.xpath(Optional.of(namespaces))
 			.strings(getUseLimitationsPath());
+	}
+	
+	protected void removeUseLimitations() throws NotFound {
+		List<Node> nodes = isoMetadata.getNodes(namespaces, getDatasetIdentificationPath() + "/gmd:resourceConstraints");
+		for(Node node : nodes) {
+			NodeList nodeChilds = node.getChildNodes();
+			for(int i = 0; i < nodeChilds.getLength(); i++) {
+				Node child = nodeChilds.item(i);
+				if("MD_Constraints".equals(child.getLocalName())) {
+					isoMetadata
+						.getNode(namespaces, getDatasetIdentificationPath())
+						.removeChild(node);
+				}
+			}
+		}
+	}
+	
+	public void resetUseLimitations() throws NotFound {
+		List<String> useLimitations = getUseLimitations();
+		removeUseLimitations();
+		
+		String parentPath = 
+				isoMetadata.addNode(
+					namespaces, 
+					getDatasetIdentificationPath(), 
+					new String[] { 
+						"gmd:resourceConstraints",
+						"gmd:aggregationInfo",
+						"gmd:spatialRepresentationType"
+					}, 
+					"gmd:resourceConstraints/gmd:MD_Constraints");
+		
+		for(String useLimitation : useLimitations) {
+			isoMetadata.addNode(namespaces, parentPath, "gmd:useLimitation/gco:CharacterString", useLimitation);
+		}
 	}
 	
 	/*
@@ -926,7 +968,7 @@ public class MetadataDocument {
 	}	
 	
 	public int removeServiceType() throws NotFound {
-		return isoMetadata.removeNodes(namespaces, getServiceTypePath());		
+		return isoMetadata.removeNodes(namespaces, getServiceTypePath());
 	}
 	
 	/**
@@ -934,7 +976,7 @@ public class MetadataDocument {
 	 * @param serviceLocalName content of the /srv:serviceType/gco:LocalName node
 	 * @throws NotFound 
 	 */
-	public void addServiceType(String serviceLocalName) throws NotFound{		
+	public void addServiceType(String serviceLocalName) throws NotFound{
 		isoMetadata.addNode(namespaces, getServiceIdentificationPath(), 
 			new String[]{
 				"srv:serviceTypeVersion",
@@ -1229,7 +1271,7 @@ public class MetadataDocument {
 	
 	
 	public void addOperationMetadata(String operationName, String codeList, String codeListValue, String linkage) throws NotFound {
-		addServiceEndpoint(operationName, codeList, codeListValue, linkage);		
+		addServiceEndpoint(operationName, codeList, codeListValue, linkage);
 	}
 	
 

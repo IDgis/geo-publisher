@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
@@ -53,6 +54,14 @@ public class XMLDocument {
 				.node(path)
 				.flatMap(node -> Optional.of(node.getItem()))
 				.orElseThrow(() -> new NotFound(namespaces, path));
+	}
+	
+	public List<Node> getNodes(BiMap<String, String> namespaces, String path) throws NotFound {
+		return xpath(Optional.of(namespaces))
+				.nodes(path)
+				.stream()
+				.map(node -> node.getItem())
+				.collect(Collectors.toList());
 	}
 	
 	public String getString(BiMap<String, String> namespaces, String path) throws NotFound {

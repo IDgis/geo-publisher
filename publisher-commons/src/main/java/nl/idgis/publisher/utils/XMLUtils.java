@@ -273,7 +273,7 @@ public class XMLUtils {
 						sameElementCount++;
 					}
 				}
-			}			
+			}
 			
 			item.appendChild(newElement);
 			
