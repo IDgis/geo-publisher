@@ -428,9 +428,10 @@ public class DatasetMetadata extends AbstractMetadata {
 				}
 				
 				if(serviceTuplesHasWmsOnly) {
-					for(Tuple t : serviceTuples) {
+					for(Iterator<Tuple> iterator = serviceTuples.iterator(); iterator.hasNext(); ) {
+						Tuple t = iterator.next();
 						if(!t.get(environment.wmsOnly)) {
-							serviceTuples.remove(t);
+							iterator.remove();
 						}
 					}
 				}
@@ -595,8 +596,14 @@ public class DatasetMetadata extends AbstractMetadata {
 			}
 			
 			try {
-				metadataDocument.resetUseLimitations();
+				metadataDocument.resetOtherRestrictions();
 			} catch(QueryFailure qf) {
+				// do nothing
+			}
+			
+			try {
+				metadataDocument.resetUseLimitations();
+			} catch(NotFound nf) {
 				// do nothing
 			}
 			

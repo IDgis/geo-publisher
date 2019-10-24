@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 import org.w3c.dom.Element;
@@ -101,6 +102,22 @@ public class MetadataDocument {
 	protected String dateToString(String pattern, Date date){
 		Format formatter = new SimpleDateFormat(pattern);
 		return formatter.format(date);
+	}
+	
+	protected boolean verifyNodeToBeRemoved(Node node, List<String> toBeRemoved) {
+		NodeList nodeChilds = node.getChildNodes();
+		for(int i = 0; i < nodeChilds.getLength(); i++) {
+			Node child = nodeChilds.item(i);
+			if(child.getLocalName() != null) {
+				if(!toBeRemoved.contains(child.getLocalName())) {
+					return verifyNodeToBeRemoved(child, toBeRemoved);
+				} else {
+					return true;
+				}
+			}
+		}
+		
+		return false;
 	}
 	
 	/*
@@ -725,6 +742,29 @@ public class MetadataDocument {
 	}
 	
 	/*
+	 * resource constraints
+	 * 
+	 */
+	
+	protected void applyMethodOnResourceConstraints(
+			BiFunction <Node, List<String>, Boolean> method, 
+			List<String> toBeRemoved) throws NotFound {
+		List<Node> nodes = 
+				isoMetadata.getNodes(
+						namespaces, 
+						getDatasetIdentificationPath() + "/gmd:resourceConstraints");
+		
+		for(Node node : nodes) {
+			boolean shouldBeRemoved = method.apply(node, toBeRemoved);
+			if(shouldBeRemoved) {
+				isoMetadata
+					.getNode(namespaces, getDatasetIdentificationPath())
+					.removeChild(node);
+			}
+		}
+	}
+	
+	/*
 	 * use limitations
 	 * 
 	 */
@@ -740,35 +780,26 @@ public class MetadataDocument {
 			.strings(getUseLimitationsPath());
 	}
 	
-	protected void removeUseLimitations() throws NotFound {
-		List<Node> nodes = isoMetadata.getNodes(namespaces, getDatasetIdentificationPath() + "/gmd:resourceConstraints");
-		for(Node node : nodes) {
-			NodeList nodeChilds = node.getChildNodes();
-			for(int i = 0; i < nodeChilds.getLength(); i++) {
-				Node child = nodeChilds.item(i);
-				if("MD_Constraints".equals(child.getLocalName())) {
-					isoMetadata
-						.getNode(namespaces, getDatasetIdentificationPath())
-						.removeChild(node);
-				}
-			}
-		}
+	protected String addMdConstraint() throws NotFound {
+		return isoMetadata.addNode(
+				namespaces, 
+				getDatasetIdentificationPath(), 
+				new String[] { 
+					"gmd:resourceConstraints",
+					"gmd:aggregationInfo",
+					"gmd:spatialRepresentationType"
+				}, 
+				"gmd:resourceConstraints/gmd:MD_Constraints");
 	}
 	
 	public void resetUseLimitations() throws NotFound {
 		List<String> useLimitations = getUseLimitations();
-		removeUseLimitations();
 		
-		String parentPath = 
-				isoMetadata.addNode(
-					namespaces, 
-					getDatasetIdentificationPath(), 
-					new String[] { 
-						"gmd:resourceConstraints",
-						"gmd:aggregationInfo",
-						"gmd:spatialRepresentationType"
-					}, 
-					"gmd:resourceConstraints/gmd:MD_Constraints");
+		List<String> toBeRemoved = new ArrayList<>();
+		toBeRemoved.add("useLimitation");
+		applyMethodOnResourceConstraints(this::verifyNodeToBeRemoved, toBeRemoved);
+		
+		String parentPath = addMdConstraint();
 		
 		for(String useLimitation : useLimitations) {
 			isoMetadata.addNode(namespaces, parentPath, "gmd:useLimitation/gco:CharacterString", useLimitation);
@@ -785,21 +816,82 @@ public class MetadataDocument {
 	}
 	
 	/*
-	 * other constraints
+	 * access constraints & other constraints
 	 * 
 	 */
-	protected String getOtherconstraintsPath() {
-		return getDatasetIdentificationPath() + "/gmd:resourceConstraints"
-				+ "/gmd:MD_LegalConstraints/gmd:otherConstraints/gco:CharacterString";
+	protected String getAccessConstraintsPath() {
+		return getDatasetIdentificationPath() + "/gmd:resourceConstraints/"
+				+ "gmd:MD_LegalConstraints/gmd:accessConstraints/gmd:MD_RestrictionCode/@codeListValue";
+	}
+	
+	protected List<String> getAccessConstraints() throws NotFound {
+		return isoMetadata
+			.xpath(Optional.of(namespaces))
+			.strings(getAccessConstraintsPath());
+	}
+	
+	protected String getOtherConstraintsPath() {
+		return getDatasetIdentificationPath() + "/gmd:resourceConstraints/"
+				+ "gmd:MD_LegalConstraints/gmd:otherConstraints/gco:CharacterString";
 	}
 	
 	public List<String> getOtherConstraints() throws NotFound {
 		return isoMetadata
 			.xpath(Optional.of(namespaces))
-			.strings(getOtherconstraintsPath());
+			.strings(getOtherConstraintsPath());
 	}
 	
-
+	protected String addMdLegalConstraint() throws NotFound {
+		return isoMetadata.addNode(
+				namespaces, 
+				getDatasetIdentificationPath(), 
+				new String[] { 
+					"gmd:resourceConstraints",
+					"gmd:aggregationInfo",
+					"gmd:spatialRepresentationType"
+				}, 
+				"gmd:resourceConstraints/gmd:MD_LegalConstraints");
+	}
+	
+	protected void addAccessConstraint(String parentPath, String codeListValue) throws NotFound {
+		Map<String, String> attributes = new HashMap<>();
+		attributes.put("codeList", "./resources/codeList.xml#MD_RestrictionCode");
+		attributes.put("codeListValue", codeListValue);
+		
+		isoMetadata.addNode(
+				namespaces, 
+				parentPath, 
+				"gmd:accessConstraints/gmd:MD_RestrictionCode",
+				null,
+				attributes);
+	}
+	
+	public void resetOtherRestrictions() throws NotFound {
+		List<String> accessConstraints = getAccessConstraints();
+		List<String> otherConstraints = getOtherConstraints();
+		
+		int countOtherRestrictions = 0;
+		for(String accessConstraint : accessConstraints) {
+			if("otherRestrictions".equals(accessConstraint)) countOtherRestrictions++;
+		}
+		
+		if(countOtherRestrictions == 2) {
+			List<String> toBeRemoved = new ArrayList<>();
+			toBeRemoved.add("accessConstraints");
+			applyMethodOnResourceConstraints(this::verifyNodeToBeRemoved, toBeRemoved);
+			
+			String parentPath = addMdLegalConstraint();
+			addAccessConstraint(parentPath, "otherRestrictions");
+			for(String otherConstraint : otherConstraints) {
+				isoMetadata.addNode(
+						namespaces, 
+						parentPath, 
+						"gmd:otherConstraints/gco:CharacterString",
+						otherConstraint);
+			}
+		}
+	}
+	
 	/**
 	 * Dataset metadata: Service Linkage
 	 */	
