@@ -480,7 +480,7 @@ public class MetadataDocumentTest {
 	 */
 	@Test
 	public void testServiceLinkToDataset() throws Exception{
-		MetadataDocument document = getDocument("service_metadata.xml");		
+		MetadataDocument document = getDocument("service_metadata.xml");
 
 		// remove all child nodes
 		int i = document.removeOperatesOn();
@@ -490,7 +490,7 @@ public class MetadataDocumentTest {
 				"&id=46647460-d8cf-4955-bcac-f1c192d57cc4&outputSchema=http://www.isotc211.org/2005/gmd&elementSetName=full";
 		
 		// add new childnode
-		document.addOperatesOn("bc509f92-5d8c-4169-818b-49ff6a7576c3", href);
+		document.addOperatesOn(href);
 		
 		OperatesOn operatesOn = document.getOperatesOn().get(0);
 		

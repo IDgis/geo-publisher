@@ -1298,9 +1298,8 @@ public class MetadataDocument {
 	 * @param href link to dataset metadata
 	 * @throws NotFound
 	 */
-	public void addOperatesOn(String uuidref, String href) throws NotFound {		
+	public void addOperatesOn(String href) throws NotFound {
 		Map<String, String> attributes = new HashMap<String, String>();
-		attributes.put("uuidref", uuidref);
 		attributes.put("xlink:href", href);
 		
 		isoMetadata.addNode(namespaces, getServiceIdentificationPath(), "srv:operatesOn", attributes);
@@ -1376,8 +1375,8 @@ public class MetadataDocument {
 		return removeOperatesOn();
 	}
 
-	public void addCoupledResource(String uuidref, String href) throws NotFound {
-		addOperatesOn(uuidref, href);
+	public void addCoupledResource(String href) throws NotFound {
+		addOperatesOn(href);
 	}
 	
 	public void removeStylesheet() {
