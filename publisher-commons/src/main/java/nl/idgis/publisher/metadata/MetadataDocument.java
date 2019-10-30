@@ -8,6 +8,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -16,7 +17,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
+
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -58,10 +64,12 @@ public class MetadataDocument {
 	public MetadataDocument(XMLDocument xmlDocument) {
 		namespaces = HashBiMap.create();
 		namespaces.put("gmd", "http://www.isotc211.org/2005/gmd");
+		namespaces.put("gmx", "http://www.isotc211.org/2005/gmx");
 		namespaces.put("gco", "http://www.isotc211.org/2005/gco");
 		namespaces.put("srv", "http://www.isotc211.org/2005/srv");
 		namespaces.put("xlink", "http://www.w3.org/1999/xlink");
 		namespaces.put("gml", "http://www.opengis.net/gml");
+		namespaces.put("xsi", "http://www.w3.org/2001/XMLSchema-instance");
 		
 		String rootNode = "/gmd:MD_Metadata";
 		if(xmlDocument.xpath(Optional.of(namespaces)).node(rootNode).isPresent()) {
@@ -91,9 +99,25 @@ public class MetadataDocument {
 		return isoMetadata.getContent();
 	}
 	
-	protected String dateToString(String pattern, Date date){		
+	protected String dateToString(String pattern, Date date){
 		Format formatter = new SimpleDateFormat(pattern);
 		return formatter.format(date);
+	}
+	
+	protected boolean verifyNodeToBeRemoved(Node node, List<String> toBeRemoved) {
+		NodeList nodeChilds = node.getChildNodes();
+		for(int i = 0; i < nodeChilds.getLength(); i++) {
+			Node child = nodeChilds.item(i);
+			if(child.getLocalName() != null) {
+				if(!toBeRemoved.contains(child.getLocalName())) {
+					return verifyNodeToBeRemoved(child, toBeRemoved);
+				} else {
+					return true;
+				}
+			}
+		}
+		
+		return false;
 	}
 	
 	/*
@@ -113,10 +137,63 @@ public class MetadataDocument {
 	}
 	
 	/*
+	 * Schemas
+	 * 
+	 */
+	
+	protected String getSchemaLocationPath() {
+		return "/gmd:MD_Metadata/@xsi:schemaLocation";
+	}
+	
+	public void updateSchemas() throws QueryFailure {
+		String currentSchemaLocation = isoMetadata.getString(namespaces, getSchemaLocationPath());
+		
+		String[] newSchemaLocations = new String[] {
+			"http://www.isotc211.org/2005/gmx",
+			"http://schemas.opengis.net/iso/19139/20060504/gmx/gmx.xsd"
+		};
+			
+		StringBuilder builder = new StringBuilder(currentSchemaLocation);
+		
+		for(String newSchemaLocation : newSchemaLocations) {
+			if(!currentSchemaLocation.contains(newSchemaLocation)) builder.append(" " + newSchemaLocation);
+		}
+		
+		isoMetadata.updateString(namespaces, getSchemaLocationPath(), builder.toString());
+		
+		Element root = (Element) isoMetadata.getNode(namespaces, "/gmd:MD_Metadata");
+		root.setAttribute("xmlns:gmx", "http://www.isotc211.org/2005/gmx");
+	}
+	
+	/*
+	 * reference system identifier
+	 * 
+	 */
+	
+	protected String getReferenceSystemIdentifierPath() {
+		return 
+			"/gmd:MD_Metadata" +
+			"/gmd:referenceSystemInfo" +
+			"/gmd:MD_ReferenceSystem" +
+			"/gmd:referenceSystemIdentifier" +
+			"/gmd:RS_Identifier" +
+			"/gmd:code" +
+			"/gco:CharacterString";
+	}
+	
+	public String getReferenceSystemIdentifier() throws NotFound {
+		return isoMetadata.getString(namespaces, getReferenceSystemIdentifierPath());
+	}
+	
+	public void setReferenceSystemIdentifier(String identifier) throws QueryFailure {
+		isoMetadata.updateString(namespaces, getReferenceSystemIdentifierPath(), identifier);
+	}
+	
+	/*
 	 * date
 	 * 
 	 */
-
+	
 	protected String getDatePath(Topic topic, String codeListValue) {
 		return getIdentificationPath(topic) +
 			"/gmd:citation" +
@@ -222,10 +299,10 @@ public class MetadataDocument {
 	}
 	
 	public void setServiceTitle (String title) throws QueryFailure {
-		isoMetadata.updateString(namespaces, getTitlePath(Topic.SERVICE), title);		
+		isoMetadata.updateString(namespaces, getTitlePath(Topic.SERVICE), title);
 	}
 	
-	public void setServiceAlternateTitle(String alternateTitle) throws QueryFailure {		
+	public void setServiceAlternateTitle(String alternateTitle) throws QueryFailure {
 		isoMetadata.updateString(namespaces, getAlternateTitlePath(Topic.SERVICE), alternateTitle);
 	}
 	
@@ -252,7 +329,7 @@ public class MetadataDocument {
 	}
 	
 	public void setServiceAbstract (String Abstract) throws QueryFailure {
-		isoMetadata.updateString(namespaces, getAbstractPath(Topic.SERVICE), Abstract);		
+		isoMetadata.updateString(namespaces, getAbstractPath(Topic.SERVICE), Abstract);
 	}
 	
 	public String getDatasetAbstract() throws NotFound {
@@ -595,7 +672,6 @@ public class MetadataDocument {
 	public void setMetaDataCreationDate(Date date) throws Exception{
 		isoMetadata.updateString(namespaces, getMetaDataCreationDatePath(), dateToString(METADATA_DATE_PATTERN, date));
 	}
-
 	
 	/*
 	 * DATASET
@@ -629,14 +705,69 @@ public class MetadataDocument {
 		}
 	}
 	
-	public String getMaintenanceFrequencyCodeListValue() throws NotFound {
-		return isoMetadata.getString(namespaces, getDatasetIdentificationPath() + 
-				"/gmd:resourceMaintenance"
-				+ "/gmd:MD_MaintenanceInformation"
-				+ "/gmd:maintenanceAndUpdateFrequency"
-				+ "/gmd:MD_MaintenanceFrequencyCode/"
-				+ "@codeListValue");
+	protected String getMaintenanceFrequencyCodePath() {
+		return 
+			getDatasetIdentificationPath() + 
+			"/gmd:resourceMaintenance"
+			+ "/gmd:MD_MaintenanceInformation"
+			+ "/gmd:maintenanceAndUpdateFrequency"
+			+ "/gmd:MD_MaintenanceFrequencyCode/"
+			+ "@codeListValue";
 	}
+	
+	public String getMaintenanceFrequencyCodeListValue() throws NotFound {
+		return isoMetadata.getString(namespaces, getMaintenanceFrequencyCodePath());
+	}
+	
+	public void verifyMaintenanceFrequencyCodeListValue() throws QueryFailure {
+		List<String> allowed = new ArrayList<>();
+		allowed.add("continual");
+		allowed.add("daily");
+		allowed.add("weekly");
+		allowed.add("fortnightly");
+		allowed.add("monthly");
+		allowed.add("quarterly");
+		allowed.add("annually");
+		allowed.add("biannually");
+		allowed.add("asNeeded");
+		allowed.add("irregular");
+		allowed.add("notPlanned");
+		allowed.add("unknown");
+		
+		String maintenanceFrequencyCodeListValue = getMaintenanceFrequencyCodeListValue();
+		
+		if(!allowed.contains(maintenanceFrequencyCodeListValue)) {
+			isoMetadata.updateString(namespaces, getMaintenanceFrequencyCodePath(), "unknown");
+		}
+	}
+	
+	/*
+	 * resource constraints
+	 * 
+	 */
+	
+	protected void applyMethodOnResourceConstraints(
+			BiFunction <Node, List<String>, Boolean> method, 
+			List<String> toBeRemoved) throws NotFound {
+		List<Node> nodes = 
+				isoMetadata.getNodes(
+						namespaces, 
+						getDatasetIdentificationPath() + "/gmd:resourceConstraints");
+		
+		for(Node node : nodes) {
+			boolean shouldBeRemoved = method.apply(node, toBeRemoved);
+			if(shouldBeRemoved) {
+				isoMetadata
+					.getNode(namespaces, getDatasetIdentificationPath())
+					.removeChild(node);
+			}
+		}
+	}
+	
+	/*
+	 * use limitations
+	 * 
+	 */
 	
 	protected String getUseLimitationsPath() {
 		return getDatasetIdentificationPath() + "/gmd:resourceConstraints"
@@ -649,6 +780,32 @@ public class MetadataDocument {
 			.strings(getUseLimitationsPath());
 	}
 	
+	protected String addMdConstraint() throws NotFound {
+		return isoMetadata.addNode(
+				namespaces, 
+				getDatasetIdentificationPath(), 
+				new String[] { 
+					"gmd:resourceConstraints",
+					"gmd:aggregationInfo",
+					"gmd:spatialRepresentationType"
+				}, 
+				"gmd:resourceConstraints/gmd:MD_Constraints");
+	}
+	
+	public void resetUseLimitations() throws NotFound {
+		List<String> useLimitations = getUseLimitations();
+		
+		List<String> toBeRemoved = new ArrayList<>();
+		toBeRemoved.add("useLimitation");
+		applyMethodOnResourceConstraints(this::verifyNodeToBeRemoved, toBeRemoved);
+		
+		String parentPath = addMdConstraint();
+		
+		for(String useLimitation : useLimitations) {
+			isoMetadata.addNode(namespaces, parentPath, "gmd:useLimitation/gco:CharacterString", useLimitation);
+		}
+	}
+	
 	/*
 	 * Get values of path from argument
 	 */
@@ -659,21 +816,82 @@ public class MetadataDocument {
 	}
 	
 	/*
-	 * other constraints
+	 * access constraints & other constraints
 	 * 
 	 */
-	protected String getOtherconstraintsPath() {
-		return getDatasetIdentificationPath() + "/gmd:resourceConstraints"
-				+ "/gmd:MD_LegalConstraints/gmd:otherConstraints/gco:CharacterString";
+	protected String getAccessConstraintsPath() {
+		return getDatasetIdentificationPath() + "/gmd:resourceConstraints/"
+				+ "gmd:MD_LegalConstraints/gmd:accessConstraints/gmd:MD_RestrictionCode/@codeListValue";
+	}
+	
+	protected List<String> getAccessConstraints() throws NotFound {
+		return isoMetadata
+			.xpath(Optional.of(namespaces))
+			.strings(getAccessConstraintsPath());
+	}
+	
+	protected String getOtherConstraintsPath() {
+		return getDatasetIdentificationPath() + "/gmd:resourceConstraints/"
+				+ "gmd:MD_LegalConstraints/gmd:otherConstraints/gco:CharacterString";
 	}
 	
 	public List<String> getOtherConstraints() throws NotFound {
 		return isoMetadata
 			.xpath(Optional.of(namespaces))
-			.strings(getOtherconstraintsPath());
+			.strings(getOtherConstraintsPath());
 	}
 	
-
+	protected String addMdLegalConstraint() throws NotFound {
+		return isoMetadata.addNode(
+				namespaces, 
+				getDatasetIdentificationPath(), 
+				new String[] { 
+					"gmd:resourceConstraints",
+					"gmd:aggregationInfo",
+					"gmd:spatialRepresentationType"
+				}, 
+				"gmd:resourceConstraints/gmd:MD_LegalConstraints");
+	}
+	
+	protected void addAccessConstraint(String parentPath, String codeListValue) throws NotFound {
+		Map<String, String> attributes = new HashMap<>();
+		attributes.put("codeList", "./resources/codeList.xml#MD_RestrictionCode");
+		attributes.put("codeListValue", codeListValue);
+		
+		isoMetadata.addNode(
+				namespaces, 
+				parentPath, 
+				"gmd:accessConstraints/gmd:MD_RestrictionCode",
+				null,
+				attributes);
+	}
+	
+	public void resetOtherRestrictions() throws NotFound {
+		List<String> accessConstraints = getAccessConstraints();
+		List<String> otherConstraints = getOtherConstraints();
+		
+		int countOtherRestrictions = 0;
+		for(String accessConstraint : accessConstraints) {
+			if("otherRestrictions".equals(accessConstraint)) countOtherRestrictions++;
+		}
+		
+		if(countOtherRestrictions == 2) {
+			List<String> toBeRemoved = new ArrayList<>();
+			toBeRemoved.add("accessConstraints");
+			applyMethodOnResourceConstraints(this::verifyNodeToBeRemoved, toBeRemoved);
+			
+			String parentPath = addMdLegalConstraint();
+			addAccessConstraint(parentPath, "otherRestrictions");
+			for(String otherConstraint : otherConstraints) {
+				isoMetadata.addNode(
+						namespaces, 
+						parentPath, 
+						"gmd:otherConstraints/gco:CharacterString",
+						otherConstraint);
+			}
+		}
+	}
+	
 	/**
 	 * Dataset metadata: Service Linkage
 	 */	
@@ -731,10 +949,6 @@ public class MetadataDocument {
 		return isoMetadata.getString(namespaces, getDistributionResponsiblePartyNamePath(role));
 	}
 	
-	
-	
-	
-	
 	protected String getServiceLinkagePath() {
 		return getDigitalTransferOptionsPath() + "/gmd:onLine";
 	}
@@ -755,12 +969,15 @@ public class MetadataDocument {
 	 * @param name content of the /gmd:name/gco:CharacterString node
 	 * @throws NotFound 
 	 */
-	public void addServiceLinkage(String linkage, String protocol, String name) throws NotFound{
+	public void addServiceLinkage(String linkage, String protocol, String name, String description) throws NotFound{
 		String parentPath = isoMetadata.addNode(namespaces, getDigitalTransferOptionsPath(), new String[]{"gmd:offLine"}, "gmd:onLine/gmd:CI_OnlineResource");
 		isoMetadata.addNode(namespaces, parentPath, "gmd:linkage/gmd:URL", linkage);
 		isoMetadata.addNode(namespaces, parentPath, "gmd:protocol/gco:CharacterString", protocol);
 		if(name != null) {
 			isoMetadata.addNode(namespaces, parentPath, "gmd:name/gco:CharacterString", name);
+		}
+		if(description != null) {
+			isoMetadata.addNode(namespaces, parentPath, "gmd:description/gco:CharacterString", description);
 		}
 	}
 	
@@ -843,7 +1060,7 @@ public class MetadataDocument {
 	}	
 	
 	public int removeServiceType() throws NotFound {
-		return isoMetadata.removeNodes(namespaces, getServiceTypePath());		
+		return isoMetadata.removeNodes(namespaces, getServiceTypePath());
 	}
 	
 	/**
@@ -851,7 +1068,7 @@ public class MetadataDocument {
 	 * @param serviceLocalName content of the /srv:serviceType/gco:LocalName node
 	 * @throws NotFound 
 	 */
-	public void addServiceType(String serviceLocalName) throws NotFound{		
+	public void addServiceType(String serviceLocalName) throws NotFound{
 		isoMetadata.addNode(namespaces, getServiceIdentificationPath(), 
 			new String[]{
 				"srv:serviceTypeVersion",
@@ -1081,17 +1298,14 @@ public class MetadataDocument {
 	 * @param href link to dataset metadata
 	 * @throws NotFound
 	 */
-	public void addOperatesOn(String uuidref, String href) throws NotFound {		
+	public void addOperatesOn(String href) throws NotFound {
 		Map<String, String> attributes = new HashMap<String, String>();
-		attributes.put("uuidref", uuidref);
 		attributes.put("xlink:href", href);
 		
 		isoMetadata.addNode(namespaces, getServiceIdentificationPath(), "srv:operatesOn", attributes);
 	}
 	
 	public interface OperatesOn {
-		
-		String getUuidref();
 		
 		String getHref();
 	}
@@ -1100,12 +1314,7 @@ public class MetadataDocument {
 		return xpath()
 			.nodes(getOperatesOnPath()).stream()
 				.map(node -> (OperatesOn)new OperatesOn() {
-
-					@Override
-					public String getUuidref() {
-						return node.string("@uuidref").get();
-					}
-
+					
 					@Override
 					public String getHref() {
 						return node.string("@xlink:href").get();
@@ -1128,8 +1337,8 @@ public class MetadataDocument {
 		return removeServiceLinkage();
 	}
 	
-	public void addLocator(String linkage, String protocol, String name) throws NotFound{
-		addServiceLinkage(linkage, protocol, name);
+	public void addLocator(String linkage, String protocol, String name, String description) throws NotFound{
+		addServiceLinkage(linkage, protocol, name, description);
 	}
 	
 	
@@ -1146,7 +1355,7 @@ public class MetadataDocument {
 	
 	
 	public void addOperationMetadata(String operationName, String codeList, String codeListValue, String linkage) throws NotFound {
-		addServiceEndpoint(operationName, codeList, codeListValue, linkage);		
+		addServiceEndpoint(operationName, codeList, codeListValue, linkage);
 	}
 	
 
@@ -1159,8 +1368,8 @@ public class MetadataDocument {
 		return removeOperatesOn();
 	}
 
-	public void addCoupledResource(String uuidref, String href) throws NotFound {
-		addOperatesOn(uuidref, href);
+	public void addCoupledResource(String href) throws NotFound {
+		addOperatesOn(href);
 	}
 	
 	public void removeStylesheet() {
