@@ -494,10 +494,7 @@ public class MetadataDocumentTest {
 		
 		OperatesOn operatesOn = document.getOperatesOn().get(0);
 		
-		String result = operatesOn.getUuidref();
-		assertEquals("No uuid ref found", "bc509f92-5d8c-4169-818b-49ff6a7576c3", result);
-		
-		result = operatesOn.getHref();
+		String result = operatesOn.getHref();
 		assertEquals("No href found", href, result);
 		
 		// remove all child nodes		

@@ -1307,8 +1307,6 @@ public class MetadataDocument {
 	
 	public interface OperatesOn {
 		
-		String getUuidref();
-		
 		String getHref();
 	}
 	
@@ -1316,12 +1314,7 @@ public class MetadataDocument {
 		return xpath()
 			.nodes(getOperatesOnPath()).stream()
 				.map(node -> (OperatesOn)new OperatesOn() {
-
-					@Override
-					public String getUuidref() {
-						return node.string("@uuidref").get();
-					}
-
+					
 					@Override
 					public String getHref() {
 						return node.string("@xlink:href").get();

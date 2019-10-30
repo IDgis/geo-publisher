@@ -288,7 +288,7 @@
                </srv:connectPoint>
             </srv:SV_OperationMetadata>
          </srv:containsOperations>
-         <srv:operatesOn uuidref="8ebdbd1e-6e0a-46f0-a442-03a9df280ce7" xlink:href="http://gisopenbaar.overijssel.nl/geoportal_extern/rest/document?id=%7B32F1D7BD-103B-4BBE-82CD-EB5A6200BB09%7D"/>
+         <srv:operatesOn xlink:href="http://gisopenbaar.overijssel.nl/geoportal_extern/rest/document?id=%7B32F1D7BD-103B-4BBE-82CD-EB5A6200BB09%7D"/>
       </srv:SV_ServiceIdentification>
   </gmd:identificationInfo>
   <gmd:distributionInfo>
