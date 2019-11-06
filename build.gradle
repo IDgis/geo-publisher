@@ -629,6 +629,8 @@ project(':publisher-service') {
 		compile "org.apache.curator:curator-recipes:${curatorVersion}"
 		compile "org.apache.curator:curator-framework:${curatorVersion}"
 		compile 'org.quartz-scheduler:quartz:2.2.1'
+		compile 'com.google.code.gson:gson:2.8.2'
+		compile 'org.apache.httpcomponents:httpclient:4.5.10'
 	}
 	
 	// extract geoserver webapp for nl.idgis.publisher.service.geoserver.GeoServerTestHelper

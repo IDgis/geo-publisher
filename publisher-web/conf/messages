@@ -114,7 +114,7 @@ web.application.succeeded=gelukt
 web.application.removed=Verwijderd
 web.application.removing=Verwijderen
 web.application.added=Toegevoegd
-web.application.adding=Toegevoegd
+web.application.adding=Toevoegen
 web.application.edited=Aangepast
 web.application.editing=Aanpassen
 web.application.updated=Aangepast
@@ -183,6 +183,9 @@ web.application.layout.dropdowntitle.tasks=Taken
 web.application.layout.dropdowntitle.errors=Nieuwe fouten
 
 web.application.layout.sidebar.dashboard=Dashboard
+web.application.layout.sidebar.usermanagement=Gebruikersbeheer
+web.application.layout.sidebar.users=Gebruikers
+web.application.layout.sidebar.usergroups=Gebruikersgroepen
 web.application.layout.sidebar.generalmanagement=Algemeen beheer
 web.application.layout.sidebar.constants=Organisatiekenmerken
 web.application.layout.sidebar.datamanagement=Databeheer
@@ -389,6 +392,38 @@ web.application.page.datasets.list.publishedServiceCount=Gepubliceerd in {0} ser
 web.application.page.datasets.list.publishedServiceCountSingle=Gepubliceerd in 1 service
 web.application.page.datasets.list.publishedServiceCountNone=Niet gepubliceerd
 
+# User management
+web.application.page.ldap.user.name=Gebruiker
+
+web.application.page.ldap.user.button.add=Maak een nieuwe gebruiker ...
+
+web.application.page.ldap.user.list.header=Gebruikers
+web.application.page.ldap.user.list.empty=Er zijn geen gebruikers gevonden die voldoen aan de criteria.
+
+web.application.page.ldap.user.form.title=Gebruiker formulier
+web.application.page.ldap.user.form.header.new=Nieuwe gebruiker toevoegen
+web.application.page.ldap.user.form.header.edit=Gebruiker {0} aanpassen
+
+web.application.page.ldap.user.form.field.email.label=E-mail
+web.application.page.ldap.user.form.field.email.placeholder=E-mail
+web.application.page.ldap.user.form.field.email.help=Het e-mailadres van de gebruiker
+web.application.page.ldap.user.form.field.email.validation.required=Er dient een e-mailadres ingevuld te worden voor de gebruiker
+web.application.page.ldap.user.form.field.email.validation.email=Er dient een valide e-mailadres ingevuld te worden voor de gebruiker
+
+web.application.page.ldap.user.form.field.fullname.label=Volledige naam
+web.application.page.ldap.user.form.field.fullname.placeholder=Volledige naam
+web.application.page.ldap.user.form.field.fullname.help=De volledige naam van de gebruiker
+web.application.page.ldap.user.form.field.fullname.validation.required=Er dient een volledige naam ingevuld te worden voor de gebruiker
+
+web.application.page.ldap.user.form.field.lastname.label=Achternaam
+web.application.page.ldap.user.form.field.lastname.placeholder=Achternaam
+web.application.page.ldap.user.form.field.lastname.help=De achternaam van de gebruiker
+web.application.page.ldap.user.form.field.lastname.validation.required=Er dient een achternaam ingevuld te worden voor de gebruiker
+
+web.application.page.ldap.user.form.field.password.label=Wachtwoord
+web.application.page.ldap.user.form.field.password.placeholder=Wachtwoord
+web.application.page.ldap.user.form.field.password.help=Het wachtwoord van de gebruiker
+web.application.page.ldap.user.form.field.password.validation.required=Er dient een wachtwoord ingevuld te worden voor de gebruiker
 
 # General management
 web.application.page.constants.name=Organisatiekenmerken

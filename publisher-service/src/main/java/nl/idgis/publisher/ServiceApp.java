@@ -72,6 +72,8 @@ public class ServiceApp extends UntypedActor {
 	
 	private Config databaseConfig;
 	
+	private Config ldapConfig;
+	
 	private AsyncDatabaseHelper db;
 	
 	public ServiceApp(Config config) {
@@ -87,6 +89,7 @@ public class ServiceApp extends UntypedActor {
 		log.info("starting service application");
 		
 		databaseConfig = config.getConfig("database");
+		ldapConfig = config.getConfig("ldap");
 		database = getContext().actorOf(PublisherDatabase.props(databaseConfig), "database");
 		
 		f = new FutureUtils(getContext());
@@ -185,7 +188,7 @@ public class ServiceApp extends UntypedActor {
 		
 		getContext().actorOf(JobScheduler.props(database, jobManager, harvester, loader, provisioningSystem, serviceManager), "job-scheduler");
 		
-		getContext().actorOf(AdminParent.props(database, harvester, loader, provisioningSystem, jobManager, serviceManager), "admin");
+		getContext().actorOf(AdminParent.props(database, harvester, loader, provisioningSystem, jobManager, serviceManager, ldapConfig.getString("apiAdminMail"), ldapConfig.getString("apiAdminPassword"), ldapConfig.getString("apiAdminUrlBaseUsers")), "admin");
 		
 		if(log.isDebugEnabled()) {
 			ActorSystem system = getContext().system();

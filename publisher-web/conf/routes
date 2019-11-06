@@ -5,8 +5,15 @@
 # Dashboard
 GET		/												controllers.Dashboard.index()
 
-# General management
+# User management
+GET		/users											controllers.LdapUsers.list(q: String ?= null, page: Long ?= 1)
+GET 	/users/-/create									controllers.LdapUsers.create()
+POST 	/users/-/create									controllers.LdapUsers.submitCreate()
+POST 	/users/-/update									controllers.LdapUsers.submitUpdate()
+GET 	/users/:email/edit								controllers.LdapUsers.edit(email: String)
+GET 	/users/:email/delete							controllers.LdapUsers.delete(email: String)
 
+# General management
 POST 	/constants/-/update								controllers.Constants.submitUpdate()
 GET		/constants/-/edit								controllers.Constants.edit()
 
