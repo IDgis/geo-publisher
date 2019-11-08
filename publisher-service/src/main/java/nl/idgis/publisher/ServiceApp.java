@@ -27,7 +27,6 @@ import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
 import nl.idgis.publisher.mx.MessageBroker;
 import nl.idgis.publisher.service.manager.ServiceManager;
-import nl.idgis.publisher.service.provisioning.ProvisioningSystem;
 import nl.idgis.publisher.tree.Tree;
 import nl.idgis.publisher.utils.Boot;
 import nl.idgis.publisher.utils.FutureUtils;
@@ -166,9 +165,6 @@ public class ServiceApp extends UntypedActor {
 		final ActorRef datasetManager = getContext().actorOf(DatasetManager.props(database), "dataset-manager");
 		
 		final Config harvesterConfig = config.getConfig("harvester");
-		final Config zooKeeperConfig = config.getConfig("zooKeeper");
-		final Config geoserverConfig = config.getConfig("geoserver");
-		final String metadataUrlPrefix = config.getString("metadataUrlPrefix");
 		
 		final ActorRef harvester = getContext().actorOf(Harvester.props(database, datasetManager, harvesterConfig), "harvester");
 		
@@ -181,14 +177,11 @@ public class ServiceApp extends UntypedActor {
 		
 		ActorRef jobManager = getContext().actorOf(JobManager.props(database), "job-manager");
 		
-		ActorRef provisioningSystem = getContext().actorOf(ProvisioningSystem.props(database, serviceManager, jobManager,
-			geoserverConfig, rasterFolderConfig, zooKeeperConfig, metadataUrlPrefix), "provisioning-system");
-		
-		getContext().actorOf(JobScheduler.props(database, jobManager, harvester, loader, provisioningSystem, serviceManager), "job-scheduler");
+		getContext().actorOf(JobScheduler.props(database, jobManager, harvester, loader, serviceManager), "job-scheduler");
 
 		ActorRef messageBroker = getContext().actorOf(MessageBroker.props(), "message-broker");
 
-		getContext().actorOf(AdminParent.props(database, harvester, loader, provisioningSystem, jobManager, serviceManager, messageBroker), "admin");
+		getContext().actorOf(AdminParent.props(database, harvester, loader, jobManager, serviceManager, messageBroker), "admin");
 		
 		if(log.isDebugEnabled()) {
 			ActorSystem system = getContext().system();
