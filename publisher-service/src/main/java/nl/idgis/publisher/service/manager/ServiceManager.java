@@ -215,7 +215,7 @@ public class ServiceManager extends UntypedActor {
 						Optional.of(tx.getTransactionRef()), 
 						msg.getServiceId()), 
 						Service.class).thenCompose(service ->
-							new PublishServiceQuery(log, f, tx, service, msg.getEnvironmentId())
+							new PublishServiceQuery(log, f, tx, service, msg.getEnvironmentId().orElse(null))
 								.result()).thenCompose(publishResult ->
 									ensureViews(tx, msg.getServiceId())));
 	}

@@ -21,6 +21,8 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.database.QGenericLayer;
 import nl.idgis.publisher.domain.query.ListEnvironments;
@@ -35,6 +37,7 @@ import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.QService;
 import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.ServicePublish;
+import nl.idgis.publisher.mx.messages.PublicationServiceUpdate;
 import nl.idgis.publisher.mx.messages.ServiceUpdateType;
 import nl.idgis.publisher.mx.messages.StagingServiceUpdate;
 import nl.idgis.publisher.protocol.messages.Ack;
@@ -48,8 +51,11 @@ import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.support.Expressions;
 import com.mysema.query.types.Ops;
 import com.mysema.query.types.expr.BooleanExpression;
+import nl.idgis.publisher.service.manager.messages.PublishServiceResult;
 
 public class ServiceAdmin extends AbstractAdmin {
+
+	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	protected final static QGenericLayer child = new QGenericLayer("child"), parent = new QGenericLayer("parent");
 	
@@ -83,20 +89,47 @@ public class ServiceAdmin extends AbstractAdmin {
 	}
 
 	private CompletableFuture<Boolean> handlePerformPublish(PerformPublish performPublish) {
-		return performPerformPublish(performPublish).whenComplete( (response, throwable) -> {
-			// TODO: send update event via messageBroker
+		String serviceId = performPublish.getServiceId();
+		return performPerformPublish(performPublish).thenApply(result -> {
+			Optional<String> optionalPreviousEnvironmentId = result.getPreviousEnvironmentId();
+			Optional<String> optionalCurrentEnvironmentId = result.getCurrentEnvironmentId();
+
+			if (optionalCurrentEnvironmentId.isPresent()) {
+				String currentEnvironmentId =  optionalCurrentEnvironmentId.get();
+				if (optionalPreviousEnvironmentId.isPresent()) {
+					String previousEnvironmentId = optionalPreviousEnvironmentId.get();
+
+					if (!currentEnvironmentId.equals(previousEnvironmentId)) {
+						messageBroker.tell(
+								new PublicationServiceUpdate(ServiceUpdateType.REMOVE, serviceId, previousEnvironmentId),
+								getSelf());
+					}
+				}
+
+				messageBroker.tell(
+						new PublicationServiceUpdate(ServiceUpdateType.CREATE, serviceId, currentEnvironmentId),
+						getSelf());
+			} else {
+				optionalPreviousEnvironmentId.ifPresent(previousEnvironmentId ->
+					messageBroker.tell(
+							new PublicationServiceUpdate(ServiceUpdateType.REMOVE, serviceId, previousEnvironmentId),
+							getSelf()));
+			}
+
+			return true;
+		}).exceptionally(t -> {
+			log.error(t, "failed to publish service");
+			return false;
 		});
 	}
 	
-	private CompletableFuture<Boolean> performPerformPublish(PerformPublish performPublish) {
+	private CompletableFuture<PublishServiceResult> performPerformPublish(PerformPublish performPublish) {
 		return f.ask(
 			serviceManager, 
 			new PublishService(
 				performPublish.getServiceId(), 
 				performPublish.getEnvironmentId()),
-			Ack.class)
-					.thenApply(ack -> true)
-					.exceptionally(t -> false);
+			PublishServiceResult.class);
 	}
 
 	private CompletableFuture<Page<Service>> handleListServices () {
