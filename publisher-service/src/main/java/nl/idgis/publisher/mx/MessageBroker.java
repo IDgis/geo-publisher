@@ -12,7 +12,8 @@ import com.rabbitmq.client.ConnectionFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import nl.idgis.publisher.mx.messages.ServiceUpdateType;
+import nl.idgis.publisher.mx.messages.AbstractServiceUpdate;
+import nl.idgis.publisher.mx.messages.PublicationServiceUpdate;
 import nl.idgis.publisher.mx.messages.StagingServiceUpdate;
 import scala.Option;
 
@@ -23,8 +24,14 @@ public class MessageBroker extends UntypedActor {
     private Connection connection;
 
     private Channel channel;
+
+    private static final String EXCHANGE_NAME_PREFIX = "pub.geoserver.";
     
-    private static final String STAGING_EXCHANGE_NAME = "pub.geoserver.staging.updates";
+    private static final String STAGING_EXCHANGE_NAME = EXCHANGE_NAME_PREFIX + "staging.updates";
+
+    private static final String PUBLICATION_EXCHANGE_NAME_PREFIX = EXCHANGE_NAME_PREFIX + "publication.";
+
+    private static final String PUBLICATION_EXCHANGE_NAME_POSTFIX = ".updates";
     
     private final ObjectMapper om = new ObjectMapper();
 	
@@ -34,28 +41,30 @@ public class MessageBroker extends UntypedActor {
 
     @Override
     public void onReceive(Object msg) throws Exception {
-	    if (msg instanceof StagingServiceUpdate) {
-            handleStagingServiceUpdate((StagingServiceUpdate)msg);
+        if (msg instanceof StagingServiceUpdate) {
+            sendServiceUpdate(STAGING_EXCHANGE_NAME, (StagingServiceUpdate)msg);
+        } else if (msg instanceof PublicationServiceUpdate) {
+            PublicationServiceUpdate serviceUpdate = (PublicationServiceUpdate)msg;
+            String exchangeName = PUBLICATION_EXCHANGE_NAME_PREFIX
+                    + serviceUpdate.getEnvironmentId()
+                    + PUBLICATION_EXCHANGE_NAME_POSTFIX;
+            sendServiceUpdate(exchangeName, serviceUpdate);
         } else {
 	        unhandled(msg);
         }
     }
-
-    private void handleStagingServiceUpdate(StagingServiceUpdate msg) {
-        sendServiceUpdate(STAGING_EXCHANGE_NAME, msg.getType(), msg.getServiceId());
-    }
 	
-	private void sendServiceUpdate(String exchange, ServiceUpdateType type, String serviceId) {
+	private void sendServiceUpdate(String exchangeName, AbstractServiceUpdate serviceUpdate) {
         try {
             ObjectNode message = om.createObjectNode();
-            message.put("type", type.name().toLowerCase());
-            message.put("id", serviceId);
+            message.put("type", serviceUpdate.getType().name().toLowerCase());
+            message.put("id", serviceUpdate.getServiceId());
 
             if (log.isDebugEnabled()) {
-                log.debug("publishing message, exchange: " + exchange + " body: " + om.writeValueAsString(message));
+                log.debug("publishing message, exchange: " + exchangeName + " body: " + om.writeValueAsString(message));
             }
             
-            channel.basicPublish(exchange, "", null, om.writeValueAsBytes(message));
+            channel.basicPublish(exchangeName, "", null, om.writeValueAsBytes(message));
         } catch(Exception e) {
             throw new RuntimeException("Failed to send message to RabbitMQ", e);
         }
