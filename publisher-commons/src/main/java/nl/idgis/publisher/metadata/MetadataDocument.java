@@ -698,8 +698,20 @@ public class MetadataDocument {
 
 	public void addDatasetAlternateTitle(String name) throws NotFound{
 		if(name != null && !"".equals(name.trim())) {
-			isoMetadata.addNode(namespaces, 
+			isoMetadata.addNode(
+					namespaces, 
 					getDatasetIdentificationPath() + "/gmd:citation/gmd:CI_Citation", 
+					new String[] { 
+						"gmd:date",
+						"gmd:edition",
+						"gmd:editionDate",
+						"gmd:identifier",
+						"gmd:citedResponsibleParty",
+						"gmd:presentationForm",
+						"gmd:series",
+						"gmd:otherCitationDetails",
+						"gmd:collectiveTitle"
+					},
 					"gmd:alternateTitle/gco:CharacterString", 
 					name);
 		}
