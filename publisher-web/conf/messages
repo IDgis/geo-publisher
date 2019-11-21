@@ -393,6 +393,9 @@ web.application.page.datasets.list.publishedServiceCountSingle=Gepubliceerd in 1
 web.application.page.datasets.list.publishedServiceCountNone=Niet gepubliceerd
 
 # User management
+
+#user
+
 web.application.page.ldap.user.name=Gebruiker
 
 web.application.page.ldap.user.button.add=Maak een nieuwe gebruiker ...
@@ -424,6 +427,28 @@ web.application.page.ldap.user.form.field.password.label=Wachtwoord
 web.application.page.ldap.user.form.field.password.placeholder=Wachtwoord
 web.application.page.ldap.user.form.field.password.help=Het wachtwoord van de gebruiker
 web.application.page.ldap.user.form.field.password.validation.required=Er dient een wachtwoord ingevuld te worden voor de gebruiker
+
+# usergroup
+
+web.application.page.ldap.usergroup.name=Gebruikersgroep
+
+web.application.page.ldap.usergroup.button.add=Maak een nieuwe gebruikersgroep ...
+
+web.application.page.ldap.usergroup.list.header=Gebruikersgroepen
+web.application.page.ldap.usergroup.list.empty=Er zijn geen gebruikersgroepen gevonden die voldoen aan de criteria.
+
+web.application.page.ldap.usergroup.form.title=Gebruikersgroep formulier
+web.application.page.ldap.usergroup.form.header.new=Nieuwe gebruikersgroep toevoegen
+web.application.page.ldap.usergroup.form.header.edit=Gebruikersgroep {0} aanpassen
+
+web.application.page.ldap.usergroup.form.field.name.label=Naam
+web.application.page.ldap.usergroup.form.field.name.placeholder=Naam
+web.application.page.ldap.usergroup.form.field.name.help=De naam van de gebruikersgroep
+web.application.page.ldap.usergroup.form.field.name.validation.required=Er dient een naam ingevuld te worden voor de gebruikersgroep
+
+web.application.page.ldap.usergroup.form.field.users.label=Gebruikers
+web.application.page.ldap.usergroup.form.field.users.help=De gebruikers die in deze gebruikersgroep zitten
+web.application.page.ldap.usergroup.form.field.users.validation.minimum=Er dient minimaal 1 gebruiker toegevoegd te worden aan de gebruikersgroep
 
 # General management
 web.application.page.constants.name=Organisatiekenmerken

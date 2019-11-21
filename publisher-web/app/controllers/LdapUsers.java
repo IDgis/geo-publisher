@@ -44,11 +44,11 @@ public class LdapUsers extends Controller {
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
 	
 	public static Promise<Result> list(final String query, final long page) {
-		Logger.debug ("list LdapUsers");
+		Logger.debug("list LdapUsers");
 		final ActorSelection database = Akka.system().actorSelection(databaseRef);
 		
 		return from(database)
-			.query(new ListLdapUsers(page, query))
+			.query(new ListLdapUsers(page, query, false))
 			.execute(new Function<Page<LdapUser>, Result>() {
 				@Override
 				public Result apply(final Page<LdapUser> users) throws Throwable {
@@ -58,14 +58,14 @@ public class LdapUsers extends Controller {
 	}
 	
 	public static Promise<Result> create() {
-		Logger.debug ("create LdapUser");
-		final Form<UserForm> userForm = Form.form (UserForm.class).fill(new UserForm());
+		Logger.debug("create LdapUser");
+		final Form<UserForm> userForm = Form.form(UserForm.class).fill(new UserForm());
 		
 		return Promise.pure(ok(views.html.ldap.users.form.render(userForm, true)));
 	}
 	
 	public static Promise<Result> edit(final String email) {
-		Logger.debug ("edit LdapUser: " + email);
+		Logger.debug("edit LdapUser: " + email);
 		final ActorSelection database = Akka.system().actorSelection(databaseRef);
 		
 		return from(database)
@@ -84,11 +84,13 @@ public class LdapUsers extends Controller {
 	}
 	
 	public static Promise<Result> performCreateUpdate(boolean create) {
+		Logger.debug("performing create/update LdapUser");
 		final ActorSelection database = Akka.system().actorSelection(databaseRef);
 		
 		final Form<UserForm> form = Form.form(UserForm.class).bindFromRequest();
 		
 		if(form.hasErrors()) {
+			Logger.debug("LdapUserForm errors " + form.errorsAsJson().toString());
 			return Promise.pure(ok(views.html.ldap.users.form.render(form, create)));
 		}
 		
@@ -109,9 +111,9 @@ public class LdapUsers extends Controller {
 					@Override
 					public Result apply(Response<?> response) throws Throwable {
 						if(CrudResponse.OK.equals(response.getOperationResponse())) {
-							Logger.debug ("Created/updated LdapUser successful: " + userForm.getEmail());
+							Logger.debug("Created/updated LdapUser successful: " + userForm.getEmail());
 						} else {
-							Logger.debug ("Created/updated LdapUser failed: " + userForm.getEmail());
+							Logger.debug("Created/updated LdapUser failed: " + userForm.getEmail());
 						}
 						
 						flash(
@@ -137,7 +139,7 @@ public class LdapUsers extends Controller {
 	}
 	
 	public static Promise<Result> delete(final String email) {
-		Logger.debug ("delete LdapUser " + email);
+		Logger.debug("delete LdapUser " + email);
 		final ActorSelection database = Akka.system().actorSelection(databaseRef);
 		
 		return from(database)

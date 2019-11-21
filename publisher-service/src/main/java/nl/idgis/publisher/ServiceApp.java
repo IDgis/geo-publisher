@@ -188,7 +188,7 @@ public class ServiceApp extends UntypedActor {
 		
 		getContext().actorOf(JobScheduler.props(database, jobManager, harvester, loader, provisioningSystem, serviceManager), "job-scheduler");
 		
-		getContext().actorOf(AdminParent.props(database, harvester, loader, provisioningSystem, jobManager, serviceManager, ldapConfig.getString("apiAdminMail"), ldapConfig.getString("apiAdminPassword"), ldapConfig.getString("apiAdminUrlBaseUsers")), "admin");
+		getContext().actorOf(AdminParent.props(database, harvester, loader, provisioningSystem, jobManager, serviceManager, ldapConfig.getString("apiAdminMail"), ldapConfig.getString("apiAdminPassword"), ldapConfig.getString("apiAdminUrlBaseUsers"), ldapConfig.getString("apiAdminUrlBaseOrganizations")), "admin");
 		
 		if(log.isDebugEnabled()) {
 			ActorSystem system = getContext().system();
