@@ -190,7 +190,7 @@ public class ServiceMetadata extends AbstractMetadata {
 			metadataDocument.setMetaDataPointOfContactEmail(role, serviceTuple.get(constants.email));
 			
 			Integer lastDatasetId = null;
-			metadataDocument.removeOperatesOn();			
+			metadataDocument.removeOperatesOn();
 			for(Tuple serviceDatasetTuple : serviceDatasetTuples) {
 				int datasetId = serviceDatasetTuple.get(dataset.id);
 				
@@ -200,11 +200,13 @@ public class ServiceMetadata extends AbstractMetadata {
 				if(lastDatasetId == null || datasetId != lastDatasetId) {
 					lastDatasetId = datasetId;
 					
-					String uuid = serviceDatasetTuple.get(dataset.metadataIdentification);
 					String fileIdentification = serviceDatasetTuple.get(dataset.metadataFileIdentification);
-					String uuidref = config.getMetadataUrlPrefix() + "dataset/" + getName(fileIdentification);
+					String uuidref = 
+							config.getMetadataUrlPrefix() + 
+							"dataset/" + getName(fileIdentification) + 
+							"#MD_DataIdentification";
 					
-					metadataDocument.addOperatesOn(uuid, uuidref);
+					metadataDocument.addOperatesOn(uuidref);
 				}
 			}
 			
@@ -238,7 +240,7 @@ public class ServiceMetadata extends AbstractMetadata {
 				if(confidential) {
 					config.getViewerUrlSecurePrefix().ifPresent(viewerUrlPrefix -> {
 						try {
-							metadataDocument.addServiceLinkage(viewerUrlPrefix + "?service=" + serviceName, "website", null);
+							metadataDocument.addServiceLinkage(viewerUrlPrefix + "?service=" + serviceName, "landingpage", null, "accessPoint");
 						} catch(NotFound nf) {
 							throw new RuntimeException(nf);
 						}
@@ -246,7 +248,7 @@ public class ServiceMetadata extends AbstractMetadata {
 				} else if(environmentWmsOnly) {
 					config.getViewerUrlWmsOnlyPrefix().ifPresent(viewerUrlPrefix -> {
 						try {
-							metadataDocument.addServiceLinkage(viewerUrlPrefix + "?service=" + serviceName, "website", null);
+							metadataDocument.addServiceLinkage(viewerUrlPrefix + "?service=" + serviceName, "landingpage", null, "accessPoint");
 						} catch(NotFound nf) {
 							throw new RuntimeException(nf);
 						}
@@ -254,7 +256,7 @@ public class ServiceMetadata extends AbstractMetadata {
 				} else {
 					config.getViewerUrlPublicPrefix().ifPresent(viewerUrlPrefix -> {
 						try {
-							metadataDocument.addServiceLinkage(viewerUrlPrefix + "?service=" + serviceName, "website", null);
+							metadataDocument.addServiceLinkage(viewerUrlPrefix + "?service=" + serviceName, "landingpage", null, "accessPoint");
 						} catch(NotFound nf) {
 							throw new RuntimeException(nf);
 						}
@@ -269,7 +271,7 @@ public class ServiceMetadata extends AbstractMetadata {
 				if(serviceType == ServiceType.WMS) {
 					metadataDocument.addServiceBrowseGraphic(linkage + config.getBrowseGraphicWmsRequest() + scopedName);
 				}
-				metadataDocument.addServiceLinkage(linkage, serviceType.getProtocol(), scopedName);
+				metadataDocument.addServiceLinkage(linkage, serviceType.getProtocol(), scopedName, "accessPoint");
 				metadataDocument.addSVCoupledResource(serviceType.getOperationName(), identifier, scopedName);
 			}
 			

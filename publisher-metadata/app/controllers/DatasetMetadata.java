@@ -189,6 +189,8 @@ public class DatasetMetadata extends AbstractMetadata {
 			metadataDocument.removeStylesheet();
 			stylesheet("datasets").ifPresent(metadataDocument::setStylesheet);
 			
+			metadataDocument.updateSchemas();
+			
 			metadataDocument.setDatasetIdentifier(datasetIdentifier);
 			metadataDocument.setFileIdentifier(fileIdentifier);
 			
@@ -392,7 +394,7 @@ public class DatasetMetadata extends AbstractMetadata {
 						config.getDownloadUrlPrefixInternal().ifPresent(downloadUrlPrefix -> {
 							try {
 								metadataDocument.addServiceLinkage(downloadUrlPrefix
-										+ "raster/" + fileIdentifier, "download", null);
+										+ "raster/" + fileIdentifier, "tiff", null, "endPoint");
 							} catch(NotFound nf) {
 								throw new RuntimeException(nf);
 							}
@@ -401,7 +403,7 @@ public class DatasetMetadata extends AbstractMetadata {
 						config.getDownloadUrlPrefixExternal().ifPresent(downloadUrlPrefix -> {
 							try {
 								metadataDocument.addServiceLinkage(downloadUrlPrefix
-										+ "raster/" + fileIdentifier, "download", null);
+										+ "raster/" + fileIdentifier, "tiff", null, "endPoint");
 							} catch(NotFound nf) {
 								throw new RuntimeException(nf);
 							}
@@ -426,9 +428,10 @@ public class DatasetMetadata extends AbstractMetadata {
 				}
 				
 				if(serviceTuplesHasWmsOnly) {
-					for(Tuple t : serviceTuples) {
+					for(Iterator<Tuple> iterator = serviceTuples.iterator(); iterator.hasNext(); ) {
+						Tuple t = iterator.next();
 						if(!t.get(environment.wmsOnly)) {
-							serviceTuples.remove(t);
+							iterator.remove();
 						}
 					}
 				}
@@ -441,7 +444,7 @@ public class DatasetMetadata extends AbstractMetadata {
 									try {
 										metadataDocument.addServiceLinkage(downloadUrlPrefix 
 												+ "vector/"
-												+ fileIdentifier, "download", null);
+												+ fileIdentifier, "landingpage", null, null);
 									} catch(NotFound nf) {
 										throw new RuntimeException(nf);
 									}
@@ -453,7 +456,7 @@ public class DatasetMetadata extends AbstractMetadata {
 									try {
 										metadataDocument.addServiceLinkage(downloadUrlPrefix 
 												+ "vector/"
-												+ fileIdentifier, "download", null);
+												+ fileIdentifier, "landingpage", null, null);
 									} catch(NotFound nf) {
 										throw new RuntimeException(nf);
 									}
@@ -492,7 +495,7 @@ public class DatasetMetadata extends AbstractMetadata {
 						if(environmentConfidential) {
 							config.getViewerUrlSecurePrefix().ifPresent(viewerUrlPrefix -> {
 								try {
-									metadataDocument.addServiceLinkage(viewerUrlPrefix + "/layer/" + serviceName + "/" + scopedName, "website", null);
+									metadataDocument.addServiceLinkage(viewerUrlPrefix + "/layer/" + serviceName + "/" + scopedName, "landingpage", null, null);
 								} catch(NotFound nf) {
 									throw new RuntimeException(nf);
 								}
@@ -500,7 +503,7 @@ public class DatasetMetadata extends AbstractMetadata {
 						} else if(environmentWmsOnly) {
 							config.getViewerUrlWmsOnlyPrefix().ifPresent(viewerUrlPrefix -> {
 								try {
-									metadataDocument.addServiceLinkage(viewerUrlPrefix + "/layer/" + serviceName + "/" + scopedName, "website", null);
+									metadataDocument.addServiceLinkage(viewerUrlPrefix + "/layer/" + serviceName + "/" + scopedName, "landingpage", null, null);
 								} catch(NotFound nf) {
 									throw new RuntimeException(nf);
 								}
@@ -508,7 +511,7 @@ public class DatasetMetadata extends AbstractMetadata {
 						} else {
 							config.getViewerUrlPublicPrefix().ifPresent(viewerUrlPrefix -> {
 								try {
-									metadataDocument.addServiceLinkage(viewerUrlPrefix + "/layer/" + serviceName + "/" + scopedName, "website", null);
+									metadataDocument.addServiceLinkage(viewerUrlPrefix + "/layer/" + serviceName + "/" + scopedName, "landingpage", null, null);
 								} catch(NotFound nf) {
 									throw new RuntimeException(nf);
 								}
@@ -546,7 +549,7 @@ public class DatasetMetadata extends AbstractMetadata {
 								if("OGC:WMS".equals(protocol) && 
 										(lastWMSLinkage == null || !linkage.equals(lastWMSLinkage))) {
 									lastWMSLinkage = linkage;
-									metadataDocument.addServiceLinkage(linkage, protocol, scopedName);
+									metadataDocument.addServiceLinkage(linkage, protocol, scopedName, null);
 									
 									if(config.getPortalMetadataUrlDisplay()) {
 										insertPortalMetadataUrl(
@@ -562,7 +565,7 @@ public class DatasetMetadata extends AbstractMetadata {
 										!serviceTuples.get(i).get(environment.wmsOnly) &&
 										(lastWFSLinkage == null || !linkage.equals(lastWFSLinkage))) {
 									lastWFSLinkage = linkage;
-									metadataDocument.addServiceLinkage(linkage, protocol, scopedName);
+									metadataDocument.addServiceLinkage(linkage, protocol, scopedName, null);
 									
 									if(config.getPortalMetadataUrlDisplay()) {
 										insertPortalMetadataUrl(
@@ -576,6 +579,32 @@ public class DatasetMetadata extends AbstractMetadata {
 						}
 					}
 				}
+			}
+			
+			try {
+				String referenceSystemIdentifier = metadataDocument.getReferenceSystemIdentifier();
+				metadataDocument.setReferenceSystemIdentifier(
+						"http://www.opengis.net/def/crs/EPSG/0/" + referenceSystemIdentifier);
+			} catch(QueryFailure qf) {
+				// do nothing
+			}
+			
+			try {
+				metadataDocument.verifyMaintenanceFrequencyCodeListValue();
+			} catch(QueryFailure qf) {
+				// do nothing
+			}
+			
+			try {
+				metadataDocument.resetOtherRestrictions();
+			} catch(QueryFailure qf) {
+				// do nothing
+			}
+			
+			try {
+				metadataDocument.resetUseLimitations();
+			} catch(NotFound nf) {
+				// do nothing
 			}
 			
 			return new DefaultResource("application/xml", metadataDocument.getContent());
@@ -593,7 +622,7 @@ public class DatasetMetadata extends AbstractMetadata {
 			config.getPortalMetadataUrlPrefixInternal().ifPresent(portalMetadataUrlPrefix -> {
 				try {
 					metadataDocument.addServiceLinkage(
-						portalMetadataUrlPrefix + type + identification, "UKST", null
+						portalMetadataUrlPrefix + type + identification, "UKST", null, null
 					);
 				} catch(NotFound nf) {
 					throw new RuntimeException(nf);
@@ -603,7 +632,7 @@ public class DatasetMetadata extends AbstractMetadata {
 			config.getPortalMetadataUrlPrefixExternal().ifPresent(portalMetadataUrlPrefix -> {
 				try {
 					metadataDocument.addServiceLinkage(
-						portalMetadataUrlPrefix + type + identification, "UKST", null
+						portalMetadataUrlPrefix + type + identification, "UKST", null, null
 					);
 				} catch(NotFound nf) {
 					throw new RuntimeException(nf);
