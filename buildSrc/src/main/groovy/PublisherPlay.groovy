@@ -11,10 +11,7 @@ import com.bmuschko.gradle.docker.tasks.image.Dockerfile
 import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
 
 /**
-  * Applies standard Gradle Play plugin and adds the following additional tasks:
-  *
-  * - extract less: extracts all less source files from webjars.
-  * - compile less: compiles all less source files.
+  * Applies standard Gradle Play plugin.
   */
 class PublisherPlay implements Plugin<Project> {
 
@@ -24,45 +21,6 @@ class PublisherPlay implements Plugin<Project> {
 		project.pluginManager.apply(DockerRemoteConfig)
 		
 		project.model {
-			components {
-				play {
-					binaries.all { binary ->
-						def lessDestinationDir = "${project.buildDir}/less/"
-						def extractLessTask = tasks.taskName('extract', 'less')
-
-						binary.assets.addAssetDir project.file(lessDestinationDir)
-
-						tasks.create(extractLessTask, Copy) { task ->
-							description = 'Extracts all less source files from webjars'
-							from {
-								project.configurations.play.collect { 
-									project.zipTree(it).matching { include 'META-INF/resources/webjars/**' }
-								}
-							}
-							into lessDestinationDir + "lib/"
-							eachFile { details ->
-								def shortPath = (details.path - "META-INF/resources/webjars/")
-								def parts = shortPath.split '/'
-								def result = new StringBuilder ()
-								for(int i = 0; i < parts.length; ++ i) {
-									if(i == 1) {
-										continue;
-									}
-									if(result.length () > 0) {
-										result.append "/"
-									}
-									result.append parts[i]
-								}
-								def targetPath = result.toString ()
-								details.path = targetPath
-							}
-
-							binary.assets.builtBy task
-						}
-					}
-				}
-			}
-			
 			distributions {
 				playBinary {
 					project.tasks.withType(org.gradle.jvm.tasks.Jar) {
