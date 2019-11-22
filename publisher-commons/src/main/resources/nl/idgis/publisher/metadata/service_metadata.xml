@@ -46,7 +46,7 @@
       <gco:CharacterString>ISO 19119</gco:CharacterString>
   </gmd:metadataStandardName>
   <gmd:metadataStandardVersion>
-      <gco:CharacterString>Nederlandse metadata profiel op ISO 19119 voor services 1.2</gco:CharacterString>
+      <gco:CharacterString>Nederlandse metadata profiel op ISO 19119 voor services 2.0</gco:CharacterString>
   </gmd:metadataStandardVersion>
   <gmd:identificationInfo>
       <srv:SV_ServiceIdentification>
