@@ -1513,8 +1513,7 @@ public class MetadataDocument {
 				+ "/gmd:DQ_Scope"
 				+ "/gmd:level"
 				+ "/gmd:MD_ScopeCode"
-					+ "[text() = 'dataset'"
-					+ "	and @codeList='./resources/codeList.xml#MD_ScopeCode'"
+					+ "[@codeList='./resources/codeList.xml#MD_ScopeCode'"
 					+ " and @codeListValue='dataset']]";
 		
 		if(xpath().nodes(dataQualityPath).isEmpty()) {
