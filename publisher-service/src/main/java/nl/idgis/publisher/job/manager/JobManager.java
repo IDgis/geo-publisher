@@ -14,7 +14,6 @@ import static nl.idgis.publisher.database.QJobState.jobState;
 import static nl.idgis.publisher.database.QLastSourceDatasetVersion.lastSourceDatasetVersion;
 import static nl.idgis.publisher.database.QNotification.notification;
 import static nl.idgis.publisher.database.QNotificationResult.notificationResult;
-import static nl.idgis.publisher.database.QServiceJob.serviceJob;
 import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QJobLog.jobLog;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
@@ -225,43 +224,6 @@ public class JobManager extends UntypedActor {
 				.set(jobState.jobId, msg.getJob().getId())
 				.set(jobState.state, msg.getState().name())
 				.execute().thenApply(l -> new Ack());
-	}
-	
-	private CompletableFuture<Long> createEnsureServiceJob(final AsyncHelper tx, final String serviceId, final boolean published) {
-		return
-			createJob(tx, JobType.SERVICE).thenCompose(jobId ->
-				tx.insert(serviceJob)
-					.columns(
-						serviceJob.jobId,
-						serviceJob.type,
-						serviceJob.serviceId,
-						serviceJob.published)
-					.select(new SQLSubQuery().from(service)
-						.join(genericLayer).on(service.genericLayerId.eq(genericLayer.id))
-						.where(genericLayer.identification.eq(serviceId))
-						.list(
-							jobId, 
-							"ENSURE", 
-							service.id,
-							published))
-					.execute());
-				
-	}
-	
-	private CompletableFuture<Long> createVacuumServiceJob(final AsyncHelper tx, boolean published) {
-		return
-			createJob(tx, JobType.SERVICE).thenCompose(jobId ->
-				tx.insert(serviceJob)
-					.columns(
-						serviceJob.jobId,
-						serviceJob.type,
-						serviceJob.published)
-					.values(
-						jobId, 
-						"VACUUM",
-						published)
-					.execute());
-				
 	}
 	
 	private CompletableFuture<Long> createImportJob(final AsyncHelper tx, final String datasetId) {

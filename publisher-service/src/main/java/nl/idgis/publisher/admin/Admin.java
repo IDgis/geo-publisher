@@ -4,13 +4,11 @@ import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
-import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QHarvestNotification.harvestNotification;
 import static nl.idgis.publisher.database.QHarvestJob.harvestJob;
 import static nl.idgis.publisher.database.QImportJob.importJob;
 import static nl.idgis.publisher.database.QJob.job;
 import static nl.idgis.publisher.database.QJobState.jobState;
-import static nl.idgis.publisher.database.QServiceJob.serviceJob;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
@@ -76,7 +74,6 @@ import nl.idgis.publisher.domain.web.Status;
 
 import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
 import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
-import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
 import nl.idgis.publisher.messages.ActiveJob;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
@@ -200,16 +197,10 @@ public class Admin extends AbstractAdmin {
 				// import job and dataset 
 				.leftJoin(importJob).on(importJob.jobId.eq(job.id))
 				.leftJoin(dataset).on(importJob.datasetId.eq(dataset.id))
-				// service job and generic layer 
-				.leftJoin(serviceJob).on(serviceJob.jobId.eq(job.id))
-				.leftJoin(nl.idgis.publisher.database.QService.service).on(serviceJob.serviceId.eq(nl.idgis.publisher.database.QService.service.id))
-				.leftJoin(genericLayer).on(nl.idgis.publisher.database.QService.service.genericLayerId.eq(genericLayer.id))			
 				.orderBy(jobState.createTime.desc(),job.createTime.desc(),job.type.asc())
 				.where(job.createTime.between(since, new Timestamp(new java.util.Date().getTime()))
 					.and(jobState.state.isNull().or(jobState.state.ne("STARTED")))
-					.and(serviceJob.type.isNull().or(serviceJob.type.ne("VACUUM")))
 				);
-
 	}
 
 	private CompletableFuture<TypedList<Tuple>> recentJobsListQuery(AsyncSQLQuery baseQuery, Long page, Long limit){
@@ -223,11 +214,8 @@ public class Admin extends AbstractAdmin {
 				jobState.createTime,
 				dataSource.name,
 				dataset.name,
-				genericLayer.name,
 				dataSource.identification,
-				dataset.identification,
-				genericLayer.identification,
-				serviceJob.published
+				dataset.identification
 			);
 	}
 	
@@ -279,21 +267,6 @@ private String getEnumName(Enum e){
 									js = new Status(DatasetImportStatusType.IMPORT_FAILED, t.get(jobState.createTime));
 								}
 							}
-						} else if (t.get(job.type).equals("SERVICE")){
-							jt = JobType.SERVICE;
-							identifier = t.get (genericLayer.identification);
-							title = t.get (genericLayer.name);
-							if (t.get(jobState.state) == null){
-								js = new Status(JobStatusType.PLANNED, now);
-							} else {
-								if (t.get(jobState.state).equals("SUCCEEDED")) {
-									js = new Status(JobStatusType.OK, t.get(jobState.createTime));
-								} else if (t.get(jobState.state).equals("ABORTED")) {
-									js = new Status(JobStatusType.ABORTED, t.get(jobState.createTime));
-								} else{
-									js = new Status(JobStatusType.FAILED, t.get(jobState.createTime));
-								}
-							}
 						}
 //						log.debug("\t"+jt + ", " +identifier+ ", " + js );
 						recentJobList.add(
@@ -310,7 +283,7 @@ private String getEnumName(Enum e){
 								false, 
 								// published is false if servicejob is for staging, 
 								// true for publication, null for none servicejobs
-								t.get(serviceJob.published) 
+								false
 							)
 						); 
 					}

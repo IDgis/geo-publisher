@@ -8,7 +8,6 @@ import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QJob.job;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QService.service;
-import static nl.idgis.publisher.database.QServiceJob.serviceJob;
 import static nl.idgis.publisher.database.QServiceKeyword.serviceKeyword;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
@@ -391,31 +390,21 @@ public class ServiceAdmin extends AbstractAdmin {
 				.singleResult(service.id)
 				.thenCompose(svId -> {
 					log.debug("delete jobs for service id: {}", svId.get());
-					return tx.delete(job)
-						.where(new SQLSubQuery().from(serviceJob)
-								.where(serviceJob.serviceId.eq(svId.get())
-									.and(job.id.eq(serviceJob.jobId)))
-								.exists())
-						.execute()
-						.thenCompose(jobs -> {
-							log.debug("delete service id: {}", svId.get());
-							return tx.delete(service)
-								.where(service.id.eq(svId.get()))
-								.execute()
-								.thenCompose(n -> {
-									log.debug("delete generic layer id: {}", serviceId);
-									return tx.delete(genericLayer)
+					return tx.delete(service)
+							.where(service.id.eq(svId.get()))
+							.execute()
+							.thenCompose(n -> {
+								log.debug("delete generic layer id: {}", serviceId);
+								return tx.delete(genericLayer)
 										.where(genericLayer.identification.eq(serviceId))
 										.execute()
-										.thenApply(l -> 
-											new Response<String>(
-												CrudOperation.DELETE, 
-												CrudResponse.OK, 
-												serviceId));
-									});
+										.thenApply(l ->
+												new Response<String>(
+														CrudOperation.DELETE,
+														CrudResponse.OK,
+														serviceId));
 							});
-					}));
-
+				}));
 	}
 	
 	
