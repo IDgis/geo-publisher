@@ -193,6 +193,7 @@ public class DatasetMetadata extends AbstractMetadata {
 			
 			metadataDocument.setDatasetIdentifier(datasetIdentifier);
 			metadataDocument.setFileIdentifier(fileIdentifier);
+			metadataDocument.setMetadataStandardVersion("Nederlandse metadata profiel op ISO 19115 voor geografie 2.0");
 			
 			final String physicalName = tx.query().from(sourceDatasetVersion)
 					.where(sourceDatasetVersion.sourceDatasetId.eq(sourceDatasetId)

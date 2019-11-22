@@ -166,6 +166,16 @@ public class MetadataDocument {
 	}
 	
 	/*
+	 * metadata standard version
+	 */
+	public void setMetadataStandardVersion(String version) throws QueryFailure {
+		isoMetadata.updateString(
+				namespaces, 
+				"/gmd:MD_Metadata/gmd:metadataStandardVersion/gco:CharacterString", 
+				version);
+	}
+	
+	/*
 	 * reference system identifier
 	 * 
 	 */
@@ -677,6 +687,7 @@ public class MetadataDocument {
 	 * DATASET
 	 * 
 	 */
+	
 	/*
 	 * alternate title
 	 */
