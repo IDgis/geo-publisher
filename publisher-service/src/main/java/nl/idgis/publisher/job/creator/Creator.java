@@ -5,7 +5,6 @@ import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QDatasetStatus.datasetStatus;
 import static nl.idgis.publisher.database.QImportJob.importJob;
 import static nl.idgis.publisher.database.QJob.job;
-import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 
 import java.sql.Timestamp;
@@ -32,8 +31,6 @@ import nl.idgis.publisher.job.context.messages.JobFinished;
 import nl.idgis.publisher.job.creator.messages.CreateHarvestJobs;
 import nl.idgis.publisher.job.creator.messages.CreateImportJobs;
 import nl.idgis.publisher.job.creator.messages.CreateJobs;
-import nl.idgis.publisher.job.creator.messages.CreateServiceJobs;
-import nl.idgis.publisher.job.manager.messages.CreateEnsureServiceJob;
 import nl.idgis.publisher.job.manager.messages.CreateHarvestJob;
 import nl.idgis.publisher.job.manager.messages.CreateImportJob;
 import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
@@ -101,9 +98,7 @@ public class Creator extends UntypedActor {
 				
 				((TypedList<String>)serviceIds).list().stream()
 					.forEach(serviceId -> {
-						log.debug("creating ensure job for service: {}", serviceId);
-						
-						jobManager.tell(new CreateEnsureServiceJob(serviceId), getSelf());
+						// TODO: send service update message?
 					});
 			});
 				
@@ -118,8 +113,6 @@ public class Creator extends UntypedActor {
 			return handleCreateHarvestJobs((CreateHarvestJobs)msg);
 		} else if(msg instanceof CreateImportJobs) {
 			return handleCreateImportJobs((CreateImportJobs)msg);
-		} else if(msg instanceof CreateServiceJobs) {
-			return handleCreateServiceJobs((CreateServiceJobs)msg);
 		} else {
 			throw new IllegalArgumentException("unknown create jobs message");
 		}
@@ -167,12 +160,6 @@ public class Creator extends UntypedActor {
 				.and(needsRefresh))
 				.list(datasetStatus.identification).thenCompose(datasetIds ->
 					forEach(datasetIds.list().stream(), datasetId -> f.ask(jobManager, new CreateImportJob(datasetId))));
-	}
-	
-	private CompletableFuture<Object> handleCreateServiceJobs(CreateServiceJobs msg) {
-		// TODO: implement support for service jobs
-		
-		return f.failed(new UnsupportedOperationException());
 	}
 	
 	private <T> CompletableFuture<Object> forEach(Stream<T> stream, Function<T, CompletableFuture<Object>> func) {

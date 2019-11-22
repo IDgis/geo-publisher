@@ -44,7 +44,7 @@ public class JobSchedulerTest {
 	public void testCronExpression() throws Exception {
 		CronExpression cronExpression = new CronExpression(JobScheduler.EVERY_HALF_HOUR);
 		
-		TestActorRef<JobScheduler> ref = TestActorRef.create(actorSystem, JobScheduler.props(null, null, null, null, null, null));
+		TestActorRef<JobScheduler> ref = TestActorRef.create(actorSystem, JobScheduler.props(null, null, null, null, null));
 		JobScheduler jobSystem = ref.underlyingActor();
 		
 		Calendar calendar = Calendar.getInstance();
