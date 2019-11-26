@@ -69,7 +69,7 @@
     <gco:CharacterString>ISO 19115</gco:CharacterString>
   </gmd:metadataStandardName>
   <gmd:metadataStandardVersion>
-    <gco:CharacterString>Nederlandse metadata profiel op ISO 19115 voor geografie 1.2</gco:CharacterString>
+    <gco:CharacterString>Nederlandse metadata profiel op ISO 19115 voor geografie 2.0</gco:CharacterString>
   </gmd:metadataStandardVersion>
   <gmd:referenceSystemInfo>
     <gmd:MD_ReferenceSystem>

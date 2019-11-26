@@ -166,6 +166,16 @@ public class MetadataDocument {
 	}
 	
 	/*
+	 * metadata standard version
+	 */
+	public void setMetadataStandardVersion(String version) throws QueryFailure {
+		isoMetadata.updateString(
+				namespaces, 
+				"/gmd:MD_Metadata/gmd:metadataStandardVersion/gco:CharacterString", 
+				version);
+	}
+	
+	/*
 	 * reference system identifier
 	 * 
 	 */
@@ -677,6 +687,7 @@ public class MetadataDocument {
 	 * DATASET
 	 * 
 	 */
+	
 	/*
 	 * alternate title
 	 */
@@ -698,8 +709,20 @@ public class MetadataDocument {
 
 	public void addDatasetAlternateTitle(String name) throws NotFound{
 		if(name != null && !"".equals(name.trim())) {
-			isoMetadata.addNode(namespaces, 
+			isoMetadata.addNode(
+					namespaces, 
 					getDatasetIdentificationPath() + "/gmd:citation/gmd:CI_Citation", 
+					new String[] { 
+						"gmd:date",
+						"gmd:edition",
+						"gmd:editionDate",
+						"gmd:identifier",
+						"gmd:citedResponsibleParty",
+						"gmd:presentationForm",
+						"gmd:series",
+						"gmd:otherCitationDetails",
+						"gmd:collectiveTitle"
+					},
 					"gmd:alternateTitle/gco:CharacterString", 
 					name);
 		}
@@ -866,29 +889,68 @@ public class MetadataDocument {
 				attributes);
 	}
 	
-	public void resetOtherRestrictions() throws NotFound {
+	public void resetOtherConstraints() throws NotFound {
 		List<String> accessConstraints = getAccessConstraints();
 		List<String> otherConstraints = getOtherConstraints();
 		
-		int countOtherRestrictions = 0;
-		for(String accessConstraint : accessConstraints) {
-			if("otherRestrictions".equals(accessConstraint)) countOtherRestrictions++;
-		}
+		List<String> filteredAccessConstraints = 
+			accessConstraints.stream()
+				.filter(accessConstraint -> "otherRestrictions".equals(accessConstraint))
+				.collect(Collectors.toList());
 		
-		if(countOtherRestrictions == 2) {
+		if(filteredAccessConstraints.size() == 2) {
 			List<String> toBeRemoved = new ArrayList<>();
 			toBeRemoved.add("accessConstraints");
 			applyMethodOnResourceConstraints(this::verifyNodeToBeRemoved, toBeRemoved);
 			
 			String parentPath = addMdLegalConstraint();
 			addAccessConstraint(parentPath, "otherRestrictions");
+			
+			List<String> updatedOtherConstraints = new ArrayList<>();
 			for(String otherConstraint : otherConstraints) {
-				isoMetadata.addNode(
-						namespaces, 
-						parentPath, 
-						"gmd:otherConstraints/gco:CharacterString",
-						otherConstraint);
+				if(otherConstraint != null && otherConstraint.contains("creativecommons.org")) {
+					updateOtherConstraintDescription(updatedOtherConstraints, otherConstraint);
+					updatedOtherConstraints.add(otherConstraint);
+				}
 			}
+			
+			List<String> finalOtherConstraints = 
+					(updatedOtherConstraints.size() == 2) ? updatedOtherConstraints : otherConstraints;
+			
+			finalOtherConstraints.stream()
+				.forEach(otherConstraint -> {
+					try {
+						isoMetadata.addNode(
+							namespaces, 
+							parentPath, 
+							"gmd:otherConstraints/gco:CharacterString",
+							otherConstraint);
+					} catch (NotFound nf) {
+						nf.printStackTrace();
+						
+						// do nothing
+					}
+				});
+		}
+	}
+	
+	private void updateOtherConstraintDescription(List<String> otherConstraints, String license) {
+		if(license.contains("/mark/")) {
+			otherConstraints.add(DataLicenses.mark.description());
+		} else if(license.contains("/zero/")) {
+			otherConstraints.add(DataLicenses.zero.description());
+		} else if(license.contains("/by/")) {
+			otherConstraints.add(DataLicenses.by.description());
+		} else if(license.contains("/by-sa/")) {
+			otherConstraints.add(DataLicenses.bySa.description());
+		} else if(license.contains("/by-nc/")) {
+			otherConstraints.add(DataLicenses.byNc.description());
+		} else if(license.contains("/by-nc-sa/")) {
+			otherConstraints.add(DataLicenses.byNcSa.description());
+		} else if(license.contains("/by-nd/")) {
+			otherConstraints.add(DataLicenses.byNd.description());
+		} else if(license.contains("/by-nc-nd/")) {
+			otherConstraints.add(DataLicenses.byNcNd.description());
 		}
 	}
 	
@@ -1490,8 +1552,7 @@ public class MetadataDocument {
 				+ "/gmd:DQ_Scope"
 				+ "/gmd:level"
 				+ "/gmd:MD_ScopeCode"
-					+ "[text() = 'dataset'"
-					+ "	and @codeList='./resources/codeList.xml#MD_ScopeCode'"
+					+ "[@codeList='./resources/codeList.xml#MD_ScopeCode'"
 					+ " and @codeListValue='dataset']]";
 		
 		if(xpath().nodes(dataQualityPath).isEmpty()) {

@@ -193,6 +193,7 @@ public class DatasetMetadata extends AbstractMetadata {
 			
 			metadataDocument.setDatasetIdentifier(datasetIdentifier);
 			metadataDocument.setFileIdentifier(fileIdentifier);
+			metadataDocument.setMetadataStandardVersion("Nederlandse metadata profiel op ISO 19115 voor geografie 2.0");
 			
 			final String physicalName = tx.query().from(sourceDatasetVersion)
 					.where(sourceDatasetVersion.sourceDatasetId.eq(sourceDatasetId)
@@ -378,49 +379,43 @@ public class DatasetMetadata extends AbstractMetadata {
 									.unique(sourceDatasetVersion.id.max())))
 						.uniqueResult(sourceDatasetVersion.confidential);
 				
-				String datasetType = tx.query().from(dataset)
-					.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
-					.join(sourceDatasetVersion)
-						.on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
-					.where(sourceDatasetVersion.id.eq(new SQLSubQuery()
-							.from(sourceDatasetVersionSub)
-							.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDataset.id))
-							.unique(sourceDatasetVersionSub.id.max()))
-						.and(dataset.id.eq(datasetId)))
-					.uniqueResult(sourceDatasetVersion.type);
-				
-				if("RASTER".equals(datasetType) && config.getRasterUrlDisplay()) {
-					if(sourceDatasetConfidential) {
-						config.getDownloadUrlPrefixInternal().ifPresent(downloadUrlPrefix -> {
-							try {
-								metadataDocument.addServiceLinkage(downloadUrlPrefix
-										+ "raster/" + fileIdentifier, "tiff", null, "endPoint");
-							} catch(NotFound nf) {
-								throw new RuntimeException(nf);
-							}
-						});
-					} else {
-						config.getDownloadUrlPrefixExternal().ifPresent(downloadUrlPrefix -> {
-							try {
-								metadataDocument.addServiceLinkage(downloadUrlPrefix
-										+ "raster/" + fileIdentifier, "tiff", null, "endPoint");
-							} catch(NotFound nf) {
-								throw new RuntimeException(nf);
-							}
-						});
-					}
-				}
-				
 				List<Tuple> serviceTuples = serviceQuery.where(publishedServiceDataset.datasetId.eq(datasetId))
-					.list(
-						publishedService.content,
-						environment.identification,
-						environment.confidential,
-						environment.url,
-						environment.wmsOnly,
-						publishedServiceDataset.layerName,
-						service.wmsMetadataFileIdentification,
-						service.wfsMetadataFileIdentification);
+						.list(
+							publishedService.content,
+							environment.identification,
+							environment.confidential,
+							environment.url,
+							environment.wmsOnly,
+							publishedServiceDataset.layerName,
+							service.wmsMetadataFileIdentification,
+							service.wfsMetadataFileIdentification);
+				
+				List<String> spatialSchemas = metadataDocument.getSpatialSchema();
+				Optional<String> optionalSpatialSchema = spatialSchemas.stream().findFirst();
+				
+				optionalSpatialSchema.ifPresent(spatialSchema -> {
+					if(spatialSchema != null && "grid".equals(spatialSchema.toLowerCase()) && config.getRasterUrlDisplay()) {
+						if(sourceDatasetConfidential) {
+							config.getDownloadUrlPrefixInternal().ifPresent(downloadUrlPrefix -> {
+								try {
+									metadataDocument.addServiceLinkage(downloadUrlPrefix
+											+ "raster/" + fileIdentifier, "tiff", null, "endPoint");
+								} catch(NotFound nf) {
+									throw new RuntimeException(nf);
+								}
+							});
+						} else {
+							config.getDownloadUrlPrefixExternal().ifPresent(downloadUrlPrefix -> {
+								try {
+									metadataDocument.addServiceLinkage(downloadUrlPrefix
+											+ "raster/" + fileIdentifier, "tiff", null, "endPoint");
+								} catch(NotFound nf) {
+									throw new RuntimeException(nf);
+								}
+							});
+						}
+					}
+				});
 				
 				boolean serviceTuplesHasWmsOnly = false;
 				for(Tuple t : serviceTuples) {
@@ -437,33 +432,35 @@ public class DatasetMetadata extends AbstractMetadata {
 				}
 				
 				if(!serviceTuples.isEmpty()) {
-					if("VECTOR".equals(datasetType)) {
-						if(sourceDatasetConfidential) {
-							config.getDownloadUrlPrefixInternal().ifPresent(downloadUrlPrefix -> {
-								if(config.getDownloadUrlDisplay()) {
-									try {
-										metadataDocument.addServiceLinkage(downloadUrlPrefix 
-												+ "vector/"
-												+ fileIdentifier, "landingpage", null, null);
-									} catch(NotFound nf) {
-										throw new RuntimeException(nf);
+					optionalSpatialSchema.ifPresent(spatialSchema -> {
+						if(spatialSchema != null && "vector".equals(spatialSchema.toLowerCase())) {
+							if(sourceDatasetConfidential) {
+								config.getDownloadUrlPrefixInternal().ifPresent(downloadUrlPrefix -> {
+									if(config.getDownloadUrlDisplay()) {
+										try {
+											metadataDocument.addServiceLinkage(downloadUrlPrefix 
+													+ "vector/"
+													+ fileIdentifier, "landingpage", null, null);
+										} catch(NotFound nf) {
+											throw new RuntimeException(nf);
+										}
 									}
-								}
-							});
-						} else {
-							config.getDownloadUrlPrefixExternal().ifPresent(downloadUrlPrefix -> {
-								if(config.getDownloadUrlDisplay()) {
-									try {
-										metadataDocument.addServiceLinkage(downloadUrlPrefix 
-												+ "vector/"
-												+ fileIdentifier, "landingpage", null, null);
-									} catch(NotFound nf) {
-										throw new RuntimeException(nf);
+								});
+							} else {
+								config.getDownloadUrlPrefixExternal().ifPresent(downloadUrlPrefix -> {
+									if(config.getDownloadUrlDisplay()) {
+										try {
+											metadataDocument.addServiceLinkage(downloadUrlPrefix 
+													+ "vector/"
+													+ fileIdentifier, "landingpage", null, null);
+										} catch(NotFound nf) {
+											throw new RuntimeException(nf);
+										}
 									}
-								}
-							});
+								});
+							}
 						}
-					}
+					});
 				}
 				
 				boolean environmentConfidential = true;
@@ -541,8 +538,8 @@ public class DatasetMetadata extends AbstractMetadata {
 						String linkage = getServiceLinkage(environmentUrl, serviceName, serviceType);
 						String protocol = serviceType.getProtocol();
 						
-						for(String spatialSchema : metadataDocument.getSpatialSchema()) {
-							if((!wmsOnly && "vector".equals(spatialSchema)) || 
+						for(String spatialSchema : spatialSchemas) {
+							if((!wmsOnly && "vector".equals(spatialSchema.toLowerCase())) || 
 									"OGC:WMS".equals(protocol)) {
 								
 								// only add wms url when linkage hasn't been added already
@@ -586,24 +583,32 @@ public class DatasetMetadata extends AbstractMetadata {
 				metadataDocument.setReferenceSystemIdentifier(
 						"http://www.opengis.net/def/crs/EPSG/0/" + referenceSystemIdentifier);
 			} catch(QueryFailure qf) {
+				qf.printStackTrace();
+				
 				// do nothing
 			}
 			
 			try {
 				metadataDocument.verifyMaintenanceFrequencyCodeListValue();
 			} catch(QueryFailure qf) {
+				qf.printStackTrace();
+				
 				// do nothing
 			}
 			
 			try {
-				metadataDocument.resetOtherRestrictions();
+				metadataDocument.resetOtherConstraints();
 			} catch(QueryFailure qf) {
+				qf.printStackTrace();
+				
 				// do nothing
 			}
 			
 			try {
 				metadataDocument.resetUseLimitations();
 			} catch(NotFound nf) {
+				nf.printStackTrace();
+				
 				// do nothing
 			}
 			
