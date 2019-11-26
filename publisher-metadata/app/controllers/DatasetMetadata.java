@@ -583,24 +583,32 @@ public class DatasetMetadata extends AbstractMetadata {
 				metadataDocument.setReferenceSystemIdentifier(
 						"http://www.opengis.net/def/crs/EPSG/0/" + referenceSystemIdentifier);
 			} catch(QueryFailure qf) {
+				qf.printStackTrace();
+				
 				// do nothing
 			}
 			
 			try {
 				metadataDocument.verifyMaintenanceFrequencyCodeListValue();
 			} catch(QueryFailure qf) {
+				qf.printStackTrace();
+				
 				// do nothing
 			}
 			
 			try {
-				metadataDocument.resetOtherRestrictions();
+				metadataDocument.resetOtherConstraints();
 			} catch(QueryFailure qf) {
+				qf.printStackTrace();
+				
 				// do nothing
 			}
 			
 			try {
 				metadataDocument.resetUseLimitations();
 			} catch(NotFound nf) {
+				nf.printStackTrace();
+				
 				// do nothing
 			}
 			

@@ -889,29 +889,68 @@ public class MetadataDocument {
 				attributes);
 	}
 	
-	public void resetOtherRestrictions() throws NotFound {
+	public void resetOtherConstraints() throws NotFound {
 		List<String> accessConstraints = getAccessConstraints();
 		List<String> otherConstraints = getOtherConstraints();
 		
-		int countOtherRestrictions = 0;
-		for(String accessConstraint : accessConstraints) {
-			if("otherRestrictions".equals(accessConstraint)) countOtherRestrictions++;
-		}
+		List<String> filteredAccessConstraints = 
+			accessConstraints.stream()
+				.filter(accessConstraint -> "otherRestrictions".equals(accessConstraint))
+				.collect(Collectors.toList());
 		
-		if(countOtherRestrictions == 2) {
+		if(filteredAccessConstraints.size() == 2) {
 			List<String> toBeRemoved = new ArrayList<>();
 			toBeRemoved.add("accessConstraints");
 			applyMethodOnResourceConstraints(this::verifyNodeToBeRemoved, toBeRemoved);
 			
 			String parentPath = addMdLegalConstraint();
 			addAccessConstraint(parentPath, "otherRestrictions");
+			
+			List<String> updatedOtherConstraints = new ArrayList<>();
 			for(String otherConstraint : otherConstraints) {
-				isoMetadata.addNode(
-						namespaces, 
-						parentPath, 
-						"gmd:otherConstraints/gco:CharacterString",
-						otherConstraint);
+				if(otherConstraint != null && otherConstraint.contains("creativecommons.org")) {
+					updateOtherConstraintDescription(updatedOtherConstraints, otherConstraint);
+					updatedOtherConstraints.add(otherConstraint);
+				}
 			}
+			
+			List<String> finalOtherConstraints = 
+					(updatedOtherConstraints.size() == 2) ? updatedOtherConstraints : otherConstraints;
+			
+			finalOtherConstraints.stream()
+				.forEach(otherConstraint -> {
+					try {
+						isoMetadata.addNode(
+							namespaces, 
+							parentPath, 
+							"gmd:otherConstraints/gco:CharacterString",
+							otherConstraint);
+					} catch (NotFound nf) {
+						nf.printStackTrace();
+						
+						// do nothing
+					}
+				});
+		}
+	}
+	
+	private void updateOtherConstraintDescription(List<String> otherConstraints, String license) {
+		if(license.contains("/mark/")) {
+			otherConstraints.add(DataLicenses.mark.description());
+		} else if(license.contains("/zero/")) {
+			otherConstraints.add(DataLicenses.zero.description());
+		} else if(license.contains("/by/")) {
+			otherConstraints.add(DataLicenses.by.description());
+		} else if(license.contains("/by-sa/")) {
+			otherConstraints.add(DataLicenses.bySa.description());
+		} else if(license.contains("/by-nc/")) {
+			otherConstraints.add(DataLicenses.byNc.description());
+		} else if(license.contains("/by-nc-sa/")) {
+			otherConstraints.add(DataLicenses.byNcSa.description());
+		} else if(license.contains("/by-nd/")) {
+			otherConstraints.add(DataLicenses.byNd.description());
+		} else if(license.contains("/by-nc-nd/")) {
+			otherConstraints.add(DataLicenses.byNcNd.description());
 		}
 	}
 	
