@@ -180,7 +180,7 @@ public class MetadataDocument {
 	 * 
 	 */
 	
-	protected String getReferenceSystemIdentifierPath() {
+	protected String getReferenceSystemIdentifierCodePath() {
 		return 
 			"/gmd:MD_Metadata" +
 			"/gmd:referenceSystemInfo" +
@@ -191,12 +191,16 @@ public class MetadataDocument {
 			"/gco:CharacterString";
 	}
 	
-	public String getReferenceSystemIdentifier() throws NotFound {
-		return isoMetadata.getString(namespaces, getReferenceSystemIdentifierPath());
-	}
-	
-	public void setReferenceSystemIdentifier(String identifier) throws QueryFailure {
-		isoMetadata.updateString(namespaces, getReferenceSystemIdentifierPath(), identifier);
+	public void addPrefixToReferenceSystemIdentifiers(String prefix) {
+		isoMetadata
+			.xpath(Optional.of(namespaces))
+			.nodes(getReferenceSystemIdentifierCodePath())
+			.stream()
+			.forEach(code -> {
+				Node node = code.getItem();
+				
+				if(node != null) code.setTextContent(prefix + node.getTextContent());
+			});
 	}
 	
 	/*
