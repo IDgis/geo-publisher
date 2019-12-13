@@ -733,6 +733,9 @@ web.application.page.layers.form.field.styles.default=Default stijl
 web.application.page.layers.form.field.styles.help=Druk op + knop om stijlen toe te voegen, druk op x om een stijl te verwijderen, de eerste stijl is de standaard stijl
 web.application.page.layers.form.field.styles.validation.error=Er moet minimaal 1 stijl worden toegevoegd
 
+web.application.page.layers.form.field.usergroups.label=Gebruikersgroepen
+web.application.page.layers.form.field.usergroups.help=De gebruikersgroepen die toegang tot de laag hebben. Wanneer geen gebruikersgroepen opgegeven zijn dan geldt deze beperking niet.
+
 web.application.page.layers.list.delete.warning.body=Weet u zeker dat u deze laag wilt verwijderen? Deze laag is aan de dataset {0} gekoppeld.
 
 # Groups

@@ -178,7 +178,12 @@ public class StyleAdmin extends AbstractAdmin {
 							null,
 							null,
 							null,
-							null, null, null, false, false)
+							null,
+							null,
+							null,
+							null,
+							false,
+							false)
 						);
 					}
 					return builder.build();

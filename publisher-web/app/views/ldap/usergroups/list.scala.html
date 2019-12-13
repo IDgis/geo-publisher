@@ -1,7 +1,7 @@
-@(usergroups: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.LdapUserGroup], query: String)
+@(userGroups: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.LdapUserGroup], query: String)
 
 @pageRef(targetPage: Long) = @{	  
-	routes.LdapUsers.list (query, targetPage)
+	routes.LdapUserGroups.list (query, targetPage)
 }
 
 @layout.application(title = Domain.message("web.application.page.ldap.usergroup.list.header"),
@@ -29,25 +29,25 @@
 		
 		@* List of users: *@
 		<div class="col-lg-9 col-lg-pull-3">
-			@if(usergroups.values.isEmpty) {
+			@if(userGroups.values.isEmpty) {
 			<div class="alert alert-info">@Domain.message("web.application.page.ldap.usergroup.list.empty")</div>
 			} else {
 			<div class="list-group" id="group-list">
-				@for(usergroup <- usergroups.values) {
+				@for(userGroup <- userGroups.values) {
 				<div class="list-group-item js-group-item">
 					<div class="row">
 						<div class="col-md-10">
 							<h4 class="list-group-item-heading">
-								<a href="@routes.LdapUserGroups.edit(usergroup.name)" class="text-warning app-list-item">@usergroup.name</a>
+								<a href="@routes.LdapUserGroups.edit(userGroup.name)" class="text-warning app-list-item">@userGroup.name</a>
 							</h4>
 						</div>
 						<div class="col-md-2">
 							<div class="btn-group pull-right">
-								<a href="@routes.LdapUserGroups.edit(usergroup.name)"
+								<a href="@routes.LdapUserGroups.edit(userGroup.name)"
 									class="btn btn-default" title="@Domain.message("web.application.button.edit")">
 									<span class="glyphicon glyphicon-edit"></span>
 								</a> 
-								<a href="@routes.LdapUserGroups.delete(usergroup.name)"
+								<a href="@routes.LdapUserGroups.delete(userGroup.name)"
 									class="btn btn-warning js-delete-button" title="@Domain.message("web.application.button.remove")">
 									<span class="glyphicon glyphicon-remove"></span>
 								</a>
@@ -59,7 +59,7 @@
 			</div>
 			}
 			
-			@helper.pagination(usergroups, pageRef)
+			@helper.pagination(userGroups, pageRef)
 		</div>
 	</div>
 </div>

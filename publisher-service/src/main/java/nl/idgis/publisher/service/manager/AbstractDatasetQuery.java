@@ -16,6 +16,7 @@ import static nl.idgis.publisher.database.QImportJobColumn.importJobColumn;
 import static nl.idgis.publisher.database.QJobState.jobState;
 
 import java.sql.Timestamp;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -138,6 +139,7 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 				genericLayer.name, 
 				genericLayer.title, 
 				genericLayer.abstractCol,
+				genericLayer.usergroups,
 				dataset.identification,
 				dataset.metadataIdentification,
 				dataset.metadataFileIdentification,
@@ -209,6 +211,12 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 							String name = t.get(genericLayer.name);	
 							String title = t.get(genericLayer.title);
 							String abstr = t.get(genericLayer.abstractCol);	
+							
+							String userGroupsString = t.get(genericLayer.usergroups);
+							
+							userGroupsString = userGroupsString.substring(1, userGroupsString.length() - 1);
+							List<String> userGroups = Arrays.asList(userGroupsString.split(","));
+							
 							Tiling tiling = getTiling(tilingMimeFormats, t);
 							boolean confidential = t.get (confidentialPath);
 							boolean wmsOnly = t.get (wmsOnlyPath);
@@ -228,6 +236,7 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 											tiling,
 											Optional.ofNullable (metadataFileIdentification),
 											getList(keywords, t),
+											userGroups,
 											fileName,
 											getStyleRefs(styles, t),
 											confidential,
@@ -245,6 +254,7 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 										tiling,
 										Optional.ofNullable (metadataFileIdentification),
 										getList(keywords, t),
+										userGroups,
 										tableName,
 										getList(columns, t),
 										getStyleRefs(styles, t),

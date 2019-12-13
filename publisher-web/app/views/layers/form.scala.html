@@ -2,6 +2,7 @@
 @import nl.idgis.publisher.domain.response._ 
 
 @(layerForm: Form[controllers.Layers.LayerForm],
+ allUserGroups: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.LdapUserGroup],
  create: Boolean,
  allStyles: Page[Style],
  layerStyleListString: java.lang.String,
@@ -62,7 +63,7 @@
 						'readonly -> "readonly"
 					)
 				}
-
+				
 				@helper.inputText(
 					layerForm("title"),
 					'_label -> Domain.message("web.application.page.layers.form.field.title.label"),
@@ -108,7 +109,7 @@
 						</div>
 					</div>
 				</div>
-		
+				
 				@helper.parents(parentGroups, routes.Groups.edit, 
 					Domain.message("web.application.page.layers.form.field.parentGroups.label"), 
 					Domain.message("web.application.page.layers.form.field.parentGroups.none"),
@@ -117,7 +118,7 @@
 					Domain.message("web.application.page.layers.form.field.parentServices.label"), 
 					Domain.message("web.application.page.layers.form.field.parentServices.none"),
 					Domain.message("web.application.page.layers.form.field.parentServices.help"))
-		
+				
 				<div class="form-group">
 					<label class="col-sm-2 control-label">@Domain.message("web.application.page.layers.form.field.styles.label")</label>
 					<div class="controls col-sm-9">
@@ -125,7 +126,7 @@
 							<div class="gp-tree-select form-control" id="test-control">
 								<input type="hidden" name="styles" value="@layerStyleListString">
 							</div>
-		    				@helper.requiredFormAddon()
+							@helper.requiredFormAddon()
 							@helper.helpFormAddon(Domain.message("web.application.page.layers.form.field.styles.help"))
 						</div>
 						<div class="gp-tree-values dropdown">
@@ -135,6 +136,34 @@
 						</div>
 						
 						@helper.fielderrors(layerForm("styles").errors)
+					</div>
+				</div>
+				
+				<div class="form-group">
+					<label class="col-sm-2 control-label" for="input-usergroup">@Domain.message("web.application.page.layers.form.field.usergroups.label")</label>
+					<div class="col-lg-9">
+						<div class="input-group">
+							<select class="form-control" id="input-usergroup-select">
+								<option value="">--</option>
+								@for(userGroup <- allUserGroups.values) {
+									<option value="@userGroup.name">@userGroup.name</option>
+								}
+							</select>
+							@helper.helpFormAddon(Domain.message("web.application.page.layers.form.field.usergroups.help"))
+						</div>
+						@helper.fielderrors(layerForm("userGroups").errors)
+					</div>
+					<div class="col-sm-offset-2 col-lg-8">
+						<div class="usergroup-list" id="usergroup-list">
+							@helper.repeat(layerForm("userGroups"), min = 0) { userGroupField =>
+								<div class="usergroup-item-block" value="@userGroupField.value">
+									<input type="hidden" name="userGroups[]" value="@userGroupField.value">
+									<span class="usergroup-item label label-primary">@userGroupField.value
+										<button type="button" aria-hidden="true" class="close" value="@userGroupField.value">&times;</button>
+									</span>
+								</div>
+							}
+						</div>
 					</div>
 				</div>
 				

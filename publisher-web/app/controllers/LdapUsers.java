@@ -99,7 +99,7 @@ public class LdapUsers extends Controller {
 		LdapUser user = 
 			new LdapUser(
 					null, 
-					userForm.getEmail(), 
+					userForm.getEmail().trim(), 
 					userForm.getFullName(), 
 					userForm.getLastName(), 
 					userForm.getPassword());

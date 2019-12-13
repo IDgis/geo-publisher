@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -47,12 +48,15 @@ public class LdapUserGroupAdmin extends AbstractLdapAdmin {
 			.ifPresent(response -> {
 				try {
 					JsonArray jsonArray = new JsonParser().parse(response).getAsJsonArray();
-					List<JsonObject> list = 
-							sortJsonArray(jsonArray, "name")
-								.stream()
-								.skip((listLdapUserGroups.getPage() - 1) * DEFAULT_ITEMS_PER_PAGE)
-								.limit(DEFAULT_ITEMS_PER_PAGE)
-								.collect(Collectors.toList());
+					Stream<JsonObject> stream = sortJsonArray(jsonArray, "name").stream();
+					
+					if(!listLdapUserGroups.getAll()) {
+						stream = stream
+							.skip((listLdapUserGroups.getPage() - 1) * DEFAULT_ITEMS_PER_PAGE)
+							.limit(DEFAULT_ITEMS_PER_PAGE);
+					}
+					
+					List<JsonObject> list = stream.collect(Collectors.toList());
 					
 					addPageInfo(builder, listLdapUserGroups.getPage(), jsonArray.size());
 					
@@ -64,11 +68,11 @@ public class LdapUserGroupAdmin extends AbstractLdapAdmin {
 						));
 					}
 				} catch(JsonParseException jpe) {
-					log.debug("LDAP get usergroup list request: can't parse json of response");
+					log.debug("LDAP get userGroup list request: can't parse json of response");
 				} catch(IllegalStateException ise) {
-					log.debug("LDAP get usergroup list request: unexpected json response");
+					log.debug("LDAP get userGroup list request: unexpected json response");
 				} catch(Exception e) {
-					log.debug("LDAP get usergroup list request: something went wrong");
+					log.debug("LDAP get userGroup list request: something went wrong");
 				}
 			});
 		
@@ -80,23 +84,23 @@ public class LdapUserGroupAdmin extends AbstractLdapAdmin {
 		return CompletableFuture.supplyAsync(() -> getLdapUserGroup(name));
 	}
 	
-	private CompletableFuture<Response<?>> handlePutLdapUserGroup(LdapUserGroup usergroup) {
-		log.debug("handlePutLdapUserGroup: {}", usergroup.name());
-		boolean emailExists = getLdapUserGroup(usergroup.name()).isPresent();
+	private CompletableFuture<Response<?>> handlePutLdapUserGroup(LdapUserGroup userGroup) {
+		log.debug("handlePutLdapUserGroup: {}", userGroup.name());
+		boolean emailExists = getLdapUserGroup(userGroup.name()).isPresent();
 		CrudOperation operation = emailExists ? CrudOperation.UPDATE : CrudOperation.CREATE;
 		
 		try {
-			doPostPutRequest(ldapApiAdminUrlBaseOrganizations, emailExists, new Gson().toJson(usergroup));
+			doPostPutRequest(ldapApiAdminUrlBaseOrganizations, emailExists, new Gson().toJson(userGroup));
 		} catch(Exception e) {
-			log.debug("LDAP post/put usergroup request: something went wrong performing the request");
+			log.debug("LDAP post/put userGroup request: something went wrong performing the request");
 			
 			return CompletableFuture.supplyAsync(() -> {
-				return new Response<String>(operation, CrudResponse.NOK, usergroup.name());
+				return new Response<String>(operation, CrudResponse.NOK, userGroup.name());
 			});
 		}
 		
 		return CompletableFuture.supplyAsync(() -> {
-			return new Response<String>(operation, CrudResponse.OK, usergroup.name());
+			return new Response<String>(operation, CrudResponse.OK, userGroup.name());
 		});
 	}
 	
@@ -106,7 +110,7 @@ public class LdapUserGroupAdmin extends AbstractLdapAdmin {
 		try {
 			doDeleteRequest(ldapApiAdminUrlBaseOrganizations + "/" + name);
 		} catch(Exception e) {
-			log.debug("LDAP delete usergroup request: something went wrong performing the request");
+			log.debug("LDAP delete userGroup request: something went wrong performing the request");
 			
 			return CompletableFuture.supplyAsync(() -> {
 				return new Response<String>(CrudOperation.DELETE, CrudResponse.NOK, name);
@@ -144,11 +148,11 @@ public class LdapUserGroupAdmin extends AbstractLdapAdmin {
 								new LdapUserGroup(
 										null, object.get("name").getAsString(), sortStringList(listMembers)));
 					} catch(JsonParseException jpe) {
-						log.debug("LDAP get usergroup request: can't parse json of response");
+						log.debug("LDAP get userGroup request: can't parse json of response");
 					} catch(IllegalStateException ise) {
-						log.debug("LDAP get usergroup request: unexpected json response");
+						log.debug("LDAP get userGroup request: unexpected json response");
 					} catch(Exception e) {
-						log.debug("LDAP get usergroup request: something went wrong");
+						log.debug("LDAP get userGroup request: something went wrong");
 					}
 					
 					return Optional.empty();

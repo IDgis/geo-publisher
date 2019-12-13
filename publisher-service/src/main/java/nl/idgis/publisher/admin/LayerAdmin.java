@@ -206,7 +206,9 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 											layer.get(null),
 											null)
 										: null),
-									null, null,
+									null,
+									null,
+									null,
 									layer.get (confidentialPath),
 									layer.get (wmsOnlyPath)
 								));
@@ -236,8 +238,14 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 			.where(genericLayer.identification.eq(layerId))
 			.singleResult(layerColumns.toArray (new Expression<?>[layerColumns.size ()])).<Optional<Layer>>thenCompose(optionalLayer -> {
 				if(optionalLayer.isPresent()) {
-					Tuple layer = optionalLayer.get();					
+					Tuple layer = optionalLayer.get();
 					log.debug("generic layer id: " + layer.get(genericLayer.id));
+					
+					String userGroupsString = layer.get(genericLayer.usergroups);
+					
+					userGroupsString = userGroupsString.substring(1, userGroupsString.length() - 1);
+					List<String> userGroups = Arrays.asList(userGroupsString.split(","));
+					
 					return tx.query()
 						.from(leafLayerKeyword)
 						.where(leafLayerKeyword.leafLayerId.eq(layer.get(leafLayer.id)))
@@ -285,7 +293,9 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 													mimeFormats.list())
 												: null)
 										,
-										keywords.list(), styles.list(),
+										keywords.list(),
+										styles.list(),
+										userGroups,
 										layer.get (confidentialPath),
 										layer.get (wmsOnlyPath)
 									))));
@@ -300,8 +310,11 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 		String layerId = theLayer.id();
 		String layerName = theLayer.name();
 		String datasetId = theLayer.datasetId();
+		List<String> userGroups = theLayer.userGroups();
 		log.debug("handle update/create layer: " + layerId);
-
+		
+		Collections.sort(userGroups);
+		
 		return db
 			.transactional(tx ->
 			// Check if there is another layer with the same id
@@ -310,6 +323,20 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 				.where(genericLayer.identification.eq(layerId))
 				.singleResult(genericLayer.id)
 				.thenCompose(msg -> {
+					
+					StringBuilder sb = new StringBuilder();
+					sb.append("[");
+					
+					for(int i = 0; i < userGroups.size(); i++) {
+						String userGroup = userGroups.get(i);
+						
+						if(userGroup != null) {
+							sb.append(userGroup.trim());
+							if(i != userGroups.size() - 1) sb.append(",");
+						}
+					}
+					sb.append("]");
+					
 					if (!msg.isPresent()) {
 						// INSERT
 						String newLayerId = UUID.randomUUID().toString();
@@ -321,6 +348,7 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 							.set(genericLayer.name, theLayer.name())
 							.set(genericLayer.title, theLayer.title())
 							.set(genericLayer.abstractCol, theLayer.abstractText())
+							.set(genericLayer.usergroups, sb.toString())
 							.execute()
 							.thenCompose(
 								gl -> {
@@ -375,6 +403,7 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 							.set(genericLayer.name, theLayer.name())
 							.set(genericLayer.title, theLayer.title())
 							.set(genericLayer.abstractCol, theLayer.abstractText())
+							.set(genericLayer.usergroups, sb.toString())
 							.where(genericLayer.identification.eq(layerId))
 							.execute()
 							.thenCompose(

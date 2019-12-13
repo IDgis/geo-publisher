@@ -41,11 +41,11 @@ public class LdapUserGroups extends Controller {
 		final ActorSelection database = Akka.system().actorSelection(databaseRef);
 		
 		return from(database)
-			.query(new ListLdapUserGroups(page, query))
+			.query(new ListLdapUserGroups(page, query, false))
 			.execute(new Function<Page<LdapUserGroup>, Result>() {
 				@Override
-				public Result apply(final Page<LdapUserGroup> usergroups) throws Throwable {
-					return ok(views.html.ldap.usergroups.list.render(usergroups, query));
+				public Result apply(final Page<LdapUserGroup> userGroups) throws Throwable {
+					return ok(views.html.ldap.usergroups.list.render(userGroups, query));
 				}
 			});
 	}
@@ -113,9 +113,9 @@ public class LdapUserGroups extends Controller {
 				});
 		}
 		
-		UserGroupForm usergroupForm = form.get();
+		UserGroupForm userGroupForm = form.get();
 		
-		String userListString = usergroupForm.getUsers();
+		String userListString = userGroupForm.getUsers();
 		
 		final List<String> userList = new ArrayList<>();
 		for(final JsonNode user: Json.parse(userListString)) {
@@ -124,18 +124,18 @@ public class LdapUserGroups extends Controller {
 		
 		Logger.debug("LdapUserGroup user list: " + userList.toString());
 		
-		LdapUserGroup usergroup = new LdapUserGroup(null, usergroupForm.getName(), userList);
+		LdapUserGroup userGroup = new LdapUserGroup(null, userGroupForm.getName().trim(), userList);
 		
 		return from(database)
-				.put(usergroup)
+				.put(userGroup)
 				.execute(new Function<Response<?>, Result>() {
 					
 					@Override
 					public Result apply(Response<?> response) throws Throwable {
 						if(CrudResponse.OK.equals(response.getOperationResponse())) {
-							Logger.debug("Created/updated LdapUserGroup successful: " + usergroupForm.getName());
+							Logger.debug("Created/updated LdapUserGroup successful: " + userGroupForm.getName());
 						} else {
-							Logger.debug("Created/updated LdapUserGroup failed: " + usergroupForm.getName());
+							Logger.debug("Created/updated LdapUserGroup failed: " + userGroupForm.getName());
 						}
 						
 						flash(
@@ -144,7 +144,7 @@ public class LdapUserGroups extends Controller {
 							" " + 
 							Domain.message("web.application.page.ldap.usergroup.name").toLowerCase() + 
 							" " + 
-							usergroupForm.getName() + " is " + getResultFromResponse(response)
+							userGroupForm.getName() + " is " + getResultFromResponse(response)
 						);
 						
 						return redirect(routes.LdapUserGroups.list(null, 1));
@@ -205,11 +205,11 @@ public class LdapUserGroups extends Controller {
 			super();
 		}
 		
-		public UserGroupForm(LdapUserGroup usergroup){
+		public UserGroupForm(LdapUserGroup userGroup){
 			super();
 			
-			this.name = usergroup.name();
-			this.userList = usergroup.members();
+			this.name = userGroup.name();
+			this.userList = userGroup.members();
 		}
 		
 		public String getName() {
