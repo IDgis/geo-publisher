@@ -72,7 +72,7 @@ public class Layers extends GroupsLayersCommon {
 					
 					@Override
 					public Result apply (final Page<Style> allStyles, final Page<LdapUserGroup> allUserGroups) throws Throwable {
-						return ok (form.render (layerForm, allUserGroups, true, allStyles, "", null, null, ""));
+						return ok (form.render (layerForm, true, allStyles, "", null, null, allUserGroups, ""));
 					}
 				});
 	}
@@ -103,11 +103,14 @@ public class Layers extends GroupsLayersCommon {
 		
 		final LayerForm layerForm = form.get ();
 		
+		List<String> userGroups = layerForm.getUserGroups();
+		if(userGroups == null) userGroups = new ArrayList<>();
+		
 		final Layer layer = new Layer(
 				layerForm.getId(), layerForm.getName(), layerForm.title, 
 				layerForm.abstractText,layerForm.datasetId, layerForm.datasetName,
 				(layerForm.enabled ? layerForm.getTiledLayer() : null), layerForm.getKeywords(), 
-				layerForm.getStyleList(), layerForm.getUserGroups(), false, false);
+				layerForm.getStyleList(), userGroups, false, false);
 		Logger.debug ("Create Update layerForm: " + layerForm);
 		
 		return from (database)
@@ -330,7 +333,7 @@ public class Layers extends GroupsLayersCommon {
 										previewUrl = makePreviewUrl(service.name(), layer.name());
 									}
 									
-									return ok (form.render (formLayerForm, allUserGroups, false, allStyles, layerStyleListString, parentGroups, parentServices, previewUrl));
+									return ok (form.render (formLayerForm, false, allStyles, layerStyleListString, parentGroups, parentServices, allUserGroups, previewUrl));
 								}
 							});
 				}

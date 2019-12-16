@@ -2,12 +2,12 @@
 @import nl.idgis.publisher.domain.response._ 
 
 @(layerForm: Form[controllers.Layers.LayerForm],
- allUserGroups: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.LdapUserGroup],
  create: Boolean,
  allStyles: Page[Style],
  layerStyleListString: java.lang.String,
  parentGroups: Page[nl.idgis.publisher.domain.web.LayerGroup],
  parentServices: Page[nl.idgis.publisher.domain.web.Service],
+ allUserGroups: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.LdapUserGroup],
  previewUrl: java.lang.String)
 
 @implicitField = @{ helper.FieldConstructor(helper.bootstrap.bootstrapFieldConstructor.f) }

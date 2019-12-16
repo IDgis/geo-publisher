@@ -47,14 +47,6 @@ public abstract class AbstractJsonDatasetLayer extends AbstractJsonLayer impleme
 	}
 	
 	@Override
-	public List<String> getUserGroups() {
-		return 
-			getStream(jsonNode, "userGroups")
-				.map(JsonNode::asText)
-				.collect(toList());
-	}
-	
-	@Override
 	public boolean isVectorLayer() {
 		return false;
 	}

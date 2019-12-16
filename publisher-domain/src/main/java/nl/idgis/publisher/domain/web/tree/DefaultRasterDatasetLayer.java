@@ -14,7 +14,7 @@ public class DefaultRasterDatasetLayer extends AbstractDatasetLayer implements R
 	
 	public DefaultRasterDatasetLayer(String id, String name, String title, String abstr, Tiling tiling, Optional<String> metadataFileIdentification,
 		List<String> keywords, List<String> userGroups, String fileName, List<StyleRef> styleRef, boolean confidential, boolean wmsOnly, Timestamp importTime) {
-		super(id, name, title, abstr, tiling, confidential, metadataFileIdentification, importTime, keywords, styleRef, userGroups);
+		super(id, name, title, abstr, userGroups, tiling, confidential, metadataFileIdentification, importTime, keywords, styleRef);
 		
 		this.fileName = fileName;
 		this.wmsOnly = wmsOnly;

@@ -11,8 +11,6 @@ public interface DatasetLayer extends Layer {
 	
 	List<StyleRef> getStyleRefs();
 	
-	List<String> getUserGroups();
-	
 	boolean isVectorLayer();
 	
 	VectorDatasetLayer asVectorLayer();

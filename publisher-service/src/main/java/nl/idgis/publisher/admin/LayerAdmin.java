@@ -244,7 +244,11 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 					String userGroupsString = layer.get(genericLayer.usergroups);
 					
 					userGroupsString = userGroupsString.substring(1, userGroupsString.length() - 1);
-					List<String> userGroups = Arrays.asList(userGroupsString.split(","));
+					String[] userGroupsArray = userGroupsString.split(",");
+					List<String> userGroups = new ArrayList<>();
+					for(String userGroup : userGroupsArray) {
+						if(!userGroup.trim().isEmpty()) userGroups.add(userGroup);
+					}
 					
 					return tx.query()
 						.from(leafLayerKeyword)
@@ -664,6 +668,7 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 					builder.add(new LayerGroup(
 						group.get(genericLayer.identification),
 						group.get(genericLayer.name),
+						null,
 						null,
 						null,
 						null,

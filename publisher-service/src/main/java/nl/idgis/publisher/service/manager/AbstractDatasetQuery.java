@@ -1,22 +1,22 @@
 package nl.idgis.publisher.service.manager;
 
 import static nl.idgis.publisher.database.QDataset.dataset;
-import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
-import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
-import static nl.idgis.publisher.database.QLayerStyle.layerStyle;
-import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
-import static nl.idgis.publisher.database.QLeafLayerKeyword.leafLayerKeyword;
-import static nl.idgis.publisher.database.QStyle.style;
-import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
-import static nl.idgis.publisher.database.QTiledLayerMimeformat.tiledLayerMimeformat;
-import static nl.idgis.publisher.database.QLastImportJob.lastImportJob;
 import static nl.idgis.publisher.database.QImportJob.importJob;
 import static nl.idgis.publisher.database.QImportJobColumn.importJobColumn;
 import static nl.idgis.publisher.database.QJobState.jobState;
+import static nl.idgis.publisher.database.QLastImportJob.lastImportJob;
+import static nl.idgis.publisher.database.QLayerStyle.layerStyle;
+import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
+import static nl.idgis.publisher.database.QLeafLayerKeyword.leafLayerKeyword;
+import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
+import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
+import static nl.idgis.publisher.database.QStyle.style;
+import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
+import static nl.idgis.publisher.database.QTiledLayerMimeformat.tiledLayerMimeformat;
 
 import java.sql.Timestamp;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -29,18 +29,15 @@ import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.path.PathBuilder;
 
 import akka.event.LoggingAdapter;
-
 import nl.idgis.publisher.database.AsyncSQLQuery;
-
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.web.tree.AbstractDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DefaultRasterDatasetLayer;
-import nl.idgis.publisher.domain.web.tree.DefaultVectorDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DefaultStyleRef;
 import nl.idgis.publisher.domain.web.tree.DefaultTiling;
+import nl.idgis.publisher.domain.web.tree.DefaultVectorDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.StyleRef;
 import nl.idgis.publisher.domain.web.tree.Tiling;
-
 import nl.idgis.publisher.utils.TypedList;
 
 public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<AbstractDatasetLayer>> {
@@ -215,7 +212,11 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 							String userGroupsString = t.get(genericLayer.usergroups);
 							
 							userGroupsString = userGroupsString.substring(1, userGroupsString.length() - 1);
-							List<String> userGroups = Arrays.asList(userGroupsString.split(","));
+							String[] userGroupsArray = userGroupsString.split(",");
+							List<String> userGroups = new ArrayList<>();
+							for(String userGroup : userGroupsArray) {
+								if(!userGroup.trim().isEmpty()) userGroups.add(userGroup);
+							}
 							
 							Tiling tiling = getTiling(tilingMimeFormats, t);
 							boolean confidential = t.get (confidentialPath);

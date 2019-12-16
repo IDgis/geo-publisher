@@ -235,6 +235,7 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 										group.get(genericLayer.name),
 										group.get(genericLayer.title),
 										group.get(genericLayer.abstractCol),
+										null,
 										(hasTiledLayer
 											? new TiledLayer(
 												group.get(genericLayer.identification),
@@ -287,23 +288,33 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 							mimeformatsQuery = f.successful(new TypedList<>(String.class, Collections.emptyList()));
 						}
 						
+						String userGroupsString = group.get(genericLayer.usergroups);
+						
+						userGroupsString = userGroupsString.substring(1, userGroupsString.length() - 1);
+						String[] userGroupsArray = userGroupsString.split(",");
+						List<String> userGroups = new ArrayList<>();
+						for(String userGroup : userGroupsArray) {
+							if(!userGroup.trim().isEmpty()) userGroups.add(userGroup);
+						}
+						
 						return mimeformatsQuery.<Optional<LayerGroup>>thenApply(mimeFormats ->	
 							Optional.of(new LayerGroup(
 								group.get(genericLayer.identification),
 								group.get(genericLayer.name),
 								group.get(genericLayer.title),
 								group.get(genericLayer.abstractCol),
-									(hasTiledLayer
-										? new TiledLayer(
-											group.get(genericLayer.identification),
-											group.get(genericLayer.name),
-											group.get(tiledLayer.metaWidth),
-											group.get(tiledLayer.metaHeight),
-											group.get(tiledLayer.expireCache),
-											group.get(tiledLayer.expireClients),
-											group.get(tiledLayer.gutter),
-											mimeFormats.list())
-										: null),
+								userGroups,
+								(hasTiledLayer
+									? new TiledLayer(
+										group.get(genericLayer.identification),
+										group.get(genericLayer.name),
+										group.get(tiledLayer.metaWidth),
+										group.get(tiledLayer.metaHeight),
+										group.get(tiledLayer.expireCache),
+										group.get(tiledLayer.expireClients),
+										group.get(tiledLayer.gutter),
+										mimeFormats.list())
+									: null),
 								group.get (confidentialPath),
 								group.get (wmsOnlyPath)
 							)));
@@ -316,7 +327,10 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 	private CompletableFuture<Response<?>> handlePutLayergroup(LayerGroup theLayergroup) {
 		String layergroupId = theLayergroup.id();
 		String layergroupName = theLayergroup.name();
+		List<String> userGroups = theLayergroup.userGroups();
 		log.debug ("handle update/create layergroup: " + layergroupId);
+		
+		Collections.sort(userGroups);
 		
 		return db.transactional(tx ->
 			// Check if there is another layergroup with the same id
@@ -325,6 +339,20 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 				.where(genericLayer.identification.eq(layergroupId))
 				.singleResult(genericLayer.id)
 				.thenCompose(glId -> {
+					
+					StringBuilder sb = new StringBuilder();
+					sb.append("[");
+					
+					for(int i = 0; i < userGroups.size(); i++) {
+						String userGroup = userGroups.get(i);
+						
+						if(userGroup != null) {
+							sb.append(userGroup.trim());
+							if(i != userGroups.size() - 1) sb.append(",");
+						}
+					}
+					sb.append("]");
+					
 					if (!glId.isPresent()){
 						// INSERT
 						log.debug("Inserting new layergroup with name: " + layergroupName);
@@ -334,6 +362,7 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 							.set(genericLayer.name, layergroupName)
 							.set(genericLayer.title, theLayergroup.title())
 							.set(genericLayer.abstractCol, theLayergroup.abstractText())
+							.set(genericLayer.usergroups, sb.toString())
 							.execute()
 							.thenCompose(
 								n -> {
@@ -364,6 +393,7 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 						return tx.update(genericLayer)
 							.set(genericLayer.title, theLayergroup.title())
 							.set(genericLayer.abstractCol, theLayergroup.abstractText())
+							.set(genericLayer.usergroups, sb.toString())
 							.where(genericLayer.identification.eq(layergroupId))
 							.execute()
 							.thenCompose(
@@ -608,6 +638,7 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 					builder.add(new LayerGroup(
 							group.get(genericLayer.identification),
 							group.get(genericLayer.name),
+							null,
 							null,
 							null,
 							null,

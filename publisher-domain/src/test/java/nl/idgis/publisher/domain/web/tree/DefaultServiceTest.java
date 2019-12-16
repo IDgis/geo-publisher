@@ -46,7 +46,7 @@ public class DefaultServiceTest {
 		
 		Map<String, StyleRef> styles = new HashMap<>();
 		
-		PartialGroupLayer root = new PartialGroupLayer("group0", "name0", "title0", "abstract0", Optional.empty());
+		PartialGroupLayer root = new PartialGroupLayer("group0", "name0", "title0", "abstract0", Collections.emptyList(), Optional.empty());
 		Service service = new DefaultService(
 			"service0",
 			"service-name0",
@@ -87,11 +87,11 @@ public class DefaultServiceTest {
 	
 	@Test
 	public void testGroup() {
-		PartialGroupLayer root = new PartialGroupLayer("group0", "name0", "title0", "abstract0", Optional.empty());
+		PartialGroupLayer root = new PartialGroupLayer("group0", "name0", "title0", "abstract0", Collections.emptyList(), Optional.empty());
 		
 		List<PartialGroupLayer> groups = Arrays.asList(
 				root,
-				new PartialGroupLayer("group1", "name1", "title1", "abstract1", Optional.empty()));
+				new PartialGroupLayer("group1", "name1", "title1", "abstract1", Collections.emptyList(), Optional.empty()));
 		
 		List<AbstractDatasetLayer> datasets = Arrays.asList(
 				new DefaultVectorDatasetLayer("leaf0", "name0", "title0", "abstract0", 
@@ -158,8 +158,8 @@ public class DefaultServiceTest {
 	
 	@Test
 	public void testIsConfidential() {
-		PartialGroupLayer partialGroup0 = new PartialGroupLayer("group0", "name0", "title0", "abstract0", Optional.empty());
-		PartialGroupLayer partialGroup1 = new PartialGroupLayer("group1", "name1", "title1", "abstract1", Optional.empty());
+		PartialGroupLayer partialGroup0 = new PartialGroupLayer("group0", "name0", "title0", "abstract0", Collections.emptyList(), Optional.empty());
+		PartialGroupLayer partialGroup1 = new PartialGroupLayer("group1", "name1", "title1", "abstract1", Collections.emptyList(), Optional.empty());
 		
 		List<PartialGroupLayer> groups = Arrays.asList(partialGroup0, partialGroup1);
 		

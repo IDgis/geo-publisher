@@ -18,7 +18,7 @@ public class DefaultVectorDatasetLayer extends AbstractDatasetLayer implements V
 		List<String> keywords, List<String> userGroups, String tableName, List<String> columnNames, List<StyleRef> styleRef, boolean confidential, boolean wmsOnly, 
 		Timestamp importTime) {
 		
-		super(id, name, title, abstr, tiling, confidential, metadataFileIdentification, importTime, keywords, styleRef, userGroups);
+		super(id, name, title, abstr, userGroups, tiling, confidential, metadataFileIdentification, importTime, keywords, styleRef);
 		
 		this.tableName = tableName;
 		this.columnNames = columnNames;

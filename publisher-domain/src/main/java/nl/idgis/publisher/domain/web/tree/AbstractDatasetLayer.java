@@ -6,7 +6,7 @@ import java.util.Optional;
 
 public abstract class AbstractDatasetLayer extends AbstractLayer implements DatasetLayer {
 
-	private static final long serialVersionUID = -2474202014945607410L;
+	private static final long serialVersionUID = -2590252052186495135L;
 
 	protected final String metadataFileIdentification;
 	
@@ -15,16 +15,13 @@ public abstract class AbstractDatasetLayer extends AbstractLayer implements Data
 	protected final List<StyleRef> styleRef;
 	
 	protected final Timestamp importTime;
-	
-	protected final List<String> userGroups;
 
-	public AbstractDatasetLayer(String id, String name, String title, String abstr, Tiling tiling, boolean confidential, Optional<String> metadataFileIdentification, Timestamp importTime, List<String> keywords, List<StyleRef> styleRef, List<String> userGroups) {
-		super(id, name, title, abstr, tiling, confidential);
+	public AbstractDatasetLayer(String id, String name, String title, String abstr, List<String> userGroups, Tiling tiling, boolean confidential, Optional<String> metadataFileIdentification, Timestamp importTime, List<String> keywords, List<StyleRef> styleRef) {
+		super(id, name, title, abstr, userGroups, tiling, confidential);
 
 		this.metadataFileIdentification = metadataFileIdentification.orElse (null);
 		this.keywords = keywords;
 		this.styleRef = styleRef;
-		this.userGroups = userGroups;
 		this.importTime = importTime;
 	}
 	
@@ -41,11 +38,6 @@ public abstract class AbstractDatasetLayer extends AbstractLayer implements Data
 	@Override
 	public List<StyleRef> getStyleRefs() {
 		return styleRef;
-	}
-	
-	@Override
-	public List<String> getUserGroups() {
-		return userGroups;
 	}
 	
 	@Override

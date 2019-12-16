@@ -790,6 +790,9 @@ web.application.page.groups.form.field.structure.style.default=(standaard)
 web.application.page.groups.form.field.addlayer.button=Voeg een laag toe ...
 web.application.page.groups.form.field.addgroup.button=Voeg een groep toe ...
 
+web.application.page.groups.form.field.usergroups.label=Gebruikersgroepen
+web.application.page.groups.form.field.usergroups.help=De gebruikersgroepen die toegang tot de laag hebben. Wanneer geen gebruikersgroepen opgegeven zijn dan geldt deze beperking niet.
+
 web.application.page.groups.form.field.parentGroups.label=Zit in de groep(en)
 web.application.page.groups.form.field.parentGroups.none=geen
 web.application.page.groups.form.field.parentGroups.help=Laat alleen de groepen zien waar deze groep direct onder zit

@@ -8,6 +8,8 @@ import static nl.idgis.publisher.database.QServiceKeyword.serviceKeyword;
 import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
 import static nl.idgis.publisher.service.manager.QServiceStructure.serviceStructure;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
@@ -111,6 +113,7 @@ public class GetServiceQuery extends AbstractServiceQuery<Object, AsyncSQLQuery>
 				genericLayer.name, 
 				genericLayer.title, 
 				genericLayer.abstractCol,
+				genericLayer.usergroups,
 				constants.contact,
 				constants.organization,
 				constants.position,
@@ -141,7 +144,7 @@ public class GetServiceQuery extends AbstractServiceQuery<Object, AsyncSQLQuery>
 		
 		return info().thenCompose(info ->
 			info.isPresent() ?
-				structure().thenCompose(structure ->						
+				structure().thenCompose(structure ->
 				groups().thenCompose(groups ->
 				keywords().thenCompose(keywords ->
 				datasets().thenCompose(datasets -> {
@@ -150,7 +153,16 @@ public class GetServiceQuery extends AbstractServiceQuery<Object, AsyncSQLQuery>
 							= structureProcessor.transform(structure.list());
 						
 						Tuple serviceInfoTuple = info.get();
-		
+						
+						String userGroupsString = serviceInfoTuple.get(genericLayer.usergroups);
+						
+						userGroupsString = userGroupsString.substring(1, userGroupsString.length() - 1);
+						String[] userGroupsArray = userGroupsString.split(",");
+						List<String> userGroups = new ArrayList<>();
+						for(String userGroup : userGroupsArray) {
+							if(!userGroup.trim().isEmpty()) userGroups.add(userGroup);
+						}
+						
 						return f.successful(new DefaultService(
 							serviceId, 
 							serviceInfoTuple.get(genericLayer.name),
@@ -174,6 +186,7 @@ public class GetServiceQuery extends AbstractServiceQuery<Object, AsyncSQLQuery>
 								serviceInfoTuple.get(genericLayer.name),
 								serviceInfoTuple.get(genericLayer.title),
 								serviceInfoTuple.get(genericLayer.abstractCol),
+								userGroups,
 								Optional.empty()), // a root group doesn't have (or need) tiling
 							datasets.list(),
 							groups.list(),
