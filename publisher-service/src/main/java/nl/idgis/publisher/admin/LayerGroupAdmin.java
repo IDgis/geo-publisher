@@ -24,6 +24,17 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
+import com.mysema.query.Tuple;
+import com.mysema.query.sql.SQLSubQuery;
+import com.mysema.query.support.Expressions;
+import com.mysema.query.types.Expression;
+import com.mysema.query.types.Ops;
+import com.mysema.query.types.expr.BooleanExpression;
+import com.mysema.query.types.path.PathBuilder;
+
+import akka.actor.ActorRef;
+import akka.actor.Props;
+import nl.idgis.publisher.data.GenericLayer;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.database.QGenericLayer;
 import nl.idgis.publisher.database.QLeafLayer;
@@ -39,7 +50,6 @@ import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
-import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.Service;
@@ -56,17 +66,6 @@ import nl.idgis.publisher.utils.StreamUtils;
 import nl.idgis.publisher.utils.StreamUtils.ZippedEntry;
 import nl.idgis.publisher.utils.TypedIterable;
 import nl.idgis.publisher.utils.TypedList;
-import akka.actor.ActorRef;
-import akka.actor.Props;
-
-import com.mysema.query.Tuple;
-import com.mysema.query.sql.SQLSubQuery;
-import com.mysema.query.support.Expressions;
-import com.mysema.query.types.Expression;
-import com.mysema.query.types.Ops;
-import com.mysema.query.types.Path;
-import com.mysema.query.types.expr.BooleanExpression;
-import com.mysema.query.types.path.PathBuilder;
 
 public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 	
@@ -288,22 +287,13 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 							mimeformatsQuery = f.successful(new TypedList<>(String.class, Collections.emptyList()));
 						}
 						
-						String userGroupsString = group.get(genericLayer.usergroups);
-						
-						userGroupsString = userGroupsString.substring(1, userGroupsString.length() - 1);
-						String[] userGroupsArray = userGroupsString.split(",");
-						List<String> userGroups = new ArrayList<>();
-						for(String userGroup : userGroupsArray) {
-							if(!userGroup.trim().isEmpty()) userGroups.add(userGroup);
-						}
-						
 						return mimeformatsQuery.<Optional<LayerGroup>>thenApply(mimeFormats ->	
 							Optional.of(new LayerGroup(
 								group.get(genericLayer.identification),
 								group.get(genericLayer.name),
 								group.get(genericLayer.title),
 								group.get(genericLayer.abstractCol),
-								userGroups,
+								GenericLayer.transformUserGroupsToList(group.get(genericLayer.usergroups)),
 								(hasTiledLayer
 									? new TiledLayer(
 										group.get(genericLayer.identification),

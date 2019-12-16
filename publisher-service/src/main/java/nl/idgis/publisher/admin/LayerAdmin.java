@@ -22,6 +22,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+import nl.idgis.publisher.data.GenericLayer;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 
 import nl.idgis.publisher.domain.query.GetLayerParentGroups;
@@ -241,15 +242,6 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 					Tuple layer = optionalLayer.get();
 					log.debug("generic layer id: " + layer.get(genericLayer.id));
 					
-					String userGroupsString = layer.get(genericLayer.usergroups);
-					
-					userGroupsString = userGroupsString.substring(1, userGroupsString.length() - 1);
-					String[] userGroupsArray = userGroupsString.split(",");
-					List<String> userGroups = new ArrayList<>();
-					for(String userGroup : userGroupsArray) {
-						if(!userGroup.trim().isEmpty()) userGroups.add(userGroup);
-					}
-					
 					return tx.query()
 						.from(leafLayerKeyword)
 						.where(leafLayerKeyword.leafLayerId.eq(layer.get(leafLayer.id)))
@@ -299,7 +291,7 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 										,
 										keywords.list(),
 										styles.list(),
-										userGroups,
+										GenericLayer.transformUserGroupsToList(layer.get(genericLayer.usergroups)),
 										layer.get (confidentialPath),
 										layer.get (wmsOnlyPath)
 									))));

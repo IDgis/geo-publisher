@@ -8,8 +8,6 @@ import static nl.idgis.publisher.database.QServiceKeyword.serviceKeyword;
 import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
 import static nl.idgis.publisher.service.manager.QServiceStructure.serviceStructure;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
@@ -17,15 +15,13 @@ import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
 
 import akka.event.LoggingAdapter;
-
+import nl.idgis.publisher.data.GenericLayer;
 import nl.idgis.publisher.database.AsyncHelper;
 import nl.idgis.publisher.database.AsyncSQLQuery;
-
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.tree.AbstractDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DefaultService;
 import nl.idgis.publisher.domain.web.tree.PartialGroupLayer;
-
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
 
@@ -154,15 +150,6 @@ public class GetServiceQuery extends AbstractServiceQuery<Object, AsyncSQLQuery>
 						
 						Tuple serviceInfoTuple = info.get();
 						
-						String userGroupsString = serviceInfoTuple.get(genericLayer.usergroups);
-						
-						userGroupsString = userGroupsString.substring(1, userGroupsString.length() - 1);
-						String[] userGroupsArray = userGroupsString.split(",");
-						List<String> userGroups = new ArrayList<>();
-						for(String userGroup : userGroupsArray) {
-							if(!userGroup.trim().isEmpty()) userGroups.add(userGroup);
-						}
-						
 						return f.successful(new DefaultService(
 							serviceId, 
 							serviceInfoTuple.get(genericLayer.name),
@@ -186,7 +173,7 @@ public class GetServiceQuery extends AbstractServiceQuery<Object, AsyncSQLQuery>
 								serviceInfoTuple.get(genericLayer.name),
 								serviceInfoTuple.get(genericLayer.title),
 								serviceInfoTuple.get(genericLayer.abstractCol),
-								userGroups,
+								GenericLayer.transformUserGroupsToList(serviceInfoTuple.get(genericLayer.usergroups)),
 								Optional.empty()), // a root group doesn't have (or need) tiling
 							datasets.list(),
 							groups.list(),

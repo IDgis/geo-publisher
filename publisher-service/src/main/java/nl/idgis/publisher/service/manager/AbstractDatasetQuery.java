@@ -16,7 +16,6 @@ import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
 import static nl.idgis.publisher.database.QTiledLayerMimeformat.tiledLayerMimeformat;
 
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +28,7 @@ import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.path.PathBuilder;
 
 import akka.event.LoggingAdapter;
+import nl.idgis.publisher.data.GenericLayer;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.web.tree.AbstractDatasetLayer;
@@ -209,15 +209,6 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 							String title = t.get(genericLayer.title);
 							String abstr = t.get(genericLayer.abstractCol);	
 							
-							String userGroupsString = t.get(genericLayer.usergroups);
-							
-							userGroupsString = userGroupsString.substring(1, userGroupsString.length() - 1);
-							String[] userGroupsArray = userGroupsString.split(",");
-							List<String> userGroups = new ArrayList<>();
-							for(String userGroup : userGroupsArray) {
-								if(!userGroup.trim().isEmpty()) userGroups.add(userGroup);
-							}
-							
 							Tiling tiling = getTiling(tilingMimeFormats, t);
 							boolean confidential = t.get (confidentialPath);
 							boolean wmsOnly = t.get (wmsOnlyPath);
@@ -237,7 +228,7 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 											tiling,
 											Optional.ofNullable (metadataFileIdentification),
 											getList(keywords, t),
-											userGroups,
+											GenericLayer.transformUserGroupsToList(t.get(genericLayer.usergroups)),
 											fileName,
 											getStyleRefs(styles, t),
 											confidential,
@@ -255,7 +246,7 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 										tiling,
 										Optional.ofNullable (metadataFileIdentification),
 										getList(keywords, t),
-										userGroups,
+										GenericLayer.transformUserGroupsToList(t.get(genericLayer.usergroups)),
 										tableName,
 										getList(columns, t),
 										getStyleRefs(styles, t),
