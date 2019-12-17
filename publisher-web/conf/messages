@@ -652,6 +652,8 @@ web.application.page.services.form.field.rootgroup.help=Geef de hoofdgroep
 web.application.page.services.form.field.structure.validation.error=Er moet minimaal 1 laag of groep zijn toegevoegd
 web.application.page.services.form.field.structure.validation.cycle=Dezelfde laag of groep komt meerdere keren voor in de gekozen structuur
 
+web.application.page.services.form.field.usergroups.label=Gebruikersgroepen
+web.application.page.services.form.field.usergroups.help=De gebruikersgroepen die toegang tot de service hebben. Wanneer geen gebruikersgroepen opgegeven zijn dan geldt deze beperking niet.
 
 web.application.page.services.form.field.advanced.button=Geavanceerde instellingen
 
@@ -791,7 +793,7 @@ web.application.page.groups.form.field.addlayer.button=Voeg een laag toe ...
 web.application.page.groups.form.field.addgroup.button=Voeg een groep toe ...
 
 web.application.page.groups.form.field.usergroups.label=Gebruikersgroepen
-web.application.page.groups.form.field.usergroups.help=De gebruikersgroepen die toegang tot de laag hebben. Wanneer geen gebruikersgroepen opgegeven zijn dan geldt deze beperking niet.
+web.application.page.groups.form.field.usergroups.help=De gebruikersgroepen die toegang tot de groep hebben. Wanneer geen gebruikersgroepen opgegeven zijn dan geldt deze beperking niet.
 
 web.application.page.groups.form.field.parentGroups.label=Zit in de groep(en)
 web.application.page.groups.form.field.parentGroups.none=geen

@@ -12,6 +12,8 @@ public interface Service {
 	
 	String getAbstract();
 	
+	List<String> getUserGroups();
+	
 	String getContact();
 
 	String getOrganization();

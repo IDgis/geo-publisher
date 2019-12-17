@@ -103,14 +103,11 @@ public class Layers extends GroupsLayersCommon {
 		
 		final LayerForm layerForm = form.get ();
 		
-		List<String> userGroups = layerForm.getUserGroups();
-		if(userGroups == null) userGroups = new ArrayList<>();
-		
 		final Layer layer = new Layer(
 				layerForm.getId(), layerForm.getName(), layerForm.title, 
 				layerForm.abstractText,layerForm.datasetId, layerForm.datasetName,
 				(layerForm.enabled ? layerForm.getTiledLayer() : null), layerForm.getKeywords(), 
-				layerForm.getStyleList(), userGroups, false, false);
+				layerForm.getStyleList(), layerForm.getUserGroups(), false, false);
 		Logger.debug ("Create Update layerForm: " + layerForm);
 		
 		return from (database)
@@ -152,7 +149,7 @@ public class Layers extends GroupsLayersCommon {
 		
 		Logger.debug ("performing unique check for name: " + name); 
 		
-		if (form.field("id").value().equals(ID) && name != null) {			
+		if (form.field("id").value().equals(ID) && name != null) {
 			return from (database)
 				.query (new ValidateUniqueName (name))
 				.executeFlat (validationResult -> {
@@ -386,6 +383,7 @@ public class Layers extends GroupsLayersCommon {
 			super();
 			this.id = ID;
 			this.keywords = new ArrayList<String>();
+			this.userGroups = new ArrayList<String>();
 		}
 		
 		public LayerForm(Layer layer){
@@ -439,9 +437,9 @@ public class Layers extends GroupsLayersCommon {
 		}
 
 		public void setKeywords(List<String> keywords) {
-			if (keywords==null){
+			if (keywords==null) {
 				this.keywords = new ArrayList<String>();
-			}else{
+			} else {
 				this.keywords = keywords;
 			}
 		}

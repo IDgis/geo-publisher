@@ -314,10 +314,10 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 			}));
 	}
 	
-	private CompletableFuture<Response<?>> handlePutLayergroup(LayerGroup theLayergroup) {
-		String layergroupId = theLayergroup.id();
-		String layergroupName = theLayergroup.name();
-		List<String> userGroups = theLayergroup.userGroups();
+	private CompletableFuture<Response<?>> handlePutLayergroup(LayerGroup lg) {
+		String layergroupId = lg.id();
+		String layergroupName = lg.name();
+		List<String> userGroups = lg.userGroups();
 		log.debug ("handle update/create layergroup: " + layergroupId);
 		
 		Collections.sort(userGroups);
@@ -329,20 +329,6 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 				.where(genericLayer.identification.eq(layergroupId))
 				.singleResult(genericLayer.id)
 				.thenCompose(glId -> {
-					
-					StringBuilder sb = new StringBuilder();
-					sb.append("[");
-					
-					for(int i = 0; i < userGroups.size(); i++) {
-						String userGroup = userGroups.get(i);
-						
-						if(userGroup != null) {
-							sb.append(userGroup.trim());
-							if(i != userGroups.size() - 1) sb.append(",");
-						}
-					}
-					sb.append("]");
-					
 					if (!glId.isPresent()){
 						// INSERT
 						log.debug("Inserting new layergroup with name: " + layergroupName);
@@ -350,9 +336,9 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 						return tx.insert(genericLayer)
 							.set(genericLayer.identification, newGroupId)
 							.set(genericLayer.name, layergroupName)
-							.set(genericLayer.title, theLayergroup.title())
-							.set(genericLayer.abstractCol, theLayergroup.abstractText())
-							.set(genericLayer.usergroups, sb.toString())
+							.set(genericLayer.title, lg.title())
+							.set(genericLayer.abstractCol, lg.abstractText())
+							.set(genericLayer.usergroups, GenericLayer.transformUserGroupsToText(userGroups))
 							.execute()
 							.thenCompose(
 								n -> {
@@ -364,12 +350,12 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 										.singleResult(genericLayer.id)
 										.thenCompose(
 											glId2 -> {
-												if (theLayergroup.tiledLayer().isPresent()){
+												if (lg.tiledLayer().isPresent()){
 													log.debug("Insert tiledlayer ");
-													return insertTiledLayer(tx, theLayergroup.tiledLayer().get(), glId2.get(), log)
+													return insertTiledLayer(tx, lg.tiledLayer().get(), glId2.get(), log)
 														.thenApply(whatever ->
-													       	new Response<String>(CrudOperation.CREATE,
-													              CrudResponse.OK, newGroupId));
+															new Response<String>(CrudOperation.CREATE,
+																CrudResponse.OK, newGroupId));
 												} else {
 													return f.successful( 
 														new Response<String>(CrudOperation.CREATE,
@@ -381,9 +367,9 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 						// UPDATE
 						log.debug("Updating layergroup with name: " + layergroupName + ", id:" + layergroupId);
 						return tx.update(genericLayer)
-							.set(genericLayer.title, theLayergroup.title())
-							.set(genericLayer.abstractCol, theLayergroup.abstractText())
-							.set(genericLayer.usergroups, sb.toString())
+							.set(genericLayer.title, lg.title())
+							.set(genericLayer.abstractCol, lg.abstractText())
+							.set(genericLayer.usergroups, GenericLayer.transformUserGroupsToText(userGroups))
 							.where(genericLayer.identification.eq(layergroupId))
 							.execute()
 							.thenCompose(
@@ -396,8 +382,8 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 											.thenCompose(
 												tlIdOld -> {
 												log.debug("Deleted tiledlayer glId: " + glId.get());
-												if (theLayergroup.tiledLayer().isPresent()){
-													return insertTiledLayer(tx, theLayergroup.tiledLayer().get(), glId.get(), log)
+												if (lg.tiledLayer().isPresent()){
+													return insertTiledLayer(tx, lg.tiledLayer().get(), glId.get(), log)
 													    .thenApply(whatever ->
 													        new Response<String>(CrudOperation.UPDATE,
 											                CrudResponse.OK, layergroupId));
@@ -671,6 +657,7 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 						null,
 						null,
 						null,
+						Collections.emptyList(),
 						null, null, null,
 						null, null,
 						false, false, false

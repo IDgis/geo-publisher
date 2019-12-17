@@ -24,7 +24,7 @@ require ([
 	domStyle, 
 	win, 
 	query, 
-	domattr, 
+	domAttr, 
 	domConstruct, 
 	OrderedList,
 	
@@ -34,6 +34,7 @@ require ([
 	Select
 ) {
 	var main = dom.byId('groupLayerStructure');
+	
 	var userGroupSelect = dom.byId('input-usergroup-select');
 	var userGroupList = dom.byId('usergroup-list');
 	
@@ -50,7 +51,7 @@ require ([
 	}
 	
 	on(win.doc, ".delete-el:click", function(event) {
-		var idItem = domattr.get(this, 'value');
+		var idItem = domAttr.get(this, 'value');
 		var itemToDel = query(".delete-el[value$=" + idItem + "]").closest(".list-group-item[value$=" + idItem + "]")[0];
 		
 		domConstruct.destroy(itemToDel);

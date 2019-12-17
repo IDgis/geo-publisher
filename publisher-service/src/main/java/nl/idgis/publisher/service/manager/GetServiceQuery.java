@@ -156,6 +156,7 @@ public class GetServiceQuery extends AbstractServiceQuery<Object, AsyncSQLQuery>
 							serviceInfoTuple.get(genericLayer.title),
 							serviceInfoTuple.get(genericLayer.abstractCol),
 							keywords.list(),
+							GenericLayer.transformUserGroupsToList(serviceInfoTuple.get(genericLayer.usergroups)),
 							serviceInfoTuple.get(constants.contact),
 							serviceInfoTuple.get(constants.organization),
 							serviceInfoTuple.get(constants.position),

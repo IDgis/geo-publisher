@@ -14,4 +14,21 @@ public class GenericLayer {
 		
 		return userGroups;
 	}
+	
+	public static String transformUserGroupsToText(List<String> userGroups) {
+		StringBuilder sb = new StringBuilder();
+		sb.append("[");
+		
+		for(int i = 0; i < userGroups.size(); i++) {
+			String userGroup = userGroups.get(i);
+			
+			if(userGroup != null) {
+				sb.append(userGroup.trim());
+				if(i != userGroups.size() - 1) sb.append(",");
+			}
+		}
+		sb.append("]");
+		
+		return sb.toString();
+	}
 }

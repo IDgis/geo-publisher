@@ -3,6 +3,8 @@
  */
 package nl.idgis.publisher.domain.web;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -16,12 +18,13 @@ import com.mysema.query.annotations.QueryProjection;
  */
 public class Service extends Identifiable implements Nameable{
 	
-	private static final long serialVersionUID = 5037615909325257005L;
+	private static final long serialVersionUID = -7942050213750059795L;
 	
 	private final String name;
 	private final String title;
 	private final String alternateTitle;
 	private final String abstractText;
+	private final List<String> userGroups;
 	private final String metadata;
 	private final String genericLayerId;
 	private final String constantsId;
@@ -40,6 +43,7 @@ public class Service extends Identifiable implements Nameable{
 			final @JsonProperty("") String title, 
 			final @JsonProperty("") String alternateTitle, 
 			final @JsonProperty("") String abstractText, 
+			final @JsonProperty("") List<String> userGroups, 
 			final @JsonProperty("") String metadata,
 			final @JsonProperty("") String genericLayerId,
 			final @JsonProperty("") String constantsId,
@@ -54,6 +58,7 @@ public class Service extends Identifiable implements Nameable{
 		this.title = title;
 		this.alternateTitle = alternateTitle;
 		this.abstractText = abstractText;
+		this.userGroups = userGroups;
 		this.metadata = metadata;
 		this.genericLayerId = genericLayerId;
 		this.constantsId = constantsId;
@@ -82,6 +87,11 @@ public class Service extends Identifiable implements Nameable{
 	@JsonGetter
 	public String abstractText() {
 		return abstractText;
+	}
+
+	@JsonGetter
+	public List<String> userGroups() {
+		return userGroups;
 	}
 
 	@JsonGetter

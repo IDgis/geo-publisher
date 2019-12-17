@@ -95,12 +95,9 @@ public class Groups extends GroupsLayersCommon {
 		final List<String> layerStyleIds = groupForm.styles == null ? new ArrayList<>() : groupForm.styles;
 		Logger.debug ("Group layer style list: " + layerStyleIds);
 		
-		List<String> userGroups = groupForm.getUserGroups();
-		if(userGroups == null) userGroups = new ArrayList<>();
-		
 		final LayerGroup group = new LayerGroup(
 				groupForm.id, groupForm.name.trim (), groupForm.title, 
-				groupForm.abstractText, userGroups,
+				groupForm.abstractText, groupForm.getUserGroups(),
 				(groupForm.enabled ? groupForm.getTiledLayer() : null), 
 				false, false);
 		
@@ -331,6 +328,7 @@ public class Groups extends GroupsLayersCommon {
 		public GroupForm(){
 			super();
 			this.id=ID;
+			this.userGroups = new ArrayList<String>();
 		}
 		
 		public GroupForm(LayerGroup group){

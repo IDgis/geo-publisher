@@ -6,18 +6,18 @@ require ([
 	'dojo/query',
 	'dojo/dom-attr',
 	'dojo/dom-construct',
-	'dojo/_base/array',
 	'tree-select/tree-select',
 	'publisher/Pager',
 	'put-selector/put',
 	
 	'dojo/NodeList-traverse',
 	'dojo/domReady!'
-], function (dom, on, domStyle, win, query, domAttr, domConstruct, array, TreeSelect, Pager, put) {
+], function (dom, on, domStyle, win, query, domAttr, domConstruct, TreeSelect, Pager, put) {
 	var treeSelect = new TreeSelect ('.gp-tree-select', '.gp-tree-values', { firstIsDefault: true }),
 		pager = new Pager ('.gp-tree-values .js-pager');
 	var keywordbutton = dom.byId('add-keyword');
 	var keywordlist = dom.byId('keyword-list');
+	
 	var userGroupSelect = dom.byId('input-usergroup-select');
 	var userGroupList = dom.byId('usergroup-list');
 	

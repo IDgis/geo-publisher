@@ -302,11 +302,11 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 			}));
 	}
 	
-	private CompletableFuture<Response<?>> handlePutLayer(Layer theLayer) {
-		String layerId = theLayer.id();
-		String layerName = theLayer.name();
-		String datasetId = theLayer.datasetId();
-		List<String> userGroups = theLayer.userGroups();
+	private CompletableFuture<Response<?>> handlePutLayer(Layer l) {
+		String layerId = l.id();
+		String layerName = l.name();
+		String datasetId = l.datasetId();
+		List<String> userGroups = l.userGroups();
 		log.debug("handle update/create layer: " + layerId);
 		
 		Collections.sort(userGroups);
@@ -319,20 +319,6 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 				.where(genericLayer.identification.eq(layerId))
 				.singleResult(genericLayer.id)
 				.thenCompose(msg -> {
-					
-					StringBuilder sb = new StringBuilder();
-					sb.append("[");
-					
-					for(int i = 0; i < userGroups.size(); i++) {
-						String userGroup = userGroups.get(i);
-						
-						if(userGroup != null) {
-							sb.append(userGroup.trim());
-							if(i != userGroups.size() - 1) sb.append(",");
-						}
-					}
-					sb.append("]");
-					
 					if (!msg.isPresent()) {
 						// INSERT
 						String newLayerId = UUID.randomUUID().toString();
@@ -341,10 +327,10 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 						return tx
 							.insert(genericLayer)
 							.set(genericLayer.identification, newLayerId)
-							.set(genericLayer.name, theLayer.name())
-							.set(genericLayer.title, theLayer.title())
-							.set(genericLayer.abstractCol, theLayer.abstractText())
-							.set(genericLayer.usergroups, sb.toString())
+							.set(genericLayer.name, l.name())
+							.set(genericLayer.title, l.title())
+							.set(genericLayer.abstractCol, l.abstractText())
+							.set(genericLayer.usergroups, GenericLayer.transformUserGroupsToText(userGroups))
 							.execute()
 							.thenCompose(
 								gl -> {
@@ -375,9 +361,9 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 														.execute()
 														.thenCompose(
 															n -> {
-																if (theLayer.tiledLayer().isPresent()){
+																if (l.tiledLayer().isPresent()){
 																	log.debug("Insert tiledlayer ");
-																	return insertTiledLayer(tx, theLayer.tiledLayer().get(), glId.get(), log)
+																	return insertTiledLayer(tx, l.tiledLayer().get(), glId.get(), log)
 																			.thenApply(whatever ->
 																	        	new Response<String>(CrudOperation.CREATE,
 																	                CrudResponse.OK, newLayerId));
@@ -396,10 +382,10 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 						log.debug("Updating layer with name: " + layerName);
 						return tx
 							.update(genericLayer)
-							.set(genericLayer.name, theLayer.name())
-							.set(genericLayer.title, theLayer.title())
-							.set(genericLayer.abstractCol, theLayer.abstractText())
-							.set(genericLayer.usergroups, sb.toString())
+							.set(genericLayer.name, l.name())
+							.set(genericLayer.title, l.title())
+							.set(genericLayer.abstractCol, l.abstractText())
+							.set(genericLayer.usergroups, GenericLayer.transformUserGroupsToText(userGroups))
 							.where(genericLayer.identification.eq(layerId))
 							.execute()
 							.thenCompose(
@@ -419,8 +405,8 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 													.thenCompose(
 														tlIdOld -> {
 														log.debug("Deleted tiledlayer glId: " + glId.get());
-														if (theLayer.tiledLayer().isPresent()){
-															return insertTiledLayer(tx, theLayer.tiledLayer().get(), glId.get(), log)
+														if (l.tiledLayer().isPresent()){
+															return insertTiledLayer(tx, l.tiledLayer().get(), glId.get(), log)
 															    .thenApply(whatever ->
 															        new Response<String>(CrudOperation.UPDATE,
 													                CrudResponse.OK, layerId));
@@ -704,6 +690,7 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 						null,
 						null,
 						null,
+						Collections.emptyList(),
 						null, null, null,
 						null, null,
 						false, false, false

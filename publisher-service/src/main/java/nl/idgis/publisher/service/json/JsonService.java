@@ -138,6 +138,14 @@ public class JsonService implements Service {
 				.map(JsonNode::asText)
 				.collect(toList());
 	}
+	
+	@Override
+	public List<String> getUserGroups() {
+		return 
+			getStream(jsonNode, "userGroups")
+				.map(JsonNode::asText)
+				.collect(toList());
+	}
 
 	@Override
 	public String getRootId() {

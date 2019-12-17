@@ -56,6 +56,10 @@ public class DefaultServiceTest {
 				"service-keyword0", 
 				"service-keyword1", 
 				"service-keyword2"),
+			Arrays.asList(
+				"service-usergroup0", 
+				"service-usergroup1", 
+				"service-usergroup2"),
 			"service-contact0", 
 			"service-organization0", 
 			"service-position0", 
@@ -121,6 +125,10 @@ public class DefaultServiceTest {
 				"service-keyword0", 
 				"service-keyword1", 
 				"service-keyword2"),
+			Arrays.asList(
+					"service-usergroup0", 
+					"service-usergroup1", 
+					"service-usergroup2"),
 			"service-contact0", 
 			"service-organization0", 
 			"service-position0", 
