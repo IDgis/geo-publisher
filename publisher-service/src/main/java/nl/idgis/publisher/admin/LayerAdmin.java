@@ -309,8 +309,6 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 		List<String> userGroups = l.userGroups();
 		log.debug("handle update/create layer: " + layerId);
 		
-		Collections.sort(userGroups);
-		
 		return db
 			.transactional(tx ->
 			// Check if there is another layer with the same id

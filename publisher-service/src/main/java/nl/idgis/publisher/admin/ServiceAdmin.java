@@ -284,8 +284,6 @@ public class ServiceAdmin extends AbstractAdmin {
 		List<String> userGroups = s.userGroups();
 		log.debug ("handle update/create service: " + serviceId);
 		
-		Collections.sort(userGroups);
-		
 		return db.transactional(tx ->
 			// Check if there is another service with the same id
 			tx.query().from(service)

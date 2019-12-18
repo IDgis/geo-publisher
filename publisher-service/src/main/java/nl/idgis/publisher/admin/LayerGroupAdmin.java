@@ -320,8 +320,6 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 		List<String> userGroups = lg.userGroups();
 		log.debug ("handle update/create layergroup: " + layergroupId);
 		
-		Collections.sort(userGroups);
-		
 		return db.transactional(tx ->
 			// Check if there is another layergroup with the same id
 			tx.query()

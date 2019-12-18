@@ -1,6 +1,9 @@
 package nl.idgis.publisher.data;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 
 public class GenericLayer {
@@ -16,15 +19,19 @@ public class GenericLayer {
 	}
 	
 	public static String transformUserGroupsToText(List<String> userGroups) {
+		Collections.sort(userGroups);
+		
+		LinkedHashSet<String> userGroupsDistinct = new LinkedHashSet<String>(userGroups);
+		
 		StringBuilder sb = new StringBuilder();
 		sb.append("[");
 		
-		for(int i = 0; i < userGroups.size(); i++) {
-			String userGroup = userGroups.get(i);
+		for(Iterator<String> iterator = userGroupsDistinct.iterator(); iterator.hasNext();) {
+			String userGroup = iterator.next();
 			
 			if(userGroup != null) {
 				sb.append(userGroup.trim());
-				if(i != userGroups.size() - 1) sb.append(",");
+				if(iterator.hasNext()) sb.append(",");
 			}
 		}
 		sb.append("]");
