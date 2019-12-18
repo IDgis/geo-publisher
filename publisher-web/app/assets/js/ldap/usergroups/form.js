@@ -13,7 +13,9 @@ require ([
 ], function (dom, on, win, query, domAttr, domConstruct, array, put) {
 	var userSelect = dom.byId('input-user-select');
 	var userList = dom.byId('user-list');
-	var inputUsersAtLoad = JSON.parse(dom.byId('input-users').value);
+	
+	var inputUsers = dom.byId('input-users');
+	var inputUsersAtLoad = JSON.parse(inputUsers.value);
 	
 	array.forEach(inputUsersAtLoad,function(user) {
 		putUser(user, inputUsersAtLoad.length);
