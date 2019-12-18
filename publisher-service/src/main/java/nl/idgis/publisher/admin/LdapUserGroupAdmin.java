@@ -1,5 +1,7 @@
 package nl.idgis.publisher.admin;
 
+import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -12,9 +14,11 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
+import com.mysema.query.Tuple;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import nl.idgis.publisher.data.GenericLayer;
 import nl.idgis.publisher.domain.query.ListLdapUserGroups;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
@@ -91,6 +95,10 @@ public class LdapUserGroupAdmin extends AbstractLdapAdmin {
 		
 		try {
 			doPostPutRequest(ldapApiAdminUrlBaseOrganizations, emailExists, new Gson().toJson(userGroup));
+			
+			return CompletableFuture.supplyAsync(() -> {
+				return new Response<String>(operation, CrudResponse.OK, userGroup.name());
+			});
 		} catch(Exception e) {
 			log.debug("LDAP post/put userGroup request: something went wrong performing the request");
 			
@@ -98,10 +106,6 @@ public class LdapUserGroupAdmin extends AbstractLdapAdmin {
 				return new Response<String>(operation, CrudResponse.NOK, userGroup.name());
 			});
 		}
-		
-		return CompletableFuture.supplyAsync(() -> {
-			return new Response<String>(operation, CrudResponse.OK, userGroup.name());
-		});
 	}
 	
 	private CompletableFuture<Response<?>> handleDeleteLdapUserGroup(String name) {
@@ -109,6 +113,41 @@ public class LdapUserGroupAdmin extends AbstractLdapAdmin {
 		
 		try {
 			doDeleteRequest(ldapApiAdminUrlBaseOrganizations + "/" + name);
+			
+			return db.transactional(tx -> {
+				return tx
+					.query()
+					.from(genericLayer)
+					.where(genericLayer.usergroups.ne("[]"))
+					.list(genericLayer.id, genericLayer.usergroups)
+					.thenApply(tuples -> {
+						for(Tuple t : tuples.list()) {
+							int genericLayerId = t.get(genericLayer.id);
+							
+							List<String> userGroups = 
+									GenericLayer
+										.transformUserGroupsToList(t.get(genericLayer.usergroups));
+							
+							List<String> updatedUserGroups = 
+								userGroups
+									.stream()
+									.filter(userGroup -> !userGroup.trim().equals(name.trim()))
+									.collect(Collectors.toList());
+							
+							if(userGroups.size() != updatedUserGroups.size()) {
+								String updatedUserGroupsAsText = 
+										GenericLayer.transformUserGroupsToText(updatedUserGroups);
+								
+								tx.update(genericLayer)
+									.set(genericLayer.usergroups, updatedUserGroupsAsText)
+									.where(genericLayer.id.eq(genericLayerId))
+									.execute();
+							}
+						}
+						
+						return new Response<String>(CrudOperation.DELETE, CrudResponse.OK, name);
+					});
+			});
 		} catch(Exception e) {
 			log.debug("LDAP delete userGroup request: something went wrong performing the request");
 			
@@ -116,10 +155,6 @@ public class LdapUserGroupAdmin extends AbstractLdapAdmin {
 				return new Response<String>(CrudOperation.DELETE, CrudResponse.NOK, name);
 			});
 		}
-		
-		return CompletableFuture.supplyAsync(() -> {
-			return new Response<String>(CrudOperation.DELETE, CrudResponse.OK, name);
-		});
 	}
 	
 	private Optional<LdapUserGroup> getLdapUserGroup(String name) {

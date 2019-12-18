@@ -101,6 +101,10 @@ public class LdapUserAdmin extends AbstractLdapAdmin {
 		
 		try {
 			doPostPutRequest(ldapApiAdminUrlBaseUsers, emailExists, new Gson().toJson(user));
+			
+			return CompletableFuture.supplyAsync(() -> {
+				return new Response<String>(operation, CrudResponse.OK, user.mail());
+			});
 		} catch(Exception e) {
 			log.debug("LDAP post/put user request: something went wrong performing the request");
 			
@@ -108,10 +112,6 @@ public class LdapUserAdmin extends AbstractLdapAdmin {
 				return new Response<String>(operation, CrudResponse.NOK, user.mail());
 			});
 		}
-		
-		return CompletableFuture.supplyAsync(() -> {
-			return new Response<String>(operation, CrudResponse.OK, user.mail());
-		});
 	}
 	
 	private CompletableFuture<Response<?>> handleDeleteLdapUser(String email) {
@@ -124,6 +124,10 @@ public class LdapUserAdmin extends AbstractLdapAdmin {
 		
 		try {
 			doDeleteRequest(ldapApiAdminUrlBaseUsers + "/" + email);
+			
+			return CompletableFuture.supplyAsync(() -> {
+				return new Response<String>(CrudOperation.DELETE, CrudResponse.OK, email);
+			});
 		} catch(Exception e) {
 			log.debug("LDAP delete user request: something went wrong performing the request");
 			
@@ -131,10 +135,6 @@ public class LdapUserAdmin extends AbstractLdapAdmin {
 				return new Response<String>(CrudOperation.DELETE, CrudResponse.NOK, email);
 			});
 		}
-		
-		return CompletableFuture.supplyAsync(() -> {
-			return new Response<String>(CrudOperation.DELETE, CrudResponse.OK, email);
-		});
 	}
 	
 	private Optional<LdapUser> getLdapUser(String email) {
