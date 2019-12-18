@@ -119,11 +119,9 @@ public class LdapUserGroupAdmin extends AbstractLdapAdmin {
 					.query()
 					.from(genericLayer)
 					.where(genericLayer.usergroups.ne("[]"))
-					.list(genericLayer.id, genericLayer.usergroups)
+					.list(genericLayer.id, genericLayer.name, genericLayer.usergroups)
 					.thenApply(tuples -> {
 						for(Tuple t : tuples.list()) {
-							int genericLayerId = t.get(genericLayer.id);
-							
 							List<String> userGroups = 
 									GenericLayer
 										.transformUserGroupsToList(t.get(genericLayer.usergroups));
@@ -135,6 +133,11 @@ public class LdapUserGroupAdmin extends AbstractLdapAdmin {
 									.collect(Collectors.toList());
 							
 							if(userGroups.size() != updatedUserGroups.size()) {
+								int genericLayerId = t.get(genericLayer.id);
+								String genericLayerName = t.get(genericLayer.name);
+								
+								log.debug("clean up userGroups in genericLayer is necessary: {}", genericLayerName);
+								
 								String updatedUserGroupsAsText = 
 										GenericLayer.transformUserGroupsToText(updatedUserGroups);
 								
