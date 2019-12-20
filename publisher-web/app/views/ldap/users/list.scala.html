@@ -1,0 +1,66 @@
+@(users: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.LdapUser], query: String)
+
+@pageRef(targetPage: Long) = @{	  
+	routes.LdapUsers.list (query, targetPage)
+}
+
+@layout.application(title = Domain.message("web.application.page.ldap.user.list.header"),
+	jsMain = routes.Assets.at("js/ldap/users/list.js").url,
+	docPath = "ldap/user/list"
+) {
+
+<div class="page-content">
+	<h1 class="page-header">@Domain.message("web.application.page.ldap.user.list.header")</h1>
+	
+	<div class="row">
+		@* Add button: *@
+		<div class="col-lg-3 col-lg-push-9">
+			<form class="form-horizontal" role="form">
+				<div class="form-group">
+					<div class="col-sm-12">
+						<a href="@routes.LdapUsers.create()"
+							class="btn btn-success col-sm-12" title="@Domain.message("web.application.button.add")">
+							<span class="glyphicon glyphicon-plus"></span> @Domain.message("web.application.page.ldap.user.button.add")
+						</a>
+					</div>
+				</div>
+			</form>
+		</div>
+		
+		@* List of users: *@
+		<div class="col-lg-9 col-lg-pull-3">
+			@if(users.values.isEmpty) {
+			<div class="alert alert-info">@Domain.message("web.application.page.ldap.user.list.empty")</div>
+			} else {
+			<div class="list-group" id="group-list">
+				@for(user <- users.values) {
+				<div class="list-group-item js-group-item">
+					<div class="row">
+						<div class="col-md-10">
+							<h4 class="list-group-item-heading">
+								<a href="@routes.LdapUsers.edit(user.mail)" class="text-warning app-list-item">@user.mail</a>
+							</h4>
+						</div>
+						<div class="col-md-2">
+							<div class="btn-group pull-right">
+								<a href="@routes.LdapUsers.edit(user.mail)"
+									class="btn btn-default" title="@Domain.message("web.application.button.edit")">
+									<span class="glyphicon glyphicon-edit"></span>
+								</a> 
+								<a href="@routes.LdapUsers.delete(user.mail)"
+									class="btn btn-warning js-delete-button" title="@Domain.message("web.application.button.remove")">
+									<span class="glyphicon glyphicon-remove"></span>
+								</a>
+							</div>
+						</div>
+					</div>
+				</div>
+				}
+			</div>
+			}
+			
+			@helper.pagination(users, pageRef)
+		</div>
+	</div>
+</div>
+}

@@ -152,10 +152,20 @@
 					
 					<li class="navigation-header">
 						<span class="navigation-header-title">
+							@Domain.message("web.application.layout.sidebar.usermanagement")
+						</span>
+					</li>
+					@navItem(routes.LdapUsers.list().url) {
+						<span class="glyphicon glyphicon-th-list"></span> @Domain.message("web.application.layout.sidebar.users")
+					}
+					@navItem(routes.LdapUserGroups.list().url) {
+						<span class="glyphicon glyphicon-th-list"></span> @Domain.message("web.application.layout.sidebar.usergroups")
+					}
+					<li class="navigation-header">
+						<span class="navigation-header-title">
 							@Domain.message("web.application.layout.sidebar.generalmanagement")
 						</span>
 					</li>
-					
 					@navItem(routes.Constants.edit().url) {
 						<span class="glyphicon glyphicon-th-list"></span> @Domain.message("web.application.layout.sidebar.constants")
 					}

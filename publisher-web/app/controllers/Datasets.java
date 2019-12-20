@@ -166,7 +166,7 @@ public class Datasets extends Controller {
 	}
 	
 	public static Promise<Result> delete(final String datasetId){
-		System.out.println("delete dataset " + datasetId);
+		Logger.debug ("delete dataset " + datasetId);
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
 		return from (database)

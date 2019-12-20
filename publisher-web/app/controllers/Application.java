@@ -9,8 +9,8 @@ public class Application extends Controller {
 	public static Result javascriptRoutes() {
 		return ok(
 			Routes.javascriptRouter("jsRoutes", 
-				routes.javascript.DataSources.listByDataSourceAndCategoryJson(),
-				routes.javascript.Datasets.listColumnsAction(),
+				routes.javascript.DataSources.listByDataSourceAndCategoryJson (),
+				routes.javascript.Datasets.listColumnsAction (),
 				routes.javascript.Datasets.getDatasetJson (),
 				routes.javascript.Datasets.status (),
 				routes.javascript.Datasets.scheduleRefresh (),
@@ -21,7 +21,8 @@ public class Application extends Controller {
 				routes.javascript.DataSources.refreshDatasources (),
 				routes.javascript.DataSources.refreshDatasource (),
 				routes.javascript.Layers.structureItem (),
-				routes.javascript.Groups.structureItem ()
+				routes.javascript.Groups.structureItem (),
+				routes.javascript.LdapUserGroups.cleanupUserGroups ()
 			)
 		).as("text/javascript");
 	}

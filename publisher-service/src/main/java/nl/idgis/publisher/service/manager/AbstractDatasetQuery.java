@@ -1,19 +1,19 @@
 package nl.idgis.publisher.service.manager;
 
 import static nl.idgis.publisher.database.QDataset.dataset;
-import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
-import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
-import static nl.idgis.publisher.database.QLayerStyle.layerStyle;
-import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
-import static nl.idgis.publisher.database.QLeafLayerKeyword.leafLayerKeyword;
-import static nl.idgis.publisher.database.QStyle.style;
-import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
-import static nl.idgis.publisher.database.QTiledLayerMimeformat.tiledLayerMimeformat;
-import static nl.idgis.publisher.database.QLastImportJob.lastImportJob;
 import static nl.idgis.publisher.database.QImportJob.importJob;
 import static nl.idgis.publisher.database.QImportJobColumn.importJobColumn;
 import static nl.idgis.publisher.database.QJobState.jobState;
+import static nl.idgis.publisher.database.QLastImportJob.lastImportJob;
+import static nl.idgis.publisher.database.QLayerStyle.layerStyle;
+import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
+import static nl.idgis.publisher.database.QLeafLayerKeyword.leafLayerKeyword;
+import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
+import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
+import static nl.idgis.publisher.database.QStyle.style;
+import static nl.idgis.publisher.database.QTiledLayer.tiledLayer;
+import static nl.idgis.publisher.database.QTiledLayerMimeformat.tiledLayerMimeformat;
 
 import java.sql.Timestamp;
 import java.util.Collections;
@@ -28,18 +28,16 @@ import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.path.PathBuilder;
 
 import akka.event.LoggingAdapter;
-
+import nl.idgis.publisher.data.GenericLayer;
 import nl.idgis.publisher.database.AsyncSQLQuery;
-
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.web.tree.AbstractDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DefaultRasterDatasetLayer;
-import nl.idgis.publisher.domain.web.tree.DefaultVectorDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DefaultStyleRef;
 import nl.idgis.publisher.domain.web.tree.DefaultTiling;
+import nl.idgis.publisher.domain.web.tree.DefaultVectorDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.StyleRef;
 import nl.idgis.publisher.domain.web.tree.Tiling;
-
 import nl.idgis.publisher.utils.TypedList;
 
 public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<AbstractDatasetLayer>> {
@@ -138,6 +136,7 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 				genericLayer.name, 
 				genericLayer.title, 
 				genericLayer.abstractCol,
+				genericLayer.usergroups,
 				dataset.identification,
 				dataset.metadataIdentification,
 				dataset.metadataFileIdentification,
@@ -209,6 +208,7 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 							String name = t.get(genericLayer.name);	
 							String title = t.get(genericLayer.title);
 							String abstr = t.get(genericLayer.abstractCol);	
+							
 							Tiling tiling = getTiling(tilingMimeFormats, t);
 							boolean confidential = t.get (confidentialPath);
 							boolean wmsOnly = t.get (wmsOnlyPath);
@@ -228,6 +228,7 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 											tiling,
 											Optional.ofNullable (metadataFileIdentification),
 											getList(keywords, t),
+											GenericLayer.transformUserGroupsToList(t.get(genericLayer.usergroups)),
 											fileName,
 											getStyleRefs(styles, t),
 											confidential,
@@ -245,6 +246,7 @@ public abstract class AbstractDatasetQuery extends AbstractQuery<TypedList<Abstr
 										tiling,
 										Optional.ofNullable (metadataFileIdentification),
 										getList(keywords, t),
+										GenericLayer.transformUserGroupsToList(t.get(genericLayer.usergroups)),
 										tableName,
 										getList(columns, t),
 										getStyleRefs(styles, t),

@@ -30,13 +30,13 @@ public class DefaultServiceTest {
 	public void testNoGroup() {
 		List<AbstractDatasetLayer> datasets = Arrays.asList(
 			new DefaultVectorDatasetLayer("leaf0", "name0", "title0", "abstract0",
-				null, Optional.of ("metadataFileIdentification"), Collections.emptyList(), "myTable0", Arrays.asList("id", "geom"), 
+				null, Optional.of ("metadataFileIdentification"), Collections.emptyList(), Collections.emptyList(), "myTable0", Arrays.asList("id", "geom"), 
 				Collections.emptyList(), false, false, new Timestamp(0)),
 			new DefaultVectorDatasetLayer("leaf1", "name1", "title1", "abstract1",
-				null, Optional.of ("metadataFileIdentification"), Collections.emptyList(), "myTable1", Arrays.asList("id", "geom"), 
+				null, Optional.of ("metadataFileIdentification"), Collections.emptyList(), Collections.emptyList(), "myTable1", Arrays.asList("id", "geom"), 
 				Collections.emptyList(), false, false, new Timestamp(0)),
 			new DefaultVectorDatasetLayer("leaf2", "name2", "title2", "abstract2",
-				null, Optional.of ("metadataFileIdentification"), Collections.emptyList(), "myTable2", Arrays.asList("id", "geom"), 
+				null, Optional.of ("metadataFileIdentification"), Collections.emptyList(), Collections.emptyList(), "myTable2", Arrays.asList("id", "geom"), 
 				Collections.emptyList(), false, false, new Timestamp(0)));
 			
 		List<StructureItem> structure = new ArrayList<>();
@@ -46,7 +46,7 @@ public class DefaultServiceTest {
 		
 		Map<String, StyleRef> styles = new HashMap<>();
 		
-		PartialGroupLayer root = new PartialGroupLayer("group0", "name0", "title0", "abstract0", Optional.empty());
+		PartialGroupLayer root = new PartialGroupLayer("group0", "name0", "title0", "abstract0", Collections.emptyList(), Optional.empty());
 		Service service = new DefaultService(
 			"service0",
 			"service-name0",
@@ -56,6 +56,10 @@ public class DefaultServiceTest {
 				"service-keyword0", 
 				"service-keyword1", 
 				"service-keyword2"),
+			Arrays.asList(
+				"service-usergroup0", 
+				"service-usergroup1", 
+				"service-usergroup2"),
 			"service-contact0", 
 			"service-organization0", 
 			"service-position0", 
@@ -87,21 +91,21 @@ public class DefaultServiceTest {
 	
 	@Test
 	public void testGroup() {
-		PartialGroupLayer root = new PartialGroupLayer("group0", "name0", "title0", "abstract0", Optional.empty());
+		PartialGroupLayer root = new PartialGroupLayer("group0", "name0", "title0", "abstract0", Collections.emptyList(), Optional.empty());
 		
 		List<PartialGroupLayer> groups = Arrays.asList(
 				root,
-				new PartialGroupLayer("group1", "name1", "title1", "abstract1", Optional.empty()));
+				new PartialGroupLayer("group1", "name1", "title1", "abstract1", Collections.emptyList(), Optional.empty()));
 		
 		List<AbstractDatasetLayer> datasets = Arrays.asList(
 				new DefaultVectorDatasetLayer("leaf0", "name0", "title0", "abstract0", 
-					null, Optional.of ("metadataFileIdentification"), Collections.emptyList(), "myTable0", Arrays.asList("id", "geom"), 
+					null, Optional.of ("metadataFileIdentification"), Collections.emptyList(), Collections.emptyList(), "myTable0", Arrays.asList("id", "geom"), 
 					Collections.emptyList(), false, false, new Timestamp(0)),
 				new DefaultVectorDatasetLayer("leaf1", "name1", "title1", "abstract1", 
-					null, Optional.of ("metadataFileIdentification"), Collections.emptyList(), "myTable1", Arrays.asList("id", "geom"), 
+					null, Optional.of ("metadataFileIdentification"), Collections.emptyList(), Collections.emptyList(), "myTable1", Arrays.asList("id", "geom"), 
 					Collections.emptyList(), false, false, new Timestamp(0)),
 				new DefaultVectorDatasetLayer("leaf2", "name2", "title2", "abstract2", 
-					null, Optional.of ("metadataFileIdentification"), Collections.emptyList(), "myTable2", Arrays.asList("id", "geom"), 
+					null, Optional.of ("metadataFileIdentification"), Collections.emptyList(), Collections.emptyList(), "myTable2", Arrays.asList("id", "geom"), 
 					Collections.emptyList(), false, false, new Timestamp(0)));
 				
 		List<StructureItem> structure = new ArrayList<>();
@@ -121,6 +125,10 @@ public class DefaultServiceTest {
 				"service-keyword0", 
 				"service-keyword1", 
 				"service-keyword2"),
+			Arrays.asList(
+					"service-usergroup0", 
+					"service-usergroup1", 
+					"service-usergroup2"),
 			"service-contact0", 
 			"service-organization0", 
 			"service-position0", 
@@ -158,20 +166,20 @@ public class DefaultServiceTest {
 	
 	@Test
 	public void testIsConfidential() {
-		PartialGroupLayer partialGroup0 = new PartialGroupLayer("group0", "name0", "title0", "abstract0", Optional.empty());
-		PartialGroupLayer partialGroup1 = new PartialGroupLayer("group1", "name1", "title1", "abstract1", Optional.empty());
+		PartialGroupLayer partialGroup0 = new PartialGroupLayer("group0", "name0", "title0", "abstract0", Collections.emptyList(), Optional.empty());
+		PartialGroupLayer partialGroup1 = new PartialGroupLayer("group1", "name1", "title1", "abstract1", Collections.emptyList(), Optional.empty());
 		
 		List<PartialGroupLayer> groups = Arrays.asList(partialGroup0, partialGroup1);
 		
 		List<AbstractDatasetLayer> datasets = Arrays.asList(
 				new DefaultVectorDatasetLayer("leaf0", "name0", "title0", "abstract0", 
-					null, Optional.of ("metadataFileIdentification"), Collections.emptyList(), "myTable0", Arrays.asList("id", "geom"), 
+					null, Optional.of ("metadataFileIdentification"), Collections.emptyList(), Collections.emptyList(), "myTable0", Arrays.asList("id", "geom"), 
 					Collections.emptyList(), true, false, new Timestamp(0)),
 				new DefaultVectorDatasetLayer("leaf1", "name1", "title1", "abstract1", 
-					null, Optional.of ("metadataFileIdentification"), Collections.emptyList(), "myTable1", Arrays.asList("id", "geom"), 
+					null, Optional.of ("metadataFileIdentification"), Collections.emptyList(), Collections.emptyList(), "myTable1", Arrays.asList("id", "geom"), 
 					Collections.emptyList(), false, false, new Timestamp(0)),
 				new DefaultVectorDatasetLayer("leaf2", "name2", "title2", "abstract2", 
-					null, Optional.of ("metadataFileIdentification"), Collections.emptyList(), "myTable2", Arrays.asList("id", "geom"), 
+					null, Optional.of ("metadataFileIdentification"), Collections.emptyList(), Collections.emptyList(), "myTable2", Arrays.asList("id", "geom"), 
 					Collections.emptyList(), false, false, new Timestamp(0)));
 				
 		List<StructureItem> structure = new ArrayList<>();

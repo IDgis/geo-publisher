@@ -17,6 +17,7 @@ import models.Domain.Function4;
 import nl.idgis.publisher.domain.query.GetGroupStructure;
 import nl.idgis.publisher.domain.query.ListEnvironments;
 import nl.idgis.publisher.domain.query.ListLayers;
+import nl.idgis.publisher.domain.query.ListLdapUserGroups;
 import nl.idgis.publisher.domain.query.ListServiceKeywords;
 import nl.idgis.publisher.domain.query.ListServices;
 import nl.idgis.publisher.domain.query.PerformPublish;
@@ -30,6 +31,7 @@ import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.Constant;
 import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
+import nl.idgis.publisher.domain.web.LdapUserGroup;
 import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.ServicePublish;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
@@ -58,14 +60,16 @@ public class Services extends Controller {
 	
 	private static Promise<Result> renderForm (final Form<ServiceForm> serviceForm, final GroupLayer groupLayer, final Boolean create, final Page<ServicePublish> servicePublish) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		
 		return from (database)
 				.list (LayerGroup.class)
 				.query (new ListLayers (1l, null, null))
-				.execute (new Function2<Page<LayerGroup>,  Page<Layer>, Result> () {
+				.query (new ListLdapUserGroups (1L, "", true))
+				.execute (new Function3<Page<LayerGroup>,  Page<Layer>, Page<LdapUserGroup>, Result> () {
 
 					@Override
-					public Result apply (final Page<LayerGroup> groups, final Page<Layer> layers) throws Throwable {
-						return ok (form.render (serviceForm, create, groups, layers, groupLayer, servicePublish));
+					public Result apply (final Page<LayerGroup> groups, final Page<Layer> layers, final Page<LdapUserGroup> allUserGroups) throws Throwable {
+						return ok (form.render (serviceForm, create, groups, layers, groupLayer, servicePublish, allUserGroups));
 					}
 				});
 	}
@@ -135,9 +139,11 @@ public class Services extends Controller {
 					// validation end
 					
 					final ServiceForm serviceForm = form.get ();
-					final Service service = new Service(serviceIdentification, serviceForm.name, serviceForm.title, 
+					final Service service = new Service(
+							serviceIdentification, serviceForm.name, serviceForm.title, 
 							serviceForm.alternateTitle, serviceForm.abstractText,
-							serviceForm.metadata, serviceIdentification,serviceForm.constantsId, null, null, false, false, false);
+							serviceForm.getUserGroups(), serviceForm.metadata, serviceIdentification,
+							serviceForm.constantsId, null, null, false, false, false);
 					Logger.debug ("Update service: " + service);
 					
 					final List<String> layerIds = (serviceForm.structure == null)?(new ArrayList<String>()):(serviceForm.structure);			
@@ -150,7 +156,6 @@ public class Services extends Controller {
 						.executeFlat (new Function<Response<?>, Promise<Result>> () {
 							@Override
 							public Promise<Result> apply (final Response<?> responseService) throws Throwable {
-								String msg;
 								// Get the id of the service we just put 
 								String serviceId = responseService.getValue().toString();
 								Logger.debug("serviceId: " + serviceId);
@@ -388,9 +393,12 @@ public class Services extends Controller {
 		// validation end
 		
 		final ServiceForm serviceForm = form.get ();
-		final Service service = new Service(ID, serviceForm.name, serviceForm.title, 
+		final Service service = new Service(
+				ID, serviceForm.name, serviceForm.title, 
 				serviceForm.alternateTitle,serviceForm.abstractText,
-				serviceForm.metadata, serviceForm.rootGroupId,serviceForm.constantsId, null, null, false, false, false);
+				serviceForm.userGroups, serviceForm.metadata, 
+				serviceForm.rootGroupId,serviceForm.constantsId, 
+				null, null, false, false, false);
 		Logger.debug ("Update/create service: " + service);
 		
 		final List<String> layerIds = (serviceForm.structure == null)?(new ArrayList<String>()):(serviceForm.structure);
@@ -463,11 +471,12 @@ public class Services extends Controller {
 		@Constraints.MinLength (value = 3, message = "web.application.page.services.form.field.name.validation.length")
 		@Constraints.Pattern (value = "^[a-zA-Z0-9\\-\\_]+$", message = "web.application.page.services.form.field.name.validation.error")
 		private String name;
-
+		
 		private String title;
 		private String alternateTitle;
 		private String abstractText;
 		private List<String> keywords;
+		private List<String> userGroups;
 		private String metadata;
 		private String watermark;
 		private String rootGroupId = "";
@@ -488,6 +497,7 @@ public class Services extends Controller {
 			super();
 			this.rootGroupId = ID;
 			this.keywords = new ArrayList<String>();
+			this.userGroups = new ArrayList<String>();
 		}
 		
 		public ServiceForm (final Service service){
@@ -495,6 +505,7 @@ public class Services extends Controller {
 			this.title = service.title();
 			this.alternateTitle = service.alternateTitle();
 			this.abstractText = service.abstractText();
+			this.userGroups = service.userGroups();
 			this.metadata = service.metadata();
 			this.rootGroupId =service.genericLayerId();
 			this.constantsId =service.constantsId();
@@ -504,75 +515,79 @@ public class Services extends Controller {
 		public String getName() {
 			return name;
 		}
-
-
+		
 		public void setName(String name) {
 			this.name = name;
 		}
-
-
+		
 		public String getTitle() {
 			return title;
 		}
-
-
+		
 		public void setTitle(String title) {
 			this.title = title;
 		}
-
-
+		
 		public String getAlternateTitle() {
 			return alternateTitle;
 		}
-
-
+		
 		public void setAlternateTitle(String alternateTitle) {
 			this.alternateTitle = alternateTitle;
 		}
-
-
+		
 		public String getAbstractText() {
 			return abstractText;
 		}
-
-
+		
 		public void setAbstractText(String abstractText) {
 			this.abstractText = abstractText;
 		}
-
-
+		
 		public List<String> getKeywords() {
 			return keywords;
 		}
-
-
+		
 		public void setKeywords(List<String> keywords) {
-			this.keywords = keywords;
+			if (keywords==null){
+				this.keywords = new ArrayList<String>();
+			} else {
+				this.keywords = keywords;
+			}
 		}
-
-
+		
+		public List<String> getUserGroups() {
+			return userGroups;
+		}
+		
+		public void setUserGroups(List<String> userGroups) {
+			if (userGroups==null) {
+				this.userGroups = new ArrayList<String>();
+			} else {
+				this.userGroups = userGroups;
+			}
+		}
+		
 		public String getMetadata() {
 			return metadata;
 		}
-
-
+		
 		public void setMetadata(String metadata) {
 			this.metadata = metadata;
 		}
-
-
+		
 		public String getRootGroupId() {
 			return rootGroupId;
 		}
-
+		
 		public void setRootGroupId(String rootGroupId) {
 			this.rootGroupId = rootGroupId;
 		}
-
+		
 		public String getConstantsId() {
 			return constantsId;
 		}
-
+		
 		public void setConstantsId(String constantsId) {
 			this.constantsId = constantsId;
 		}
@@ -580,24 +595,23 @@ public class Services extends Controller {
 		public Boolean getIsPublished() {
 			return isPublished;
 		}
-
+		
 		public void setIsPublished(Boolean isPublished) {
 			this.isPublished = isPublished;
 		}
-
+		
 		public String getWatermark() {
 			return watermark;
 		}
-
-
+		
 		public void setWatermark(String watermark) {
 			this.watermark = watermark;
 		}
-
+		
 		public List<String> getStructure() {
 			return structure;
 		}
-
+		
 		public void setStructure(List<String> structure) {
 			this.structure = structure;
 		}
@@ -605,23 +619,21 @@ public class Services extends Controller {
 		public List<String> getStyles() {
 			return styles;
 		}
-
+		
 		public void setStyles(List<String> styles) {
 			this.styles = styles;
 		}
-
+		
 		@Override
 		public String toString() {
 			return "ServiceForm [name=" + name + ", title=" + title
 					+ ", alternateTitle=" + alternateTitle + ", abstractText="
-					+ abstractText + ", keywords=" + keywords + ", metadata="
-					+ metadata + ", watermark=" + watermark + ", rootGroupId="
-					+ rootGroupId + ", constantsId=" + constantsId
-					+ ", isPublished=" + isPublished + ", structure="
-					+ structure + ", styles=" + styles + "]";
+					+ abstractText + ", keywords=" + keywords + ", userGroups="
+					+ userGroups + ", metadata=" + metadata + ", watermark="
+					+ watermark + ", rootGroupId=" + rootGroupId 
+					+ ", constantsId=" + constantsId + ", isPublished=" 
+					+ isPublished + ", structure=" + structure + ", styles=" 
+					+ styles + "]";
 		}
-		
-		
-		
 	}
 }

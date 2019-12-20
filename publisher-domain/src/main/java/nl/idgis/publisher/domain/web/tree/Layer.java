@@ -1,6 +1,7 @@
 package nl.idgis.publisher.domain.web.tree;
 
 import java.sql.Timestamp;
+import java.util.List;
 import java.util.Optional;
 
 public interface Layer  {
@@ -12,6 +13,8 @@ public interface Layer  {
 	String getTitle();
 	
 	String getAbstract();
+	
+	List<String> getUserGroups();
 	
 	Optional<Tiling> getTiling();
 	

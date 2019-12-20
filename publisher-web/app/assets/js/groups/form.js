@@ -24,7 +24,7 @@ require ([
 	domStyle, 
 	win, 
 	query, 
-	domattr, 
+	domAttr, 
 	domConstruct, 
 	OrderedList,
 	
@@ -34,6 +34,9 @@ require ([
 	Select
 ) {
 	var main = dom.byId('groupLayerStructure');
+	
+	var userGroupSelect = dom.byId('input-usergroup-select');
+	var userGroupList = dom.byId('usergroup-list');
 	
 	if(dom.byId ('groupLayerStructure')) {
 		var list = new OrderedList ('#groupLayerStructure');
@@ -48,10 +51,31 @@ require ([
 	}
 	
 	on(win.doc, ".delete-el:click", function(event) {
-		var idItem = domattr.get(this, 'value');
+		var idItem = domAttr.get(this, 'value');
 		var itemToDel = query(".delete-el[value$=" + idItem + "]").closest(".list-group-item[value$=" + idItem + "]")[0];
 		
 		domConstruct.destroy(itemToDel);
+	});
+	
+	on(userGroupSelect,'change', function(e) {
+		var userGroupValue = userGroupSelect.value;
+		
+		if(userGroupValue !== "") {
+			var container = put("div.usergroup-item-block[value=$]", userGroupValue);
+			put(container, "input[type=hidden][name=$][value=$]", "userGroups[]", userGroupValue);
+			var label = put(container, "div.usergroup-item.label.label-primary", userGroupValue);
+			var closeButton = put(label, "button.close[type=button][aria-hidden=true][value=$]", userGroupValue);
+			closeButton.innerHTML = "&times;";
+			
+			put(userGroupList, container);
+		}
+		
+		userGroupSelect.value = "";
+	});
+	
+	on(win.doc, ".close:click", function(event) {
+		var userGroupToDel = query(this).parents(".usergroup-item-block")[0];
+		if(userGroupToDel) domConstruct.destroy(userGroupToDel);
 	});
 	
 	on(inputEnable, 'click', function(evt) {
@@ -66,7 +90,7 @@ require ([
 		onSelect: function (item) {
 			xhr (jsRoutes.controllers.Layers.structureItem (item.id).url)
 				.then (function (data) {
-					domConstruct.place(data, main);				
+					domConstruct.place(data, main);
 				});
 		}
 	});	
@@ -76,7 +100,7 @@ require ([
 		onSelect: function (item) {
 			xhr (jsRoutes.controllers.Groups.structureItem (item.id).url)
 				.then (function (data) {
-					domConstruct.place(data, main);				
+					domConstruct.place(data, main);
 				});
 		}
 	});

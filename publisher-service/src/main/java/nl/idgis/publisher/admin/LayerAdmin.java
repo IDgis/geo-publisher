@@ -22,6 +22,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+import nl.idgis.publisher.data.GenericLayer;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 
 import nl.idgis.publisher.domain.query.GetLayerParentGroups;
@@ -206,7 +207,9 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 											layer.get(null),
 											null)
 										: null),
-									null, null,
+									null,
+									null,
+									null,
 									layer.get (confidentialPath),
 									layer.get (wmsOnlyPath)
 								));
@@ -236,8 +239,9 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 			.where(genericLayer.identification.eq(layerId))
 			.singleResult(layerColumns.toArray (new Expression<?>[layerColumns.size ()])).<Optional<Layer>>thenCompose(optionalLayer -> {
 				if(optionalLayer.isPresent()) {
-					Tuple layer = optionalLayer.get();					
+					Tuple layer = optionalLayer.get();
 					log.debug("generic layer id: " + layer.get(genericLayer.id));
+					
 					return tx.query()
 						.from(leafLayerKeyword)
 						.where(leafLayerKeyword.leafLayerId.eq(layer.get(leafLayer.id)))
@@ -285,7 +289,9 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 													mimeFormats.list())
 												: null)
 										,
-										keywords.list(), styles.list(),
+										keywords.list(),
+										styles.list(),
+										GenericLayer.transformUserGroupsToList(layer.get(genericLayer.usergroups)),
 										layer.get (confidentialPath),
 										layer.get (wmsOnlyPath)
 									))));
@@ -296,12 +302,13 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 			}));
 	}
 	
-	private CompletableFuture<Response<?>> handlePutLayer(Layer theLayer) {
-		String layerId = theLayer.id();
-		String layerName = theLayer.name();
-		String datasetId = theLayer.datasetId();
+	private CompletableFuture<Response<?>> handlePutLayer(Layer l) {
+		String layerId = l.id();
+		String layerName = l.name();
+		String datasetId = l.datasetId();
+		List<String> userGroups = l.userGroups();
 		log.debug("handle update/create layer: " + layerId);
-
+		
 		return db
 			.transactional(tx ->
 			// Check if there is another layer with the same id
@@ -318,9 +325,10 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 						return tx
 							.insert(genericLayer)
 							.set(genericLayer.identification, newLayerId)
-							.set(genericLayer.name, theLayer.name())
-							.set(genericLayer.title, theLayer.title())
-							.set(genericLayer.abstractCol, theLayer.abstractText())
+							.set(genericLayer.name, l.name())
+							.set(genericLayer.title, l.title())
+							.set(genericLayer.abstractCol, l.abstractText())
+							.set(genericLayer.usergroups, GenericLayer.transformUserGroupsToText(userGroups))
 							.execute()
 							.thenCompose(
 								gl -> {
@@ -351,9 +359,9 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 														.execute()
 														.thenCompose(
 															n -> {
-																if (theLayer.tiledLayer().isPresent()){
+																if (l.tiledLayer().isPresent()){
 																	log.debug("Insert tiledlayer ");
-																	return insertTiledLayer(tx, theLayer.tiledLayer().get(), glId.get(), log)
+																	return insertTiledLayer(tx, l.tiledLayer().get(), glId.get(), log)
 																			.thenApply(whatever ->
 																	        	new Response<String>(CrudOperation.CREATE,
 																	                CrudResponse.OK, newLayerId));
@@ -372,9 +380,10 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 						log.debug("Updating layer with name: " + layerName);
 						return tx
 							.update(genericLayer)
-							.set(genericLayer.name, theLayer.name())
-							.set(genericLayer.title, theLayer.title())
-							.set(genericLayer.abstractCol, theLayer.abstractText())
+							.set(genericLayer.name, l.name())
+							.set(genericLayer.title, l.title())
+							.set(genericLayer.abstractCol, l.abstractText())
+							.set(genericLayer.usergroups, GenericLayer.transformUserGroupsToText(userGroups))
 							.where(genericLayer.identification.eq(layerId))
 							.execute()
 							.thenCompose(
@@ -394,8 +403,8 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 													.thenCompose(
 														tlIdOld -> {
 														log.debug("Deleted tiledlayer glId: " + glId.get());
-														if (theLayer.tiledLayer().isPresent()){
-															return insertTiledLayer(tx, theLayer.tiledLayer().get(), glId.get(), log)
+														if (l.tiledLayer().isPresent()){
+															return insertTiledLayer(tx, l.tiledLayer().get(), glId.get(), log)
 															    .thenApply(whatever ->
 															        new Response<String>(CrudOperation.UPDATE,
 													                CrudResponse.OK, layerId));
@@ -638,6 +647,7 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 						null,
 						null,
 						null,
+						null,
 						false,
 						false
 						));
@@ -678,6 +688,7 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 						null,
 						null,
 						null,
+						Collections.emptyList(),
 						null, null, null,
 						null, null,
 						false, false, false

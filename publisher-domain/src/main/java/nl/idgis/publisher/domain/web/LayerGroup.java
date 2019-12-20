@@ -3,6 +3,7 @@
  */
 package nl.idgis.publisher.domain.web;
 
+import java.util.List;
 import java.util.Optional;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -18,11 +19,12 @@ import com.mysema.query.annotations.QueryProjection;
  */
 public class LayerGroup extends Identifiable implements Selectable {
 	
-	private static final long serialVersionUID = 6920182039810981370L;
+	private static final long serialVersionUID = -2055292766835854817L;
 	
 	private final String name;
 	private final String title;
 	private final String abstractText;
+	private final List<String> userGroups;
 	
 	private final TiledLayer tiledLayer;
 	
@@ -38,6 +40,7 @@ public class LayerGroup extends Identifiable implements Selectable {
 			final @JsonProperty("") String name, 
 			final @JsonProperty("") String title, 
 			final @JsonProperty("") String abstractText,
+			final @JsonProperty("") List<String> userGroups,
 			final @JsonProperty("") TiledLayer tiledLayer,
 			final @JsonProperty("confidential") boolean confidential,
 			final @JsonProperty("wmsOnly") boolean wmsOnly) {
@@ -45,6 +48,7 @@ public class LayerGroup extends Identifiable implements Selectable {
 		this.name = name;
 		this.title = title;
 		this.abstractText = abstractText;
+		this.userGroups = userGroups;
 		this.tiledLayer = tiledLayer;
 		this.confidential = confidential;
 		this.wmsOnly = wmsOnly;
@@ -63,6 +67,11 @@ public class LayerGroup extends Identifiable implements Selectable {
 	@JsonGetter
 	public String abstractText() {
 		return abstractText;
+	}
+
+	@JsonGetter
+	public List<String> userGroups() {
+		return userGroups;
 	}
 
 	public Optional<TiledLayer> tiledLayer() {

@@ -13,12 +13,10 @@ import java.util.stream.Collectors;
 import com.mysema.query.Tuple;
 
 import akka.event.LoggingAdapter;
-
+import nl.idgis.publisher.data.GenericLayer;
 import nl.idgis.publisher.database.AsyncSQLQuery;
-
 import nl.idgis.publisher.domain.web.tree.DefaultTiling;
 import nl.idgis.publisher.domain.web.tree.PartialGroupLayer;
-
 import nl.idgis.publisher.utils.TypedList;
 
 public abstract class AbstractGroupQuery extends AbstractQuery<TypedList<PartialGroupLayer>> {
@@ -32,21 +30,23 @@ public abstract class AbstractGroupQuery extends AbstractQuery<TypedList<Partial
 		return tilingGroupMimeFormats().thenCompose(tilingMimeFormats -> 
 			groupInfo().thenApply(resp ->
 				new TypedList<>(PartialGroupLayer.class, resp.list().stream()
-					.map(t -> new PartialGroupLayer(
-						t.get(genericLayer.identification),
-						t.get(genericLayer.name),
-						t.get(genericLayer.title),
-						t.get(genericLayer.abstractCol),
-						t.get(tiledLayer.genericLayerId) == null 
-							? Optional.empty()
-							: Optional.of(new DefaultTiling(
-								tilingMimeFormats.get(t.get(genericLayer.id)),
-								t.get(tiledLayer.metaWidth),
-								t.get(tiledLayer.metaHeight),
-								t.get(tiledLayer.expireCache),
-								t.get(tiledLayer.expireClients),
-								t.get(tiledLayer.gutter)))
-					))
+					.map(t -> {
+						return new PartialGroupLayer(
+							t.get(genericLayer.identification),
+							t.get(genericLayer.name),
+							t.get(genericLayer.title),
+							t.get(genericLayer.abstractCol),
+							GenericLayer.transformUserGroupsToList(t.get(genericLayer.usergroups)),
+							t.get(tiledLayer.genericLayerId) == null 
+								? Optional.empty()
+								: Optional.of(new DefaultTiling(
+									tilingMimeFormats.get(t.get(genericLayer.id)),
+									t.get(tiledLayer.metaWidth),
+									t.get(tiledLayer.metaHeight),
+									t.get(tiledLayer.expireCache),
+									t.get(tiledLayer.expireClients),
+									t.get(tiledLayer.gutter))));
+					})
 					.collect(Collectors.toList()))));
 	}
 	
@@ -58,8 +58,9 @@ public abstract class AbstractGroupQuery extends AbstractQuery<TypedList<Partial
 				genericLayer.name, 
 				genericLayer.title, 
 				genericLayer.abstractCol,
+				genericLayer.usergroups,
 				tiledLayer.genericLayerId,
-				tiledLayer.metaWidth,					
+				tiledLayer.metaWidth,
 				tiledLayer.metaHeight,
 				tiledLayer.expireCache,
 				tiledLayer.expireClients,

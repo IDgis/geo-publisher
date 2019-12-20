@@ -7,6 +7,7 @@
 	groups: Page[nl.idgis.publisher.domain.web.LayerGroup],
 	layers: Page[nl.idgis.publisher.domain.web.Layer],
 	groupLayer: GroupLayer,
+	allUserGroups: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.LdapUserGroup],
 	parentGroups: Page[nl.idgis.publisher.domain.web.LayerGroup],
 	parentServices: Page[nl.idgis.publisher.domain.web.Service],
 	previewUrl: String
@@ -71,6 +72,34 @@
 				)
 				
 				@helper.groupStructure(layers, groups, groupLayer, groupForm("structure").errors)
+				
+				<div class="form-group">
+					<label class="col-sm-2 control-label" for="input-usergroup">@Domain.message("web.application.page.groups.form.field.usergroups.label")</label>
+					<div class="col-lg-9">
+						<div class="input-group">
+							<select class="form-control" id="input-usergroup-select">
+								<option value="">--</option>
+								@for(userGroup <- allUserGroups.values) {
+									<option value="@userGroup.name">@userGroup.name</option>
+								}
+							</select>
+							@helper.helpFormAddon(Domain.message("web.application.page.groups.form.field.usergroups.help"))
+						</div>
+						@helper.fielderrors(groupForm("userGroups").errors)
+					</div>
+					<div class="col-sm-offset-2 col-lg-8">
+						<div class="usergroup-list" id="usergroup-list">
+							@helper.repeat(groupForm("userGroups"), min = 0) { userGroupField =>
+								<div class="usergroup-item-block" value="@userGroupField.value">
+									<input type="hidden" name="userGroups[]" value="@userGroupField.value">
+									<span class="usergroup-item label label-primary">@userGroupField.value
+										<button type="button" aria-hidden="true" class="close" value="@userGroupField.value">&times;</button>
+									</span>
+								</div>
+							}
+						</div>
+					</div>
+				</div>
 				
 				@helper.parents(parentGroups, routes.Groups.edit, 
 					Domain.message("web.application.page.groups.form.field.parentGroups.label"), 

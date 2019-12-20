@@ -15,15 +15,13 @@ import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
 
 import akka.event.LoggingAdapter;
-
+import nl.idgis.publisher.data.GenericLayer;
 import nl.idgis.publisher.database.AsyncHelper;
 import nl.idgis.publisher.database.AsyncSQLQuery;
-
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.tree.AbstractDatasetLayer;
 import nl.idgis.publisher.domain.web.tree.DefaultService;
 import nl.idgis.publisher.domain.web.tree.PartialGroupLayer;
-
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
 
@@ -111,6 +109,7 @@ public class GetServiceQuery extends AbstractServiceQuery<Object, AsyncSQLQuery>
 				genericLayer.name, 
 				genericLayer.title, 
 				genericLayer.abstractCol,
+				genericLayer.usergroups,
 				constants.contact,
 				constants.organization,
 				constants.position,
@@ -141,7 +140,7 @@ public class GetServiceQuery extends AbstractServiceQuery<Object, AsyncSQLQuery>
 		
 		return info().thenCompose(info ->
 			info.isPresent() ?
-				structure().thenCompose(structure ->						
+				structure().thenCompose(structure ->
 				groups().thenCompose(groups ->
 				keywords().thenCompose(keywords ->
 				datasets().thenCompose(datasets -> {
@@ -150,13 +149,14 @@ public class GetServiceQuery extends AbstractServiceQuery<Object, AsyncSQLQuery>
 							= structureProcessor.transform(structure.list());
 						
 						Tuple serviceInfoTuple = info.get();
-		
+						
 						return f.successful(new DefaultService(
 							serviceId, 
 							serviceInfoTuple.get(genericLayer.name),
 							serviceInfoTuple.get(genericLayer.title),
 							serviceInfoTuple.get(genericLayer.abstractCol),
 							keywords.list(),
+							GenericLayer.transformUserGroupsToList(serviceInfoTuple.get(genericLayer.usergroups)),
 							serviceInfoTuple.get(constants.contact),
 							serviceInfoTuple.get(constants.organization),
 							serviceInfoTuple.get(constants.position),
@@ -174,6 +174,7 @@ public class GetServiceQuery extends AbstractServiceQuery<Object, AsyncSQLQuery>
 								serviceInfoTuple.get(genericLayer.name),
 								serviceInfoTuple.get(genericLayer.title),
 								serviceInfoTuple.get(genericLayer.abstractCol),
+								GenericLayer.transformUserGroupsToList(serviceInfoTuple.get(genericLayer.usergroups)),
 								Optional.empty()), // a root group doesn't have (or need) tiling
 							datasets.list(),
 							groups.list(),

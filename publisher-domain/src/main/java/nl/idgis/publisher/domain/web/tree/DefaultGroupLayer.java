@@ -13,8 +13,8 @@ import nl.idgis.publisher.utils.GZIPSerializer;
 
 public class DefaultGroupLayer extends AbstractGroupLayer {
 	
-	private static final long serialVersionUID = -8006116069339954358L;
-	
+	private static final long serialVersionUID = 4642038830659693025L;
+
 	private static final GZIPSerializer<DefaultGroupLayer> serializer = new GZIPSerializer<>(DefaultGroupLayer.class);
 	
 	private final PartialGroupLayer partialGroupLayer;
@@ -110,6 +110,11 @@ public class DefaultGroupLayer extends AbstractGroupLayer {
 	@Override
 	public String getAbstract() {
 		return partialGroupLayer.getAbstract();
+	}
+
+	@Override
+	public List<String> getUserGroups() {
+		return partialGroupLayer.getUserGroups();
 	}
 
 	@Override

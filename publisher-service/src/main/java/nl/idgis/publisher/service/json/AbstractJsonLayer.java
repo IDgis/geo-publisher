@@ -1,9 +1,12 @@
 package nl.idgis.publisher.service.json;
 
+import static java.util.stream.Collectors.toList;
 import static nl.idgis.publisher.service.json.JsonService.asTextWithDefault;
 import static nl.idgis.publisher.service.json.JsonService.getOptional;
+import static nl.idgis.publisher.service.json.JsonService.getStream;
 
 import java.sql.Timestamp;
+import java.util.List;
 import java.util.Optional;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -37,6 +40,14 @@ public abstract class AbstractJsonLayer implements Layer {
 	@Override
 	public final String getAbstract() {
 		return asTextWithDefault (jsonNode.path ("abstract"), null);
+	}
+	
+	@Override
+	public List<String> getUserGroups() {
+		return 
+			getStream(jsonNode, "userGroups")
+				.map(JsonNode::asText)
+				.collect(toList());
 	}
 
 	@Override

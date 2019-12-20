@@ -6,7 +6,7 @@ import java.util.Optional;
 
 public class DefaultVectorDatasetLayer extends AbstractDatasetLayer implements VectorDatasetLayer {
 	
-	private static final long serialVersionUID = -545715957930901516L;
+	private static final long serialVersionUID = -6463034211967350824L;
 
 	private final String tableName;
 	
@@ -15,10 +15,10 @@ public class DefaultVectorDatasetLayer extends AbstractDatasetLayer implements V
 	private final boolean wmsOnly;
 	
 	public DefaultVectorDatasetLayer(String id, String name, String title, String abstr, Tiling tiling, Optional<String> metadataFileIdentification,
-		List<String> keywords, String tableName, List<String> columnNames, List<StyleRef> styleRef, boolean confidential, boolean wmsOnly, 
+		List<String> keywords, List<String> userGroups, String tableName, List<String> columnNames, List<StyleRef> styleRef, boolean confidential, boolean wmsOnly, 
 		Timestamp importTime) {
 		
-		super(id, name, title, abstr, tiling, confidential, metadataFileIdentification, importTime, keywords, styleRef);
+		super(id, name, title, abstr, userGroups, tiling, confidential, metadataFileIdentification, importTime, keywords, styleRef);
 		
 		this.tableName = tableName;
 		this.columnNames = columnNames;

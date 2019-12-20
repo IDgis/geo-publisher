@@ -1,0 +1,75 @@
+@(userGroups: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.LdapUserGroup], query: String)
+
+@pageRef(targetPage: Long) = @{	  
+	routes.LdapUserGroups.list (query, targetPage)
+}
+
+@layout.application(title = Domain.message("web.application.page.ldap.usergroup.list.header"),
+	jsMain = routes.Assets.at("js/ldap/usergroups/list.js").url,
+	docPath = "ldap/usergroup/list"
+) {
+
+<div class="page-content">
+	<h1 class="page-header">@Domain.message("web.application.page.ldap.usergroup.list.header")</h1>
+	
+	<div class="row">
+		@* Add button: *@
+		<div class="col-lg-3 col-lg-push-9">
+			<form class="form-horizontal" role="form">
+				<div class="form-group">
+					<div class="col-sm-12">
+						<a href="@routes.LdapUserGroups.create()"
+							class="btn btn-success col-sm-12" title="@Domain.message("web.application.button.add")">
+							<span class="glyphicon glyphicon-plus"></span> @Domain.message("web.application.page.ldap.usergroup.button.add")
+						</a>
+					</div>
+				</div><div class="form-group">
+					<div class="col-sm-12">
+						<a id="js-usergroups-cleanup" href="#" class="btn btn-success col-sm-12" 
+							title="@Domain.message("web.application.page.ldap.usergroup.button.cleanup.title")"
+							data-cleanup-success="@Domain.message("web.application.page.ldap.usergroup.list.button.cleanup.success")"
+							data-cleanup-failure="@Domain.message("web.application.page.ldap.usergroup.list.button.cleanup.failure")">
+							<span class="glyphicon glyphicon-refresh"></span> @Domain.message("web.application.page.ldap.usergroup.button.cleanup")
+						</a>
+					</div>
+				</div>
+			</form>
+		</div>
+		
+		@* List of users: *@
+		<div class="col-lg-9 col-lg-pull-3">
+			@if(userGroups.values.isEmpty) {
+			<div class="alert alert-info">@Domain.message("web.application.page.ldap.usergroup.list.empty")</div>
+			} else {
+			<div class="list-group" id="group-list">
+				@for(userGroup <- userGroups.values) {
+				<div class="list-group-item js-group-item">
+					<div class="row">
+						<div class="col-md-10">
+							<h4 class="list-group-item-heading">
+								<a href="@routes.LdapUserGroups.edit(userGroup.name)" class="text-warning app-list-item">@userGroup.name</a>
+							</h4>
+						</div>
+						<div class="col-md-2">
+							<div class="btn-group pull-right">
+								<a href="@routes.LdapUserGroups.edit(userGroup.name)"
+									class="btn btn-default" title="@Domain.message("web.application.button.edit")">
+									<span class="glyphicon glyphicon-edit"></span>
+								</a> 
+								<a href="@routes.LdapUserGroups.delete(userGroup.name)"
+									class="btn btn-warning js-delete-button" title="@Domain.message("web.application.button.remove")">
+									<span class="glyphicon glyphicon-remove"></span>
+								</a>
+							</div>
+						</div>
+					</div>
+				</div>
+				}
+			</div>
+			}
+			
+			@helper.pagination(userGroups, pageRef)
+		</div>
+	</div>
+</div>
+}

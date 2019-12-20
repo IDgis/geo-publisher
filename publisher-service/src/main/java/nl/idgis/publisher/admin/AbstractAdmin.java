@@ -23,15 +23,12 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Procedure;
 import akka.util.Timeout;
-
-import scala.concurrent.duration.Duration;
-
+import nl.idgis.publisher.admin.messages.DeleteEvent;
 import nl.idgis.publisher.admin.messages.DoDelete;
 import nl.idgis.publisher.admin.messages.DoGet;
 import nl.idgis.publisher.admin.messages.DoList;
 import nl.idgis.publisher.admin.messages.DoPut;
 import nl.idgis.publisher.admin.messages.DoQuery;
-import nl.idgis.publisher.admin.messages.DeleteEvent;
 import nl.idgis.publisher.admin.messages.Event;
 import nl.idgis.publisher.admin.messages.EventCompleted;
 import nl.idgis.publisher.admin.messages.EventFailed;
@@ -40,9 +37,7 @@ import nl.idgis.publisher.admin.messages.Initialized;
 import nl.idgis.publisher.admin.messages.OnDelete;
 import nl.idgis.publisher.admin.messages.OnPut;
 import nl.idgis.publisher.admin.messages.OnQuery;
-
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
-
 import nl.idgis.publisher.domain.Failure;
 import nl.idgis.publisher.domain.query.DeleteEntity;
 import nl.idgis.publisher.domain.query.DomainQuery;
@@ -54,9 +49,9 @@ import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.web.Entity;
 import nl.idgis.publisher.domain.web.Identifiable;
 import nl.idgis.publisher.domain.web.NotFound;
-
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
+import scala.concurrent.duration.Duration;
 
 public abstract class AbstractAdmin extends UntypedActorWithStash {
 	

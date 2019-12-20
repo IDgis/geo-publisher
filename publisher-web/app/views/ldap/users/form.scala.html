@@ -1,0 +1,90 @@
+@(userForm: Form[controllers.LdapUsers.UserForm], 
+	create: Boolean
+)
+
+@implicitField = @{ helper.FieldConstructor(helper.bootstrap.bootstrapFieldConstructor.f) }
+
+@layout.application( 
+	title=Domain.message("web.application.page.ldap.user.form.title"),
+	jsMain = routes.Assets.at("js/ldap/users/form.js").url,
+	docPath = "ldap/user/form"
+){
+
+<div class="page-content">
+	@if(create){
+		<h1 class="page-header">@Domain.message("web.application.page.ldap.user.form.header.new")</h1>
+	}else{
+		<h1 class="page-header">@Domain.message("web.application.page.ldap.user.form.header.edit", userForm("email").value) </h1>
+	}
+	
+	@helper.formerrors(userForm, Domain.message("web.application.page.ldap.user.name").toLowerCase())
+
+	<div class="row">
+		<div class="col-lg-12">
+			<form class="form-horizontal" method="post" action="@if(create){@routes.LdapUsers.submitCreate()}else{@routes.LdapUsers.submitUpdate()}">
+				@if(create) {
+					@helper.inputText(
+						userForm("email"),
+						'type -> "email",
+						'_label -> Domain.message("web.application.page.ldap.user.form.field.email.label"),
+						'id -> "input-email",
+						'class -> "form-control",
+						'placeholder -> Domain.message("web.application.page.ldap.user.form.field.email.placeholder"),
+						'_help -> Domain.message("web.application.page.ldap.user.form.field.email.help"),
+						'_required -> true
+					)
+				} else {
+					@helper.inputText(
+						userForm("email"),
+						'type -> "email",
+						'_label -> Domain.message("web.application.page.ldap.user.form.field.email.label"),
+						'id -> "input-email",
+						'class -> "form-control",
+						'placeholder -> Domain.message("web.application.page.ldap.user.form.field.email.placeholder"),
+						'_help -> Domain.message("web.application.page.ldap.user.form.field.email.help"),
+						'readonly -> "readonly"
+					)
+				}
+				@helper.inputText(
+					userForm("fullName"),
+					'_label -> Domain.message("web.application.page.ldap.user.form.field.fullname.label"),
+					'id -> "input-fullName",
+					'class -> "form-control",
+					'placeholder -> Domain.message("web.application.page.ldap.user.form.field.fullname.placeholder"),
+					'_help -> Domain.message("web.application.page.ldap.user.form.field.fullname.help"),
+					'_required -> true
+				)
+				@helper.inputText(
+					userForm("lastName"),
+					'_label -> Domain.message("web.application.page.ldap.user.form.field.lastname.label"),
+					'id -> "input-lastName",
+					'class -> "form-control",
+					'placeholder -> Domain.message("web.application.page.ldap.user.form.field.lastname.placeholder"),
+					'_help -> Domain.message("web.application.page.ldap.user.form.field.lastname.help"),
+					'_required -> true
+				)
+				@helper.inputText(
+					userForm("password"),
+					'type -> "password",
+					'_label -> Domain.message("web.application.page.ldap.user.form.field.password.label"),
+					'id -> "input-password",
+					'class -> "form-control",
+					'placeholder -> Domain.message("web.application.page.ldap.user.form.field.password.placeholder"),
+					'_help -> Domain.message("web.application.page.ldap.user.form.field.password.help"),
+					'_required -> true
+				)
+				
+				<div class="form-group">
+					<div class="col-sm-offset-2 col-sm-10">
+						<button class="btn btn-success" type="submit">@Domain.message("web.application.button.save")</button>
+						<a href="@routes.LdapUsers.list()" 
+							class="btn btn-success"> @Domain.message("web.application.button.cancel")
+						</a>
+					</div>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+
+}

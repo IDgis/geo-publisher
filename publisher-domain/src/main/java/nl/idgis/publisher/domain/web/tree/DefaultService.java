@@ -5,26 +5,29 @@ import java.util.List;
 
 public class DefaultService implements Service, Serializable {	
 	
-	private static final long serialVersionUID = -4257668190760648632L;
+	private static final long serialVersionUID = -8893381470524236284L;
 
 	private final String id, name, title, abstr, contact, organization, position, addressType,
 		address, city, state, zipcode, country, telephone, fax, email;
 	
 	private final List<String> keywords;
 	
+	private final List<String> userGroups;
+	
 	private final GroupLayer root;
 	
 	public DefaultService(String id, String name, String title, String abstr, List<String> keywords, 
-			String contact, String organization, String position, String addressType, String address, 
-			String city, String state, String zipcode, String country, String telephone, String fax,
-			String email, PartialGroupLayer root, List<AbstractDatasetLayer> datasets, List<PartialGroupLayer> groups, 
-			List<StructureItem> structure) {
+			List<String> userGroups, String contact, String organization, String position, String addressType, 
+			String address, String city, String state, String zipcode, String country, String telephone, 
+			String fax, String email, PartialGroupLayer root, List<AbstractDatasetLayer> datasets, 
+			List<PartialGroupLayer> groups, List<StructureItem> structure) {
 		
 		this.id = id;
 		this.name = name;
 		this.title = title;
 		this.abstr = abstr;
 		this.keywords = keywords;
+		this.userGroups = userGroups;
 		this.contact = contact;
 		this.organization = organization;
 		this.position = position;
@@ -63,6 +66,11 @@ public class DefaultService implements Service, Serializable {
 	@Override
 	public List<String> getKeywords() {
 		return keywords;
+	}
+	
+	@Override
+	public List<String> getUserGroups() {
+		return userGroups;
 	}
 	
 	@Override

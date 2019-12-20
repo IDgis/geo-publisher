@@ -24,6 +24,17 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
+import com.mysema.query.Tuple;
+import com.mysema.query.sql.SQLSubQuery;
+import com.mysema.query.support.Expressions;
+import com.mysema.query.types.Expression;
+import com.mysema.query.types.Ops;
+import com.mysema.query.types.expr.BooleanExpression;
+import com.mysema.query.types.path.PathBuilder;
+
+import akka.actor.ActorRef;
+import akka.actor.Props;
+import nl.idgis.publisher.data.GenericLayer;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.database.QGenericLayer;
 import nl.idgis.publisher.database.QLeafLayer;
@@ -39,7 +50,6 @@ import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
-import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.Service;
@@ -56,17 +66,6 @@ import nl.idgis.publisher.utils.StreamUtils;
 import nl.idgis.publisher.utils.StreamUtils.ZippedEntry;
 import nl.idgis.publisher.utils.TypedIterable;
 import nl.idgis.publisher.utils.TypedList;
-import akka.actor.ActorRef;
-import akka.actor.Props;
-
-import com.mysema.query.Tuple;
-import com.mysema.query.sql.SQLSubQuery;
-import com.mysema.query.support.Expressions;
-import com.mysema.query.types.Expression;
-import com.mysema.query.types.Ops;
-import com.mysema.query.types.Path;
-import com.mysema.query.types.expr.BooleanExpression;
-import com.mysema.query.types.path.PathBuilder;
 
 public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 	
@@ -235,6 +234,7 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 										group.get(genericLayer.name),
 										group.get(genericLayer.title),
 										group.get(genericLayer.abstractCol),
+										null,
 										(hasTiledLayer
 											? new TiledLayer(
 												group.get(genericLayer.identification),
@@ -293,17 +293,18 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 								group.get(genericLayer.name),
 								group.get(genericLayer.title),
 								group.get(genericLayer.abstractCol),
-									(hasTiledLayer
-										? new TiledLayer(
-											group.get(genericLayer.identification),
-											group.get(genericLayer.name),
-											group.get(tiledLayer.metaWidth),
-											group.get(tiledLayer.metaHeight),
-											group.get(tiledLayer.expireCache),
-											group.get(tiledLayer.expireClients),
-											group.get(tiledLayer.gutter),
-											mimeFormats.list())
-										: null),
+								GenericLayer.transformUserGroupsToList(group.get(genericLayer.usergroups)),
+								(hasTiledLayer
+									? new TiledLayer(
+										group.get(genericLayer.identification),
+										group.get(genericLayer.name),
+										group.get(tiledLayer.metaWidth),
+										group.get(tiledLayer.metaHeight),
+										group.get(tiledLayer.expireCache),
+										group.get(tiledLayer.expireClients),
+										group.get(tiledLayer.gutter),
+										mimeFormats.list())
+									: null),
 								group.get (confidentialPath),
 								group.get (wmsOnlyPath)
 							)));
@@ -313,9 +314,10 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 			}));
 	}
 	
-	private CompletableFuture<Response<?>> handlePutLayergroup(LayerGroup theLayergroup) {
-		String layergroupId = theLayergroup.id();
-		String layergroupName = theLayergroup.name();
+	private CompletableFuture<Response<?>> handlePutLayergroup(LayerGroup lg) {
+		String layergroupId = lg.id();
+		String layergroupName = lg.name();
+		List<String> userGroups = lg.userGroups();
 		log.debug ("handle update/create layergroup: " + layergroupId);
 		
 		return db.transactional(tx ->
@@ -332,8 +334,9 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 						return tx.insert(genericLayer)
 							.set(genericLayer.identification, newGroupId)
 							.set(genericLayer.name, layergroupName)
-							.set(genericLayer.title, theLayergroup.title())
-							.set(genericLayer.abstractCol, theLayergroup.abstractText())
+							.set(genericLayer.title, lg.title())
+							.set(genericLayer.abstractCol, lg.abstractText())
+							.set(genericLayer.usergroups, GenericLayer.transformUserGroupsToText(userGroups))
 							.execute()
 							.thenCompose(
 								n -> {
@@ -345,12 +348,12 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 										.singleResult(genericLayer.id)
 										.thenCompose(
 											glId2 -> {
-												if (theLayergroup.tiledLayer().isPresent()){
+												if (lg.tiledLayer().isPresent()){
 													log.debug("Insert tiledlayer ");
-													return insertTiledLayer(tx, theLayergroup.tiledLayer().get(), glId2.get(), log)
+													return insertTiledLayer(tx, lg.tiledLayer().get(), glId2.get(), log)
 														.thenApply(whatever ->
-													       	new Response<String>(CrudOperation.CREATE,
-													              CrudResponse.OK, newGroupId));
+															new Response<String>(CrudOperation.CREATE,
+																CrudResponse.OK, newGroupId));
 												} else {
 													return f.successful( 
 														new Response<String>(CrudOperation.CREATE,
@@ -362,8 +365,9 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 						// UPDATE
 						log.debug("Updating layergroup with name: " + layergroupName + ", id:" + layergroupId);
 						return tx.update(genericLayer)
-							.set(genericLayer.title, theLayergroup.title())
-							.set(genericLayer.abstractCol, theLayergroup.abstractText())
+							.set(genericLayer.title, lg.title())
+							.set(genericLayer.abstractCol, lg.abstractText())
+							.set(genericLayer.usergroups, GenericLayer.transformUserGroupsToText(userGroups))
 							.where(genericLayer.identification.eq(layergroupId))
 							.execute()
 							.thenCompose(
@@ -376,8 +380,8 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 											.thenCompose(
 												tlIdOld -> {
 												log.debug("Deleted tiledlayer glId: " + glId.get());
-												if (theLayergroup.tiledLayer().isPresent()){
-													return insertTiledLayer(tx, theLayergroup.tiledLayer().get(), glId.get(), log)
+												if (lg.tiledLayer().isPresent()){
+													return insertTiledLayer(tx, lg.tiledLayer().get(), glId.get(), log)
 													    .thenApply(whatever ->
 													        new Response<String>(CrudOperation.UPDATE,
 											                CrudResponse.OK, layergroupId));
@@ -611,6 +615,7 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 							null,
 							null,
 							null,
+							null,
 							false,
 							false
 						));
@@ -650,6 +655,7 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 						null,
 						null,
 						null,
+						Collections.emptyList(),
 						null, null, null,
 						null, null,
 						false, false, false

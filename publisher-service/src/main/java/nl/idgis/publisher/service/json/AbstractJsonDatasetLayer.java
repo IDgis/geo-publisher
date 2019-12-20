@@ -36,7 +36,7 @@ public abstract class AbstractJsonDatasetLayer extends AbstractJsonLayer impleme
 			getStream(jsonNode, "keywords")
 				.map(JsonNode::asText)
 				.collect(toList());
-	}	
+	}
 
 	@Override
 	public List<StyleRef> getStyleRefs() {
@@ -44,7 +44,7 @@ public abstract class AbstractJsonDatasetLayer extends AbstractJsonLayer impleme
 			getStream(jsonNode, "styleRefs")
 				.map(JsonStyleRef::new)
 				.collect(toList());
-	}	
+	}
 	
 	@Override
 	public boolean isVectorLayer() {

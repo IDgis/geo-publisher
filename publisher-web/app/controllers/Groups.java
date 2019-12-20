@@ -13,6 +13,7 @@ import models.Domain;
 import models.Domain.Function;
 import models.Domain.Function2;
 import models.Domain.Function3;
+import models.Domain.Function4;
 import models.Domain.Function5;
 
 import nl.idgis.publisher.domain.query.GetGroupParentGroups;
@@ -22,6 +23,7 @@ import nl.idgis.publisher.domain.query.GetGroupLayerRef;
 import nl.idgis.publisher.domain.query.GetLayerServices;
 import nl.idgis.publisher.domain.query.ListLayerGroups;
 import nl.idgis.publisher.domain.query.ListLayers;
+import nl.idgis.publisher.domain.query.ListLdapUserGroups;
 import nl.idgis.publisher.domain.query.PutGroupStructure;
 import nl.idgis.publisher.domain.query.ValidateUniqueName;
 import nl.idgis.publisher.domain.response.Page;
@@ -30,6 +32,7 @@ import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
 import nl.idgis.publisher.domain.web.Layer;
 import nl.idgis.publisher.domain.web.LayerGroup;
+import nl.idgis.publisher.domain.web.LdapUserGroup;
 import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
 
@@ -60,14 +63,16 @@ public class Groups extends GroupsLayersCommon {
 	
 	private static Promise<Result> renderCreateForm (final Form<GroupForm> groupForm) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		
 		return from (database)
 			.query (new ListLayerGroups(1l, null))
 			.query (new ListLayers (1l, null, null))
-			.execute (new Function2<Page<LayerGroup>, Page<Layer>, Result> () {
+			.query (new ListLdapUserGroups (1L, "", true))
+			.execute (new Function3<Page<LayerGroup>, Page<Layer>, Page<LdapUserGroup>, Result> () {
 
 				@Override
-				public Result apply (final Page<LayerGroup> groups, final Page<Layer> layers) throws Throwable {
-					return ok (form.render (groupForm, true, groups, layers, null, null, null, null));
+				public Result apply (final Page<LayerGroup> groups, final Page<Layer> layers, final Page<LdapUserGroup> allUserGroups) throws Throwable {
+					return ok (form.render (groupForm, true, groups, layers, null, allUserGroups, null, null, null));
 				}
 			});
 
@@ -90,8 +95,11 @@ public class Groups extends GroupsLayersCommon {
 		final List<String> layerStyleIds = groupForm.styles == null ? new ArrayList<>() : groupForm.styles;
 		Logger.debug ("Group layer style list: " + layerStyleIds);
 		
-		final LayerGroup group = new LayerGroup(groupForm.id, groupForm.name.trim (), groupForm.title, 
-				groupForm.abstractText,(groupForm.enabled ? groupForm.getTiledLayer() : null), false, false);
+		final LayerGroup group = new LayerGroup(
+				groupForm.id, groupForm.name.trim (), groupForm.title, 
+				groupForm.abstractText, groupForm.getUserGroups(),
+				(groupForm.enabled ? groupForm.getTiledLayer() : null), 
+				false, false);
 		
 		return from (database)
 			.put(group)
@@ -138,7 +146,7 @@ public class Groups extends GroupsLayersCommon {
 		final Form<GroupForm> form = Form.form (GroupForm.class).bindFromRequest ();
 		final String name = form.field ("name").valueOr (null);
 		
-		if (form.field("id").value().equals(ID) && name != null) {		
+		if (form.field("id").value().equals(ID) && name != null) {
 			return from (database)
 				.query (new ValidateUniqueName (name))
 				.executeFlat (validationResult -> {
@@ -158,7 +166,7 @@ public class Groups extends GroupsLayersCommon {
 								form.reject ("name", "web.application.page.groups.form.field.name.validation.serviceexists.error");
 								break;
 							default:
-								break;						
+								break;
 						}
 					}
 					
@@ -219,12 +227,13 @@ public class Groups extends GroupsLayersCommon {
 					}
 					return from (database)
 							.get(Service.class, serviceId)
+							.query (new ListLdapUserGroups (1L, "", true))
 							.query(new GetGroupParentGroups(groupId))
 							.query(new GetGroupParentServices(groupId))
-							.execute (new Function3<Service, Page<LayerGroup>, Page<Service>, Result> () {
-
+							.execute (new Function4<Service, Page<LdapUserGroup>, Page<LayerGroup>, Page<Service>, Result> () {
+								
 							@Override
-							public Result apply (final Service service, final Page<LayerGroup> parentGroups, final Page<Service> parentServices) throws Throwable {
+							public Result apply (final Service service, final Page<LdapUserGroup> allUserGroups, final Page<LayerGroup> parentGroups, final Page<Service> parentServices) throws Throwable {
 									
 								final Form<GroupForm> groupForm = Form
 										.form (GroupForm.class)
@@ -255,7 +264,7 @@ public class Groups extends GroupsLayersCommon {
 								} else {
 									previewUrl = makeOldPreviewUrl(service.name(), group.name());
 								}
-								return ok (form.render (groupForm, false, groups, layers, groupLayer, parentGroups, parentServices, previewUrl));
+								return ok (form.render (groupForm, false, groups, layers, groupLayer, allUserGroups, parentGroups, parentServices, previewUrl));
 							}
 							});
 				}
@@ -312,12 +321,14 @@ public class Groups extends GroupsLayersCommon {
 		 * List of id's of styles in this group
 		 */
 		private List<String> styles;
+		private List<String> userGroups;
 
 		private Boolean enabled = false;
 
 		public GroupForm(){
 			super();
 			this.id=ID;
+			this.userGroups = new ArrayList<String>();
 		}
 		
 		public GroupForm(LayerGroup group){
@@ -326,6 +337,7 @@ public class Groups extends GroupsLayersCommon {
 			this.name = group.name();
 			this.title = group.title();
 			this.abstractText = group.abstractText();
+			this.userGroups = group.userGroups();
 			this.enabled = group.tiledLayer().isPresent();
 
 		}
@@ -376,6 +388,18 @@ public class Groups extends GroupsLayersCommon {
 
 		public void setStyles(List<String> styles) {
 			this.styles = styles;
+		}
+
+		public List<String> getUserGroups() {
+			return userGroups;
+		}
+
+		public void setUserGroups(List<String> userGroups) {
+			if (userGroups==null){
+				this.userGroups = new ArrayList<String>();
+			}else{
+				this.userGroups = userGroups;
+			}
 		}
 		
 		public Boolean getEnabled() {

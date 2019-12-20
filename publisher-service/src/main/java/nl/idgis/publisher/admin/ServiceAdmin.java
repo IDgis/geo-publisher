@@ -1,12 +1,12 @@
 package nl.idgis.publisher.admin;
 
-import static nl.idgis.publisher.database.QPublishedService.publishedService;
 import static nl.idgis.publisher.database.QConstants.constants;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QEnvironment.environment;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QJob.job;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
+import static nl.idgis.publisher.database.QPublishedService.publishedService;
 import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QServiceJob.serviceJob;
 import static nl.idgis.publisher.database.QServiceKeyword.serviceKeyword;
@@ -15,12 +15,22 @@ import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVer
 import static nl.idgis.publisher.service.manager.QServiceStructure.serviceStructure;
 import static nl.idgis.publisher.service.manager.QServiceStructure.withServiceStructure;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+import com.mysema.query.Tuple;
+import com.mysema.query.sql.SQLSubQuery;
+import com.mysema.query.support.Expressions;
+import com.mysema.query.types.Ops;
+import com.mysema.query.types.expr.BooleanExpression;
+
+import akka.actor.ActorRef;
+import akka.actor.Props;
+import nl.idgis.publisher.data.GenericLayer;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.database.QGenericLayer;
 import nl.idgis.publisher.domain.query.ListEnvironments;
@@ -32,20 +42,10 @@ import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
 import nl.idgis.publisher.domain.service.CrudResponse;
-import nl.idgis.publisher.domain.web.QService;
 import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.ServicePublish;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.manager.messages.PublishService;
-
-import akka.actor.ActorRef;
-import akka.actor.Props;
-
-import com.mysema.query.Tuple;
-import com.mysema.query.sql.SQLSubQuery;
-import com.mysema.query.support.Expressions;
-import com.mysema.query.types.Ops;
-import com.mysema.query.types.expr.BooleanExpression;
 
 public class ServiceAdmin extends AbstractAdmin {
 	
@@ -193,12 +193,12 @@ public class ServiceAdmin extends AbstractAdmin {
 					addPageInfo (builder, listServices.getPage (), count);
 					
 					return listQuery
-						.list (new QService(
-								genericLayer.identification,
+						.list (genericLayer.identification,
 								genericLayer.name,
 								genericLayer.title, 
 								service.alternateTitle, 
 								genericLayer.abstractCol,
+								genericLayer.usergroups,
 								service.metadata,
 								genericLayer.identification,
 								constants.identification,
@@ -206,10 +206,29 @@ public class ServiceAdmin extends AbstractAdmin {
 								service.wmsMetadataFileIdentification,
 								isConfidential (),
 								isWmsOnly (),
-								isPublished ()
-							))
-						.thenApply ((styles) -> {
-							builder.addAll (styles.list ());
+								isPublished ())
+						.thenApply ((tuples) -> {
+							for(Tuple t : tuples) {
+								Service s = new Service(
+									t.get(genericLayer.identification),
+									t.get(genericLayer.name),
+									t.get(genericLayer.title),
+									t.get(service.alternateTitle),
+									t.get(genericLayer.abstractCol),
+									GenericLayer.transformUserGroupsToList(t.get(genericLayer.usergroups)),
+									t.get(service.metadata),
+									t.get(genericLayer.identification),
+									t.get(service.wfsMetadataFileIdentification),
+									t.get(service.wmsMetadataFileIdentification),
+									t.get(constants.identification),
+									t.get(11, Boolean.class),
+									t.get(12, Boolean.class),
+									t.get(13, Boolean.class)
+								);
+								
+								builder.add(s);
+							}
+							
 							return builder.build ();
 						});
 				});
@@ -218,18 +237,17 @@ public class ServiceAdmin extends AbstractAdmin {
 	private CompletableFuture<Optional<Service>> handleGetService (String serviceId) {
 		log.debug ("handleGetService: " + serviceId);
 		
-		
 		return 
 			withServiceStructure (db.query (), parent, child).from(service)
 			.leftJoin(genericLayer).on(service.genericLayerId.eq(genericLayer.id))
 			.leftJoin(constants).on(service.constantsId.eq(constants.id))
 			.where(genericLayer.identification.eq(serviceId))
-			.singleResult(new QService(
-					genericLayer.identification,
+			.singleResult(genericLayer.identification,
 					genericLayer.name,
 					genericLayer.title, 
 					service.alternateTitle, 
 					genericLayer.abstractCol,
+					genericLayer.usergroups,
 					service.metadata,
 					genericLayer.identification,
 					service.wfsMetadataFileIdentification,
@@ -238,12 +256,32 @@ public class ServiceAdmin extends AbstractAdmin {
 					isConfidential (),
 					isWmsOnly (),
 					isPublished ()
-			));		
+			).thenApply(optional -> {
+				return optional.map(t -> {
+					return new Service(
+						t.get(genericLayer.identification),
+						t.get(genericLayer.name),
+						t.get(genericLayer.title),
+						t.get(service.alternateTitle),
+						t.get(genericLayer.abstractCol),
+						GenericLayer.transformUserGroupsToList(t.get(genericLayer.usergroups)),
+						t.get(service.metadata),
+						t.get(genericLayer.identification),
+						t.get(service.wfsMetadataFileIdentification),
+						t.get(service.wmsMetadataFileIdentification),
+						t.get(constants.identification),
+						t.get(11, Boolean.class),
+						t.get(12, Boolean.class),
+						t.get(13, Boolean.class)
+					);
+				});
+			});
 	}
 	
-	private CompletableFuture<Response<?>> handlePutService(Service theService) {
-		String serviceId = theService.id();
-		String serviceName = theService.name();
+	private CompletableFuture<Response<?>> handlePutService(Service s) {
+		String serviceId = s.id();
+		String serviceName = s.name();
+		List<String> userGroups = s.userGroups();
 		log.debug ("handle update/create service: " + serviceId);
 		
 		return db.transactional(tx ->
@@ -259,8 +297,9 @@ public class ServiceAdmin extends AbstractAdmin {
 					return tx.insert(genericLayer)
 						.set(genericLayer.identification, newGenericLayerId)
 						.set(genericLayer.name, serviceName)
-						.set(genericLayer.title, theService.title())
-						.set(genericLayer.abstractCol, theService.abstractText())
+						.set(genericLayer.title, s.title())
+						.set(genericLayer.abstractCol, s.abstractText())
+						.set(genericLayer.usergroups, GenericLayer.transformUserGroupsToText(userGroups))
 						.execute()
 						.thenCompose(n -> {
 							return tx.query().from(genericLayer)
@@ -275,8 +314,8 @@ public class ServiceAdmin extends AbstractAdmin {
 												log.debug("Inserting new service with name: " + serviceName + ", ident: "
 														+ newGenericLayerId);
 												return tx.insert(service)
-													.set(service.alternateTitle, theService.alternateTitle())
-													.set(service.metadata, theService.metadata())
+													.set(service.alternateTitle, s.alternateTitle())
+													.set(service.metadata, s.metadata())
 													.set(service.wfsMetadataFileIdentification, UUID.randomUUID().toString())
 													.set(service.wmsMetadataFileIdentification, UUID.randomUUID().toString())
 													.set(service.genericLayerId, glId.get())
@@ -292,23 +331,24 @@ public class ServiceAdmin extends AbstractAdmin {
 						});
 				} else {
 					return tx.query().from(genericLayer)
-						.where(genericLayer.identification.eq(theService.genericLayerId()))
+						.where(genericLayer.identification.eq(s.genericLayerId()))
 						.singleResult(genericLayer.id)
 						.thenCompose(glId -> {
 							if (glId.isPresent()){
 								// UPDATE generic Layer (rootgroup)
 								return tx.update(genericLayer)
 									.set(genericLayer.name, serviceName)
-									.set(genericLayer.title, theService.title())
-									.set(genericLayer.abstractCol, theService.abstractText())
+									.set(genericLayer.title, s.title())
+									.set(genericLayer.abstractCol, s.abstractText())
+									.set(genericLayer.usergroups, GenericLayer.transformUserGroupsToText(userGroups))
 									.where(genericLayer.id.eq(glId.get()))
 									.execute()
 									.thenCompose(n -> {
 										// UPDATE service
 										log.debug("Updating service with name: " + serviceName);
 										return tx.update(service)
-											.set(service.alternateTitle, theService.alternateTitle())
-											.set(service.metadata, theService.metadata())
+											.set(service.alternateTitle, s.alternateTitle())
+											.set(service.metadata, s.metadata())
 											.where(service.genericLayerId.eq(glId.get()))
 											.execute()
 											.thenApply(l -> new Response<String>(CrudOperation.UPDATE, CrudResponse.OK, serviceId));
