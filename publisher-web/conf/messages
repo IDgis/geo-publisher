@@ -434,6 +434,12 @@ web.application.page.ldap.usergroup.name=Gebruikersgroep
 
 web.application.page.ldap.usergroup.button.add=Maak een nieuwe gebruikersgroep ...
 
+web.application.page.ldap.usergroup.button.cleanup=Schoon gebruikersgroepen op
+web.application.page.ldap.usergroup.button.cleanup.title=Deze actie zorgt er voor dat verwijderde gebruikersgroepen ook verwijderd worden bij lagen, groepen en services. Normaal gesproken wordt dit automatisch bij het verwijderen van de gebruikersgroep gedaan, maar mocht dat fout gaan dan kan dat via deze weg rechtgezet worden.
+
+web.application.page.ldap.usergroup.list.button.cleanup.success=Opschonen van gebruikersgroepen is ingepland
+web.application.page.ldap.usergroup.list.button.cleanup.failure=Opschonen van gebruikersgroepen kon niet worden ingepland
+
 web.application.page.ldap.usergroup.list.header=Gebruikersgroepen
 web.application.page.ldap.usergroup.list.empty=Er zijn geen gebruikersgroepen gevonden die voldoen aan de criteria.
 

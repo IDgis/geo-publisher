@@ -21,7 +21,7 @@ require ([
 		putUser(user, inputUsersAtLoad.length);
 	});
 	
-	on(userSelect,'change', function(e) {
+	on(userSelect, 'change', function(e) {
 		var inputUsers = dom.byId('input-users');
 		var userValue = userSelect.value;
 		

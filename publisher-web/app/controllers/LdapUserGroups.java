@@ -4,14 +4,17 @@ import static models.Domain.from;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import actions.DefaultAuthenticator;
 import akka.actor.ActorSelection;
 import models.Domain;
 import models.Domain.Function;
 import models.Domain.Function2;
+import nl.idgis.publisher.domain.query.CleanupLdapUserGroups;
 import nl.idgis.publisher.domain.query.ListLdapUserGroups;
 import nl.idgis.publisher.domain.query.ListLdapUsers;
 import nl.idgis.publisher.domain.response.Page;
@@ -25,8 +28,8 @@ import play.Play;
 import play.data.Form;
 import play.data.validation.Constraints;
 import play.libs.Akka;
-import play.libs.Json;
 import play.libs.F.Promise;
+import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
 import play.mvc.Security;
@@ -50,11 +53,43 @@ public class LdapUserGroups extends Controller {
 			});
 	}
 	
+	public static Promise<Result> cleanupUserGroups() {
+		final ActorSelection database = Akka.system().actorSelection (databaseRef);
+		
+		return from(database)
+			.query(new ListLdapUserGroups(1L, "", true))
+			.executeFlat(new Function<Page<LdapUserGroup>, Promise<Result>>() {
+				@Override
+				public Promise<Result> apply(final Page<LdapUserGroup> userGroups) throws Throwable {
+					List<String> userGroupNames = userGroups
+							.values()
+							.stream()
+							.map(userGroup -> userGroup.name())
+							.collect(Collectors.toList());
+					
+					return from(database)
+							.query(new CleanupLdapUserGroups(userGroupNames))
+							.execute(new Function<Boolean, Result>() {
+								@Override
+								public Result apply(final Boolean result) throws Throwable {
+									final ObjectNode response = Json.newObject();
+									
+									response.put("success", result);
+									
+									if(result) {
+										return ok(response);
+									} else {
+										return internalServerError(response);
+									}
+								}
+							});
+				}
+			});
+	}
+	
 	public static Promise<Result> create() {
 		Logger.debug("create LdapUserGroup");
 		final ActorSelection database = Akka.system().actorSelection(databaseRef);
-		
-		final Form<UserGroupForm> userGroupForm = Form.form(UserGroupForm.class).fill(new UserGroupForm());
 		
 		return from(database)
 			.query(new ListLdapUsers(1L, "", true))
@@ -62,6 +97,8 @@ public class LdapUserGroups extends Controller {
 				
 				@Override
 				public Result apply(final Page<LdapUser> users) throws Throwable {
+					final Form<UserGroupForm> userGroupForm = Form.form(UserGroupForm.class).fill(new UserGroupForm());
+					
 					return ok(views.html.ldap.usergroups.form.render(userGroupForm, "[]", users, true));
 				}
 			});

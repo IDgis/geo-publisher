@@ -35,8 +35,8 @@ public class LdapUserAdmin extends AbstractLdapAdmin {
 	protected void preStartAdmin() {
 		doQuery(ListLdapUsers.class, this::handleListLdapUsers);
 		doGet(LdapUser.class, this::handleGetLdapUser);
-		doDelete(LdapUser.class, this::handleDeleteLdapUser);
 		doPut(LdapUser.class, this::handlePutLdapUser);
+		doDelete(LdapUser.class, this::handleDeleteLdapUser);
 	}
 	
 	private CompletableFuture<Page<LdapUser>> handleListLdapUsers(final ListLdapUsers listLdapUsers) {

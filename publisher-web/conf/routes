@@ -14,6 +14,7 @@ GET 	/users/:email/edit								controllers.LdapUsers.edit(email: String)
 GET 	/users/:email/delete							controllers.LdapUsers.delete(email: String)
 
 GET		/usergroups										controllers.LdapUserGroups.list(q: String ?= null, page: Long ?= 1)
+POST	/usergroups/cleanup								controllers.LdapUserGroups.cleanupUserGroups()
 GET 	/usergroups/-/create							controllers.LdapUserGroups.create()
 POST 	/usergroups/-/create							controllers.LdapUserGroups.submitCreate()
 POST 	/usergroups/-/update							controllers.LdapUserGroups.submitUpdate()

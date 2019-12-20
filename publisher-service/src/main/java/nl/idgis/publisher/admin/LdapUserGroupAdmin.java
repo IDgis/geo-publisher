@@ -20,6 +20,7 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import nl.idgis.publisher.data.GenericLayer;
 import nl.idgis.publisher.domain.query.ListLdapUserGroups;
+import nl.idgis.publisher.domain.query.CleanupLdapUserGroups;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.CrudOperation;
@@ -40,8 +41,9 @@ public class LdapUserGroupAdmin extends AbstractLdapAdmin {
 	protected void preStartAdmin() {
 		doQuery(ListLdapUserGroups.class, this::handleListLdapUserGroups);
 		doGet(LdapUserGroup.class, this::handleGetLdapUserGroup);
-		doDelete(LdapUserGroup.class, this::handleDeleteLdapUserGroup);
 		doPut(LdapUserGroup.class, this::handlePutLdapUserGroup);
+		doDelete(LdapUserGroup.class, this::handleDeleteLdapUserGroup);
+		doQuery(CleanupLdapUserGroups.class, this::handleCleanupLdapUserGroups);
 	}
 	
 	private CompletableFuture<Page<LdapUserGroup>> handleListLdapUserGroups(final ListLdapUserGroups listLdapUserGroups) {
@@ -113,43 +115,10 @@ public class LdapUserGroupAdmin extends AbstractLdapAdmin {
 		
 		try {
 			doDeleteRequest(ldapApiAdminUrlBaseOrganizations + "/" + name);
+			cleanupGenericLayerUserGroups(name, null);
 			
-			return db.transactional(tx -> {
-				return tx
-					.query()
-					.from(genericLayer)
-					.where(genericLayer.usergroups.ne("[]"))
-					.list(genericLayer.id, genericLayer.name, genericLayer.usergroups)
-					.thenApply(tuples -> {
-						for(Tuple t : tuples.list()) {
-							List<String> userGroups = 
-									GenericLayer
-										.transformUserGroupsToList(t.get(genericLayer.usergroups));
-							
-							List<String> updatedUserGroups = 
-								userGroups
-									.stream()
-									.filter(userGroup -> !userGroup.trim().equals(name.trim()))
-									.collect(Collectors.toList());
-							
-							if(userGroups.size() != updatedUserGroups.size()) {
-								int genericLayerId = t.get(genericLayer.id);
-								String genericLayerName = t.get(genericLayer.name);
-								
-								log.debug("clean up userGroups in genericLayer is necessary: {}", genericLayerName);
-								
-								String updatedUserGroupsAsText = 
-										GenericLayer.transformUserGroupsToText(updatedUserGroups);
-								
-								tx.update(genericLayer)
-									.set(genericLayer.usergroups, updatedUserGroupsAsText)
-									.where(genericLayer.id.eq(genericLayerId))
-									.execute();
-							}
-						}
-						
-						return new Response<String>(CrudOperation.DELETE, CrudResponse.OK, name);
-					});
+			return CompletableFuture.supplyAsync(() -> {
+				return new Response<String>(CrudOperation.DELETE, CrudResponse.OK, name);
 			});
 		} catch(Exception e) {
 			log.debug("LDAP delete userGroup request: something went wrong performing the request");
@@ -158,6 +127,10 @@ public class LdapUserGroupAdmin extends AbstractLdapAdmin {
 				return new Response<String>(CrudOperation.DELETE, CrudResponse.NOK, name);
 			});
 		}
+	}
+	
+	private CompletableFuture<Boolean> handleCleanupLdapUserGroups(final CleanupLdapUserGroups cleanupLdapUserGroups) {
+		return cleanupGenericLayerUserGroups(null, cleanupLdapUserGroups.getLdapUserGroupNames());
 	}
 	
 	private Optional<LdapUserGroup> getLdapUserGroup(String name) {
@@ -195,5 +168,53 @@ public class LdapUserGroupAdmin extends AbstractLdapAdmin {
 					
 					return Optional.empty();
 				});
+	}
+	
+	private CompletableFuture<Boolean> cleanupGenericLayerUserGroups(String name, List<String> ldapUserGroupNames) {
+		return db.transactional(tx -> {
+			return tx
+				.query()
+				.from(genericLayer)
+				.where(genericLayer.usergroups.ne("[]"))
+				.list(genericLayer.id, genericLayer.name, genericLayer.usergroups)
+				.thenApply(tuples -> {
+					for(Tuple t : tuples.list()) {
+						List<String> userGroups = 
+								GenericLayer
+									.transformUserGroupsToList(t.get(genericLayer.usergroups));
+						
+						List<String> updatedUserGroups = 
+							userGroups
+								.stream()
+								.filter(userGroup -> {
+									if(name != null) {
+										return !userGroup.trim().equals(name.trim());
+									} else if(ldapUserGroupNames != null) {
+										return ldapUserGroupNames.contains(userGroup);
+									}
+									
+									return true;
+								})
+								.collect(Collectors.toList());
+						
+						if(userGroups.size() != updatedUserGroups.size()) {
+							int genericLayerId = t.get(genericLayer.id);
+							String genericLayerName = t.get(genericLayer.name);
+							
+							log.debug("clean up userGroups in genericLayer is necessary: {}", genericLayerName);
+							
+							String updatedUserGroupsAsText = 
+									GenericLayer.transformUserGroupsToText(updatedUserGroups);
+							
+							tx.update(genericLayer)
+								.set(genericLayer.usergroups, updatedUserGroupsAsText)
+								.where(genericLayer.id.eq(genericLayerId))
+								.execute();
+						}
+					}
+					
+					return true;
+				});
+		});
 	}
 }
