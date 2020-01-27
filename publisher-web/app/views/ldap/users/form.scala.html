@@ -63,16 +63,29 @@
 					'_help -> Domain.message("web.application.page.ldap.user.form.field.lastname.help"),
 					'_required -> true
 				)
-				@helper.inputText(
-					userForm("password"),
-					'type -> "password",
-					'_label -> Domain.message("web.application.page.ldap.user.form.field.password.label"),
-					'id -> "input-password",
-					'class -> "form-control",
-					'placeholder -> Domain.message("web.application.page.ldap.user.form.field.password.placeholder"),
-					'_help -> Domain.message("web.application.page.ldap.user.form.field.password.help"),
-					'_required -> true
-				)
+				
+				@if(create) {
+					@helper.inputText(
+						userForm("password"),
+						'type -> "password",
+						'_label -> Domain.message("web.application.page.ldap.user.form.field.password.label"),
+						'id -> "input-password",
+						'class -> "form-control",
+						'placeholder -> Domain.message("web.application.page.ldap.user.form.field.password.placeholder"),
+						'_help -> Domain.message("web.application.page.ldap.user.form.field.password.help"),
+						'_required -> true
+					)
+				} else {
+					@helper.inputText(
+						userForm("password"),
+						'type -> "password",
+						'_label -> Domain.message("web.application.page.ldap.user.form.field.password.label"),
+						'id -> "input-password",
+						'class -> "form-control",
+						'placeholder -> Domain.message("web.application.page.ldap.user.form.field.password.placeholder"),
+						'_help -> Domain.message("web.application.page.ldap.user.form.field.password.help")
+					)
+				}
 				
 				<div class="form-group">
 					<div class="col-sm-offset-2 col-sm-10">
