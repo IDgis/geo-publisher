@@ -89,6 +89,17 @@ public class LdapUsers extends Controller {
 		
 		final Form<UserForm> form = Form.form(UserForm.class).bindFromRequest();
 		
+		String userPassword = form.field("password").value();
+		if(userPassword != null) {
+			userPassword = userPassword.trim();
+			
+			if(userPassword.isEmpty()) userPassword = null;
+		}
+		
+		if(create && userPassword == null) {
+			form.reject("password", Domain.message("web.application.page.ldap.user.form.field.password.validation.required"));
+		}
+		
 		if(form.hasErrors()) {
 			Logger.debug("LdapUserForm errors " + form.errorsAsJson().toString());
 			return Promise.pure(ok(views.html.ldap.users.form.render(form, create)));
@@ -102,7 +113,7 @@ public class LdapUsers extends Controller {
 					userForm.getEmail().trim(), 
 					userForm.getFullName(), 
 					userForm.getLastName(), 
-					userForm.getPassword());
+					userPassword);
 		
 		return from(database)
 				.put(user)
@@ -181,7 +192,6 @@ public class LdapUsers extends Controller {
 		private String fullName;
 		@Constraints.Required(message = "web.application.page.ldap.user.form.field.lastname.validation.required")
 		private String lastName;
-		@Constraints.Required(message = "web.application.page.ldap.user.form.field.password.validation.required")
 		private String password;
 		
 		public UserForm() {
