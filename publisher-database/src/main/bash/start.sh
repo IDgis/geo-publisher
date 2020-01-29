@@ -1,5 +1,8 @@
 #!/bin/bash
 
+sed -i 's/^#\?shared_buffers.*/shared_buffers = 2GB/g' /etc/postgresql/9.5/main/postgresql.conf
+sed -i 's/^#\?max_connections.*/max_connections = 300/g' /etc/postgresql/9.5/main/postgresql.conf
+
 set -e
 
 echo "Starting PostgreSQL daemon ..."
