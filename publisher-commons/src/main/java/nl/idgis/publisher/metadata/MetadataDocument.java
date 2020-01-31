@@ -763,7 +763,9 @@ public class MetadataDocument {
 		
 		String maintenanceFrequencyCodeListValue = getMaintenanceFrequencyCodeListValue();
 		
-		if(!allowed.contains(maintenanceFrequencyCodeListValue)) {
+		if("2annually".equals(maintenanceFrequencyCodeListValue)) {
+			isoMetadata.updateString(namespaces, getMaintenanceFrequencyCodePath(), "biannually");
+		} else if(!allowed.contains(maintenanceFrequencyCodeListValue)) {
 			isoMetadata.updateString(namespaces, getMaintenanceFrequencyCodePath(), "unknown");
 		}
 	}
