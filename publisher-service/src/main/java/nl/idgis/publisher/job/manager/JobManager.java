@@ -14,7 +14,6 @@ import static nl.idgis.publisher.database.QJobState.jobState;
 import static nl.idgis.publisher.database.QLastSourceDatasetVersion.lastSourceDatasetVersion;
 import static nl.idgis.publisher.database.QNotification.notification;
 import static nl.idgis.publisher.database.QNotificationResult.notificationResult;
-import static nl.idgis.publisher.database.QServiceJob.serviceJob;
 import static nl.idgis.publisher.database.QService.service;
 import static nl.idgis.publisher.database.QJobLog.jobLog;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
@@ -54,12 +53,9 @@ import nl.idgis.publisher.job.manager.messages.AddNotification;
 import nl.idgis.publisher.job.manager.messages.CreateHarvestJob;
 import nl.idgis.publisher.job.manager.messages.CreateImportJob;
 import nl.idgis.publisher.job.manager.messages.CreateRemoveJob;
-import nl.idgis.publisher.job.manager.messages.CreateEnsureServiceJob;
-import nl.idgis.publisher.job.manager.messages.CreateVacuumServiceJob;
 import nl.idgis.publisher.job.manager.messages.GetHarvestJobs;
 import nl.idgis.publisher.job.manager.messages.GetImportJobs;
 import nl.idgis.publisher.job.manager.messages.GetRemoveJobs;
-import nl.idgis.publisher.job.manager.messages.GetServiceJobs;
 import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
 import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
 import nl.idgis.publisher.job.manager.messages.VectorImportJobInfo;
@@ -68,9 +64,6 @@ import nl.idgis.publisher.job.manager.messages.QHarvestJobInfo;
 import nl.idgis.publisher.job.manager.messages.QRemoveJobInfo;
 import nl.idgis.publisher.job.manager.messages.RemoveJobInfo;
 import nl.idgis.publisher.job.manager.messages.RemoveNotification;
-import nl.idgis.publisher.job.manager.messages.EnsureServiceJobInfo;
-import nl.idgis.publisher.job.manager.messages.VacuumServiceJobInfo;
-import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
 import nl.idgis.publisher.job.manager.messages.StoreLog;
 import nl.idgis.publisher.job.manager.messages.UpdateState;
 import nl.idgis.publisher.protocol.messages.Ack;
@@ -143,52 +136,15 @@ public class JobManager extends UntypedActor {
 			returnToSender(handleGetRemoveJobs());
 		} else if(msg instanceof GetHarvestJobs) {
 			returnToSender(handleGetHarvestJobs());
-		} else if(msg instanceof GetServiceJobs) {
-			returnToSender(handleGetServiceJobs());			
 		} else if(msg instanceof CreateHarvestJob) {
 			returnToSender(handleCreateHarvestJob((CreateHarvestJob)msg));			
 		} else if(msg instanceof CreateImportJob) {
-			returnToSender(handleCreateImportJob((CreateImportJob)msg));			
-		} else if(msg instanceof CreateEnsureServiceJob) {
-			returnToSender(handleCreateEnsureServiceJob((CreateEnsureServiceJob)msg));
-		} else if(msg instanceof CreateVacuumServiceJob) {
-			returnToSender(handleCreateVacuumServiceJob((CreateVacuumServiceJob)msg));		
+			returnToSender(handleCreateImportJob((CreateImportJob)msg));
 		} else if(msg instanceof CreateRemoveJob) {
 			returnToSender(handleCreateRemoveJob((CreateRemoveJob)msg));
 		} else {
 			unhandled(msg);
 		}
-	}
-	
-	private CompletableFuture<Ack> handleCreateVacuumServiceJob(CreateVacuumServiceJob msg) {
-		log.debug("creating vacuum service job");
-		
-		final boolean published = msg.isPublished();
-		
-		return db.transactional(msg, tx ->
-			tx.query().from(job)
-				.join(serviceJob).on(serviceJob.jobId.eq(job.id))				
-				.where(serviceJob.type.eq("VACUUM"))
-				.where(new SQLSubQuery().from(jobState)
-						.where(jobState.jobId.eq(job.id))
-						.where(isFinished(jobState))
-						.notExists())
-				.where(serviceJob.published.eq(published))
-				.notExists()
-			
-			.thenCompose(notExists -> {
-				if(notExists) {
-					return createVacuumServiceJob(tx, msg.isPublished())
-						.thenApply(l -> {
-							log.debug("vacuum service job created");
-							
-							return new Ack();
-						});
-				} else {
-					log.debug("already exist a vacuum service job");
-					return f.successful(new Ack());
-				}
-			}));
 	}
 
 	private CompletableFuture<TypedList<RemoveJobInfo>> handleGetRemoveJobs() {
@@ -268,78 +224,6 @@ public class JobManager extends UntypedActor {
 				.set(jobState.jobId, msg.getJob().getId())
 				.set(jobState.state, msg.getState().name())
 				.execute().thenApply(l -> new Ack());
-	}
-	
-	private CompletableFuture<Ack> handleCreateEnsureServiceJob(CreateEnsureServiceJob msg) {
-		final String serviceId = msg.getServiceId();
-		final boolean published = msg.isPublished();
-		
-		log.debug("creating ensure service job: {}", serviceId);
-		
-		return db.transactional(msg, tx ->
-			tx.query().from(job)
-				.join(serviceJob).on(serviceJob.jobId.eq(job.id))
-				.join(service).on(service.id.eq(serviceJob.serviceId))
-				.join(genericLayer).on(service.genericLayerId.eq(genericLayer.id))
-				.where(genericLayer.identification.eq(serviceId)
-						.and(serviceJob.type.eq("ENSURE")))
-				.where(new SQLSubQuery().from(jobState)
-						.where(jobState.jobId.eq(job.id))
-						.where(isFinished(jobState))
-						.notExists())
-				.where(serviceJob.published.eq(published))
-				.notExists()
-			
-			.thenCompose(notExists -> {
-				if(notExists) {
-					return createEnsureServiceJob(tx, serviceId, msg.isPublished())
-						.thenApply(l -> {
-							log.debug("service job created");
-							
-							return new Ack();
-						});
-				} else {
-					log.debug("already exist a service job for this dataset");
-					return f.successful(new Ack());
-				}
-			}));
-	}
-	
-	private CompletableFuture<Long> createEnsureServiceJob(final AsyncHelper tx, final String serviceId, final boolean published) {
-		return
-			createJob(tx, JobType.SERVICE).thenCompose(jobId ->
-				tx.insert(serviceJob)
-					.columns(
-						serviceJob.jobId,
-						serviceJob.type,
-						serviceJob.serviceId,
-						serviceJob.published)
-					.select(new SQLSubQuery().from(service)
-						.join(genericLayer).on(service.genericLayerId.eq(genericLayer.id))
-						.where(genericLayer.identification.eq(serviceId))
-						.list(
-							jobId, 
-							"ENSURE", 
-							service.id,
-							published))
-					.execute());
-				
-	}
-	
-	private CompletableFuture<Long> createVacuumServiceJob(final AsyncHelper tx, boolean published) {
-		return
-			createJob(tx, JobType.SERVICE).thenCompose(jobId ->
-				tx.insert(serviceJob)
-					.columns(
-						serviceJob.jobId,
-						serviceJob.type,
-						serviceJob.published)
-					.values(
-						jobId, 
-						"VACUUM",
-						published)
-					.execute());
-				
 	}
 	
 	private CompletableFuture<Long> createImportJob(final AsyncHelper tx, final String datasetId) {
@@ -511,44 +395,6 @@ public class JobManager extends UntypedActor {
 						return f.successful(new Ack());
 					}
 				}));
-	}
-	
-	private CompletableFuture<TypedList<ServiceJobInfo>> handleGetServiceJobs() {
-		log.debug("fetching service jobs");
-		
-		return
-			db.query().from(serviceJob)
-				.leftJoin(service).on(service.id.eq(serviceJob.serviceId))		
-				.leftJoin(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
-				.where(new SQLSubQuery().from(jobState)
-						.where(jobState.jobId.eq(serviceJob.jobId))
-						.notExists())
-				.list(
-					serviceJob.jobId,
-					serviceJob.type,
-					serviceJob.published,
-					genericLayer.identification).thenApply(result -> {
-						List<ServiceJobInfo> retval = new ArrayList<>();
-						
-						for(Tuple t : result) {
-							int jobId = t.get(serviceJob.jobId);
-							String type = t.get(serviceJob.type);
-							boolean published = t.get(serviceJob.published);
-							
-							switch(type) {
-								case "VACUUM":
-									retval.add(new VacuumServiceJobInfo(jobId, published));
-									break;
-								case "ENSURE":
-									retval.add(new EnsureServiceJobInfo(jobId, t.get(genericLayer.identification), published));
-									break;
-								default:
-									throw new IllegalStateException("Unknown service job type encountered: " + type);
-							}
-						}
-						
-						return new TypedList<>(ServiceJobInfo.class, retval);
-					});
 	}
 
 	private CompletableFuture<TypedList<ImportJobInfo>> handleGetImportJobs() {

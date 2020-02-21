@@ -215,9 +215,15 @@ public class ServiceManager extends UntypedActor {
 						Optional.of(tx.getTransactionRef()), 
 						msg.getServiceId()), 
 						Service.class).thenCompose(service ->
-							new PublishServiceQuery(log, f, tx, service, msg.getEnvironmentId())
+							new PublishServiceQuery(log, f, tx, service, msg.getEnvironmentId().orElse(null))
 								.result()).thenCompose(publishResult ->
-									ensureViews(tx, msg.getServiceId())));
+									ensureViews(tx, msg.getServiceId()).thenApply(ensureViewsResult -> {
+										if (ensureViewsResult instanceof Ack) {
+											return publishResult;
+										} else {
+											return ensureViewsResult;
+										}
+									})));
 	}
 
 	private CompletableFuture<Object> handleGetDatasetLayerRef(GetDatasetLayerRef msg) {

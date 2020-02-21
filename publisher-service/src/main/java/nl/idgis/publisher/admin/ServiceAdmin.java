@@ -8,7 +8,6 @@ import static nl.idgis.publisher.database.QJob.job;
 import static nl.idgis.publisher.database.QLeafLayer.leafLayer;
 import static nl.idgis.publisher.database.QPublishedService.publishedService;
 import static nl.idgis.publisher.database.QService.service;
-import static nl.idgis.publisher.database.QServiceJob.serviceJob;
 import static nl.idgis.publisher.database.QServiceKeyword.serviceKeyword;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
@@ -22,6 +21,9 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
+
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.support.Expressions;
@@ -30,6 +32,7 @@ import com.mysema.query.types.expr.BooleanExpression;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+
 import nl.idgis.publisher.data.GenericLayer;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.database.QGenericLayer;
@@ -46,21 +49,29 @@ import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.ServicePublish;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.manager.messages.PublishService;
+import nl.idgis.publisher.service.manager.messages.PublishServiceResult;
+import nl.idgis.publisher.domain.web.QService;
+import nl.idgis.publisher.mx.messages.PublicationServiceUpdate;
+import nl.idgis.publisher.mx.messages.ServiceUpdateType;
+import nl.idgis.publisher.mx.messages.StagingServiceUpdate;
 
 public class ServiceAdmin extends AbstractAdmin {
+
+	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	protected final static QGenericLayer child = new QGenericLayer("child"), parent = new QGenericLayer("parent");
 	
-	private final ActorRef serviceManager;
+	private final ActorRef serviceManager, messageBroker;
 	
-	public ServiceAdmin(ActorRef database, ActorRef serviceManager) {
+	public ServiceAdmin(ActorRef database, ActorRef serviceManager, ActorRef messageBroker) {
 		super(database); 
 		
 		this.serviceManager = serviceManager;
+		this.messageBroker = messageBroker;
 	}
 	
-	public static Props props(ActorRef database, ActorRef serviceManager) {
-		return Props.create(ServiceAdmin.class, database, serviceManager);
+	public static Props props(ActorRef database, ActorRef serviceManager, ActorRef messageBroker) {
+		return Props.create(ServiceAdmin.class, database, serviceManager, messageBroker);
 	}
 
 	@Override
@@ -78,16 +89,49 @@ public class ServiceAdmin extends AbstractAdmin {
 		
 		doQuery (ListServices.class, this::handleListServicesWithQuery);
 	}
-	
+
 	private CompletableFuture<Boolean> handlePerformPublish(PerformPublish performPublish) {
+		String serviceId = performPublish.getServiceId();
+		return performPerformPublish(performPublish).thenApply(result -> {
+			Optional<String> optionalPreviousEnvironmentId = result.getPreviousEnvironmentId();
+			Optional<String> optionalCurrentEnvironmentId = result.getCurrentEnvironmentId();
+
+			if (optionalCurrentEnvironmentId.isPresent()) {
+				String currentEnvironmentId =  optionalCurrentEnvironmentId.get();
+				if (optionalPreviousEnvironmentId.isPresent()) {
+					String previousEnvironmentId = optionalPreviousEnvironmentId.get();
+
+					if (!currentEnvironmentId.equals(previousEnvironmentId)) {
+						messageBroker.tell(
+								new PublicationServiceUpdate(ServiceUpdateType.REMOVE, serviceId, previousEnvironmentId),
+								getSelf());
+					}
+				}
+
+				messageBroker.tell(
+						new PublicationServiceUpdate(ServiceUpdateType.CREATE, serviceId, currentEnvironmentId),
+						getSelf());
+			} else {
+				optionalPreviousEnvironmentId.ifPresent(previousEnvironmentId ->
+					messageBroker.tell(
+							new PublicationServiceUpdate(ServiceUpdateType.REMOVE, serviceId, previousEnvironmentId),
+							getSelf()));
+			}
+
+			return true;
+		}).exceptionally(t -> {
+			log.error(t, "failed to publish service");
+			return false;
+		});
+	}
+	
+	private CompletableFuture<PublishServiceResult> performPerformPublish(PerformPublish performPublish) {
 		return f.ask(
 			serviceManager, 
 			new PublishService(
 				performPublish.getServiceId(), 
 				performPublish.getEnvironmentId()),
-			Ack.class)
-					.thenApply(ack -> true)
-					.exceptionally(t -> false);
+			PublishServiceResult.class);
 	}
 
 	private CompletableFuture<Page<Service>> handleListServices () {
@@ -277,8 +321,17 @@ public class ServiceAdmin extends AbstractAdmin {
 				});
 			});
 	}
-	
+
 	private CompletableFuture<Response<?>> handlePutService(Service s) {
+		return performPutService(s).whenComplete( (response, throwable) -> {
+			if (response != null && response.getOperationResponse() == CrudResponse.OK) {
+				log.debug("sending 'create' update notification to message broker");
+				messageBroker.tell(new StagingServiceUpdate(ServiceUpdateType.CREATE, s.id()), getSelf());
+			}
+		});
+	}
+	
+	private CompletableFuture<Response<?>> performPutService(Service s) {
 		String serviceId = s.id();
 		String serviceName = s.name();
 		List<String> userGroups = s.userGroups();
@@ -363,6 +416,15 @@ public class ServiceAdmin extends AbstractAdmin {
 	}
 
 	private CompletableFuture<Response<?>> handleDeleteService(String serviceId) {
+		return performDeleteService(serviceId).whenComplete( (response, throwable) -> {
+			if (response != null && response.getOperationResponse() == CrudResponse.OK) {
+				log.debug("sending 'remove' update notification to message broker");
+				messageBroker.tell(new StagingServiceUpdate(ServiceUpdateType.REMOVE, serviceId), getSelf());
+			}
+		});
+	}
+
+	private CompletableFuture<Response<?>> performDeleteService(String serviceId) {
 		log.debug ("handleDeleteService: " + serviceId);
 		return db.transactional(tx ->
 				tx.query().from(service)
@@ -371,31 +433,21 @@ public class ServiceAdmin extends AbstractAdmin {
 				.singleResult(service.id)
 				.thenCompose(svId -> {
 					log.debug("delete jobs for service id: {}", svId.get());
-					return tx.delete(job)
-						.where(new SQLSubQuery().from(serviceJob)
-								.where(serviceJob.serviceId.eq(svId.get())
-									.and(job.id.eq(serviceJob.jobId)))
-								.exists())
-						.execute()
-						.thenCompose(jobs -> {
-							log.debug("delete service id: {}", svId.get());
-							return tx.delete(service)
-								.where(service.id.eq(svId.get()))
-								.execute()
-								.thenCompose(n -> {
-									log.debug("delete generic layer id: {}", serviceId);
-									return tx.delete(genericLayer)
+					return tx.delete(service)
+							.where(service.id.eq(svId.get()))
+							.execute()
+							.thenCompose(n -> {
+								log.debug("delete generic layer id: {}", serviceId);
+								return tx.delete(genericLayer)
 										.where(genericLayer.identification.eq(serviceId))
 										.execute()
-										.thenApply(l -> 
-											new Response<String>(
-												CrudOperation.DELETE, 
-												CrudResponse.OK, 
-												serviceId));
-									});
+										.thenApply(l ->
+												new Response<String>(
+														CrudOperation.DELETE,
+														CrudResponse.OK,
+														serviceId));
 							});
-					}));
-
+				}));
 	}
 	
 	

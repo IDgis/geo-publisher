@@ -34,6 +34,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
+import nl.idgis.publisher.service.manager.messages.PublishServiceResult;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -213,7 +214,7 @@ public class MissingColumnTest extends AbstractServiceTest {
 			.set(environment.url, "http://test-environment.example/")
 			.execute();
 		
-		f.ask(serviceManager, new PublishService("testService", Optional.of("testEnvironment")), Ack.class).get();
+		f.ask(serviceManager, new PublishService("testService", Optional.of("testEnvironment")), PublishServiceResult.class).get();
 		
 		service = f.ask(serviceManager, new GetPublishedService("testService"), Service.class).get();
 		assertService(service, "col0", "col1");
@@ -414,7 +415,7 @@ public class MissingColumnTest extends AbstractServiceTest {
 		}
 		
 		// republish service		
-		f.ask(serviceManager, new PublishService("testService", Optional.of("testEnvironment")), Ack.class).get();
+		f.ask(serviceManager, new PublishService("testService", Optional.of("testEnvironment")), PublishServiceResult.class).get();
 		
 		service = f.ask(serviceManager, new GetPublishedService("testService"), Service.class).get();
 		assertService(service, "col0");

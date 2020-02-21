@@ -52,6 +52,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import nl.idgis.publisher.service.manager.messages.*;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -89,20 +90,6 @@ import nl.idgis.publisher.recorder.messages.GetRecording;
 import nl.idgis.publisher.recorder.messages.Wait;
 import nl.idgis.publisher.recorder.messages.Waited;
 import nl.idgis.publisher.service.json.JsonService;
-import nl.idgis.publisher.service.manager.messages.GetDatasetLayerRef;
-import nl.idgis.publisher.service.manager.messages.GetGroupLayer;
-import nl.idgis.publisher.service.manager.messages.GetPublishedService;
-import nl.idgis.publisher.service.manager.messages.GetPublishedServiceIndex;
-import nl.idgis.publisher.service.manager.messages.GetService;
-import nl.idgis.publisher.service.manager.messages.GetServiceIndex;
-import nl.idgis.publisher.service.manager.messages.GetServicesWithDataset;
-import nl.idgis.publisher.service.manager.messages.GetServicesWithLayer;
-import nl.idgis.publisher.service.manager.messages.GetServicesWithStyle;
-import nl.idgis.publisher.service.manager.messages.GetStyles;
-import nl.idgis.publisher.service.manager.messages.PublishService;
-import nl.idgis.publisher.service.manager.messages.PublishedServiceIndex;
-import nl.idgis.publisher.service.manager.messages.ServiceIndex;
-import nl.idgis.publisher.service.manager.messages.Style;
 import nl.idgis.publisher.service.style.TestStyle;
 import nl.idgis.publisher.stream.messages.End;
 import nl.idgis.publisher.stream.messages.Item;
@@ -1662,7 +1649,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		f.ask(serviceManager, new GetPublishedService("service"), NotFound.class).get();
 		
-		f.ask(serviceManager, new PublishService("service", Optional.of(environmentIds.get(0))), Ack.class).get();
+		f.ask(serviceManager, new PublishService("service", Optional.of(environmentIds.get(0))), PublishServiceResult.class).get();
 		
 		Iterator<Tuple> publishedServiceItr = 
 			query().from(publishedService)
@@ -1788,11 +1775,11 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		assertFalse(query().from(publishedService).exists());
 		
-		f.ask(serviceManager, new PublishService("service", Optional.of(environmentIds.get(0))), Ack.class).get();
+		f.ask(serviceManager, new PublishService("service", Optional.of(environmentIds.get(0))), PublishServiceResult.class).get();
 		
 		assertEquals(1, query().from(publishedService).count());
 		
-		f.ask(serviceManager, new PublishService("service"), Ack.class).get();
+		f.ask(serviceManager, new PublishService("service"), PublishServiceResult.class).get();
 		
 		assertFalse(query().from(publishedService).exists());
 	}
@@ -1906,7 +1893,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		}
 		
 		String environmentId = environmentIds.get(0);
-		f.ask(serviceManager, new PublishService("service0", Optional.of(environmentId)), Ack.class).get();
+		f.ask(serviceManager, new PublishService("service0", Optional.of(environmentId)), PublishServiceResult.class).get();
 		
 		publishedEnvironments = getPublishedServiceIndex();
 		assertEquals(3, publishedEnvironments.size());
@@ -1931,7 +1918,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(layerStyle.styleOrder, 1)
 			.execute();
 		
-		f.ask(serviceManager, new PublishService("service0", Optional.of("environment0")), Ack.class).get();
+		f.ask(serviceManager, new PublishService("service0", Optional.of("environment0")), PublishServiceResult.class).get();
 		
 		publishedEnvironments = getPublishedServiceIndex();	
 		assertTrue(publishedEnvironments.containsKey("environment0"));
@@ -1958,7 +1945,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 			.set(layerStructure.layerOrder, 0)
 			.execute();
 		
-		f.ask(serviceManager, new PublishService("service1", Optional.of("environment0")), Ack.class).get();
+		f.ask(serviceManager, new PublishService("service1", Optional.of("environment0")), PublishServiceResult.class).get();
 		
 		publishedEnvironments = getPublishedServiceIndex();
 		assertTrue(publishedEnvironments.containsKey("environment0"));		
@@ -2033,7 +2020,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 		
 		f.ask(serviceManager, new PublishService("service", Optional.of("environment0")), Failure.class).get();
 		
-		f.ask(serviceManager, new PublishService("service", Optional.of("environment1")), Ack.class).get();
+		f.ask(serviceManager, new PublishService("service", Optional.of("environment1")), PublishServiceResult.class).get();
 		
 		Tuple publishedServiceTuple = 
 			query().from(publishedService)

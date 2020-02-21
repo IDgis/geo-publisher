@@ -1,0 +1,17 @@
+#upload-row iframe {
+  border: none;
+  width: 100%;
+  height: 3em;
+}
+.dnd-overlay {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  right: 0px;
+  bottom: 0px;
+  background: #e7e7e7 url(../../images/upload.png) center center no-repeat;
+  opacity: 0.7;
+}
+#style-sld-scheme-radio-buttons {
+  margin-bottom: 10px;
+}

@@ -6,7 +6,6 @@ import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
 import static nl.idgis.publisher.database.QImportJob.importJob;
 import static nl.idgis.publisher.database.QImportJobColumn.importJobColumn;
 import static nl.idgis.publisher.database.QJob.job;
-import static nl.idgis.publisher.database.QServiceJob.serviceJob;
 import static nl.idgis.publisher.database.QRemoveJob.removeJob;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
@@ -41,18 +40,14 @@ import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.job.manager.messages.CreateHarvestJob;
 import nl.idgis.publisher.job.manager.messages.CreateImportJob;
 import nl.idgis.publisher.job.manager.messages.CreateRemoveJob;
-import nl.idgis.publisher.job.manager.messages.CreateVacuumServiceJob;
 import nl.idgis.publisher.job.manager.messages.GetHarvestJobs;
 import nl.idgis.publisher.job.manager.messages.GetImportJobs;
 import nl.idgis.publisher.job.manager.messages.GetRemoveJobs;
-import nl.idgis.publisher.job.manager.messages.GetServiceJobs;
 import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
 import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
 import nl.idgis.publisher.job.manager.messages.VectorImportJobInfo;
 import nl.idgis.publisher.job.manager.messages.RemoveJobInfo;
-import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
 import nl.idgis.publisher.job.manager.messages.UpdateState;
-import nl.idgis.publisher.job.manager.messages.VacuumServiceJobInfo;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.utils.TypedIterable;
@@ -446,24 +441,5 @@ public class JobManagerTest extends AbstractServiceTest {
 			assertEquals("test" + i, column.getName());
 			assertEquals(Type.GEOMETRY, column.getDataType());
 		}
-	}
-	
-	@Test
-	public void testVacuumServiceJob() throws Exception {
-		assertFalse(query().from(serviceJob).where(serviceJob.type.eq("VACUUM")).exists());
-		f.ask(jobManager, new CreateVacuumServiceJob(), Ack.class).get();
-		assertTrue(query().from(serviceJob).where(serviceJob.type.eq("VACUUM")).exists());
-		
-		TypedList<?> serviceJobs = f.ask(jobManager, new GetServiceJobs(), TypedList.class).get();
-		assertTrue(serviceJobs.contains(ServiceJobInfo.class));
-		
-		Iterator<ServiceJobInfo> itr = serviceJobs.cast(ServiceJobInfo.class).iterator();
-		assertTrue(itr.hasNext());
-		
-		ServiceJobInfo serviceJobInfo = itr.next();
-		assertNotNull(serviceJobInfo);
-		assertTrue(serviceJobInfo instanceof VacuumServiceJobInfo);
-		
-		assertFalse(itr.hasNext());
 	}
 }

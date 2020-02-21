@@ -12,4 +12,5 @@ include 'publisher-test',
 	'publisher-geoserver',
 	'publisher-monitor',
 	'publisher-console',
-	'publisher-database-cleanup'
+	'publisher-database-cleanup',
+	'publisher-service-info-service'

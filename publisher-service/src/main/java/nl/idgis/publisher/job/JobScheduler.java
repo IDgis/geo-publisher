@@ -17,7 +17,6 @@ import nl.idgis.publisher.job.creator.messages.CreateJobs;
 import nl.idgis.publisher.job.manager.messages.GetHarvestJobs;
 import nl.idgis.publisher.job.manager.messages.GetImportJobs;
 import nl.idgis.publisher.job.manager.messages.GetRemoveJobs;
-import nl.idgis.publisher.job.manager.messages.GetServiceJobs;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.utils.Either;
 import nl.idgis.publisher.utils.FutureUtils;
@@ -37,7 +36,7 @@ public class JobScheduler extends UntypedActor {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ActorRef database, harvester, loader, provisioningManager, serviceManager;
+	private final ActorRef database, harvester, loader, serviceManager;
 	
 	private final ActorRef jobManager; 
 	
@@ -67,17 +66,16 @@ public class JobScheduler extends UntypedActor {
 		}
 	}
 	
-	public JobScheduler(ActorRef database, ActorRef jobManager, ActorRef harvester, ActorRef loader, ActorRef provisioningManager, ActorRef serviceManager) {
+	public JobScheduler(ActorRef database, ActorRef jobManager, ActorRef harvester, ActorRef loader, ActorRef serviceManager) {
 		this.database = database;
 		this.jobManager = jobManager;
 		this.harvester = harvester;
 		this.loader = loader;
-		this.provisioningManager = provisioningManager;
 		this.serviceManager = serviceManager;
 	}
 	
-	public static Props props(ActorRef database, ActorRef jobManager, ActorRef harvester, ActorRef loader, ActorRef provisioningManager, ActorRef serviceManager) {
-		return Props.create(JobScheduler.class, database, jobManager, harvester, loader, provisioningManager, serviceManager);
+	public static Props props(ActorRef database, ActorRef jobManager, ActorRef harvester, ActorRef loader, ActorRef serviceManager) {
+		return Props.create(JobScheduler.class, database, jobManager, harvester, loader, serviceManager);
 	}
 	
 	@Override
@@ -89,7 +87,6 @@ public class JobScheduler extends UntypedActor {
 				.add(harvester, "harvester", new GetHarvestJobs())
 				.add(loader, "import", new GetImportJobs())
 				.add(loader, "remove", new GetRemoveJobs())
-				.add(provisioningManager, "service", new GetServiceJobs())
 				.create(jobManager, jobCreator), 
 			"initiator");
 		
