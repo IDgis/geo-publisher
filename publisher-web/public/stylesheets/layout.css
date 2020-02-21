@@ -1,0 +1,240 @@
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+.abbr-icon {
+  border: none !important;
+}
+.jumbotron {
+  background-color: #00578e;
+}
+.jumbotron h1 {
+  color: #ffffff;
+}
+footer {
+  padding-top: 16px;
+  padding-bottom: 16px;
+  border-top: 1px solid #e7e7e7;
+}
+footer .img-container {
+  max-width: 60px;
+}
+.announcement-glyphicon {
+  font-size: 50px;
+  margin: 0;
+}
+.announcement-heading {
+  font-size: 32px;
+  margin: 0;
+}
+.announcement-text {
+  font-size: 18px;
+  margin: 0;
+}
+.page-content {
+  padding-left: 25px;
+  padding-right: 25px;
+}
+.nav-tabs {
+  margin-bottom: 15px;
+}
+.layout-centered {
+  background-image: radial-gradient(center center, circle cover, #89c6ed, #00578e);
+  background-image: -o-radial-gradient(center center, circle cover, #89c6ed, #00578e);
+  background-image: -ms-radial-gradient(center center, circle cover, #89c6ed, #00578e);
+  background-image: -moz-radial-gradient(center center, circle cover, #89c6ed, #00578e);
+  background-image: -webkit-radial-gradient(center center, circle cover, #89c6ed, #00578e);
+}
+.panel-centered {
+  position: absolute;
+  width: 300px;
+  height: 250px;
+  left: 50%;
+  top: 50%;
+  margin-left: -150px;
+  margin-top: -125px;
+}
+.rotating {
+  -webkit-animation: spin 2s linear infinite;
+  -moz-animation: spin 2s linear infinite;
+  animation: spin 2s linear infinite;
+}
+@-moz-keyframes spin {
+  100% {
+    -moz-transform: rotate(360deg);
+  }
+}
+@-webkit-keyframes spin {
+  100% {
+    -webkit-transform: rotate(360deg);
+  }
+}
+@keyframes spin {
+  100% {
+    -webkit-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+#notification-container {
+  position: fixed;
+  left: 0px;
+  right: 0px;
+  top: 65px;
+  z-index: 1040;
+  text-align: center;
+  height: 0px;
+}
+#notification-container .alert {
+  display: inline-block;
+}
+#notification-container .alert .close {
+  margin-left: 15px;
+}
+#notification-container .alert:hover {
+  opacity: 0.5;
+}
+@media (min-width: 768px) {
+  #notification-container {
+    top: 25px;
+  }
+}
+.publisher-issue-short .details {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Tree select: */
+.gp-tree-select {
+  height: auto;
+  overflow: auto;
+}
+.gp-tree-select .term,
+.gp-tree-select .add-term {
+  margin-left: 4px;
+  margin-right: 4px;
+  white-space: normal;
+}
+.gp-tree-select .term .close,
+.gp-tree-select .add-term .close {
+  float: none;
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 6px;
+}
+.gp-tree-values .dropdown-menu {
+  max-height: 300px;
+  min-width: 400px;
+  overflow: auto;
+  padding: 8px;
+}
+.gp-tree-values.dropdown .dropdown-content {
+  position: absolute;
+  display: none;
+  z-index: 1000;
+  width: 400px;
+}
+.gp-tree-values.dropdown.open .dropdown-content {
+  display: block;
+}
+.gp-tree-values.dropdown .panel-body {
+  height: 300px;
+  overflow: auto;
+}
+.gp-tree-values.dropdown .panel-footer .gp-pager-controls {
+  margin: 0 auto;
+}
+.gp-tree-values ul,
+.gp-tree-values li {
+  display: block;
+  margin: 0;
+  padding: 0;
+}
+.gp-tree-values li > ul {
+  display: none;
+  margin-left: 2em;
+}
+.gp-tree-values li.expanded > ul {
+  display: block;
+}
+/* Pager select: */
+.gp-pager-select .dropdown {
+  position: absolute;
+  display: none;
+  z-index: 1000;
+  width: 600px;
+}
+.gp-pager-select .dropdown.open {
+  display: block;
+}
+.gp-pager-select .dropdown .panel-body {
+  height: 400px;
+  overflow: auto;
+}
+.gp-pager-select .dropdown .panel-footer .gp-pager-controls {
+  margin: 0 auto;
+}
+.gp-pager-select .dropdown .panel-footer .gp-pager-controls .pagination {
+  margin: 0;
+}
+/* Mini refresh button: */
+@-moz-keyframes spin {
+  100% {
+    -moz-transform: rotate(360deg);
+  }
+}
+@-webkit-keyframes spin {
+  100% {
+    -webkit-transform: rotate(360deg);
+  }
+}
+@keyframes spin {
+  100% {
+    -webkit-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+.gp-mini-refresh-button:hover .glyphicon,
+.gp-mini-refresh-button.spinning .glyphicon {
+  -webkit-animation: spin 2s linear infinite;
+  -moz-animation: spin 2s linear infinite;
+  animation: spin 2s linear infinite;
+}
+.cursor-help {
+  cursor: help;
+}
+.form-group textarea {
+  resize: vertical;
+}
+.gp-form-help-button {
+  background-color: #eee;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  color: #555;
+  /*
+		font-size: 14px;
+		font-weight: 400;
+		line-height: 1;
+		padding: 6px 6px;
+		text-align: center;
+		*/
+  cursor: help;
+}
+.gp-editor-container {
+  position: relative;
+  width: 100%;
+  height: 400px;
+}
+.gp-editor-container .form-control {
+  width: 100%;
+  height: 100%;
+}
+.gp-editor-error-line {
+  background-color: red;
+}
+.gp-btn-spacer {
+  width: 100%;
+  height: 5px;
+}

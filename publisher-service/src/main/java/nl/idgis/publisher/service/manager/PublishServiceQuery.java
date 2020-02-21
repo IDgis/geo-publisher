@@ -21,8 +21,8 @@ import nl.idgis.publisher.database.AsyncSQLInsertClause;
 
 import nl.idgis.publisher.domain.web.tree.Service;
 
-import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.json.JsonService;
+import nl.idgis.publisher.service.manager.messages.PublishServiceResult;
 import nl.idgis.publisher.utils.FutureUtils;
 
 import akka.event.LoggingAdapter;
@@ -32,7 +32,7 @@ import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.Predicate;
 import com.mysema.query.types.expr.NumberExpression;
 
-public class PublishServiceQuery extends AbstractServiceQuery<Ack, SQLSubQuery> {
+public class PublishServiceQuery extends AbstractServiceQuery<PublishServiceResult, SQLSubQuery> {
 	
 	private final AsyncHelper tx;
 
@@ -40,12 +40,12 @@ public class PublishServiceQuery extends AbstractServiceQuery<Ack, SQLSubQuery> 
 	
 	private final String environmentId;
 
-	public PublishServiceQuery(LoggingAdapter log, FutureUtils f, AsyncHelper tx, Service stagingService, Optional<String> environmentId) {
+	public PublishServiceQuery(LoggingAdapter log, FutureUtils f, AsyncHelper tx, Service stagingService, String environmentId) {
 		super(log, f, new SQLSubQuery());
 		
 		this.tx = tx;
 		this.stagingService = stagingService;
-		this.environmentId = environmentId.orElse(null);
+		this.environmentId = environmentId;
 	}
 	
 	private Predicate getServicePredicate(NumberExpression<Integer> idExpr) {
@@ -56,7 +56,7 @@ public class PublishServiceQuery extends AbstractServiceQuery<Ack, SQLSubQuery> 
 			.exists();
 	}
 	
-	private CompletableFuture<Long> deleteExisting() {
+	private CompletableFuture<Void> deleteExisting() {
 		return
 			tx.delete(publishedServiceStyle)
 				.where(getServicePredicate(publishedServiceStyle.serviceId))
@@ -68,16 +68,26 @@ public class PublishServiceQuery extends AbstractServiceQuery<Ack, SQLSubQuery> 
 								.where(getServicePredicate(publishedServiceDataset.serviceId))
 								.execute().thenCompose(datasets -> {
 									log.debug("existing published_service_dataset records deleted: {}", datasets);
-						
-									return 
-										tx.delete(publishedService)
-											.where(getServicePredicate(publishedService.serviceId))
-											.execute();
+
+								return tx.delete(publishedService)
+										.where(getServicePredicate(publishedService.serviceId))
+										.execute()
+										.thenApply(publishedServices -> {
+											log.debug("existing published_service records deleted: {}", publishedServices);
+											return null;
+										});
 						});
 				});
 	}
+
+	private CompletableFuture<Optional<String>> getPreviousEnvironmentId() {
+		return tx.query().from(publishedService)
+			.join(environment).on(environment.id.eq(publishedService.environmentId))
+			.where(getServicePredicate(publishedService.serviceId))
+			.singleResult(environment.identification);
+	}
 	
-	private CompletableFuture<Optional<Integer>> getEnvironmentId() {
+	private CompletableFuture<Optional<Integer>> getDatabaseEnvironmentId() {
 		if(environmentId == null) {
 			return f.successful(Optional.empty());
 		}
@@ -106,45 +116,40 @@ public class PublishServiceQuery extends AbstractServiceQuery<Ack, SQLSubQuery> 
 	}
 
 	@Override
-	public CompletableFuture<Ack> result() {
+	public CompletableFuture<PublishServiceResult> result() {
 		String serviceIdentification = stagingService.getId();
 		
 		log.debug("publishing service: {}" , serviceIdentification);
 				
 		return
-			getEnvironmentId().thenCompose (environmentId ->
+			getPreviousEnvironmentId().thenCompose (previousEnvironmentId ->
+			getDatabaseEnvironmentId().thenCompose (databaseEnvironmentId ->
 			deleteExisting().thenCompose(publishedServices -> {
-				log.debug("existing published_service records deleted: {}", publishedServices);
-				
-				if(environmentId.isPresent()) {
+				if(databaseEnvironmentId.isPresent()) {
 					return getServiceInfo(serviceIdentification).thenCompose(serviceInfo ->
 						insert(
 							serviceIdentification, 
 							serviceInfo.orElseThrow(() -> 
 								new IllegalArgumentException("service doesn't exist: " + serviceIdentification)),
-							environmentId.get()));
+							databaseEnvironmentId.get()));
 				} else {
 					log.debug("no environmentId given -> not publishing");
-					
-					return f.successful(new Ack());
+					return f.<Void>successful(null);
 				}
-		}));
+			}).thenApply(v -> new PublishServiceResult(previousEnvironmentId.orElse(null), environmentId))));
 	}
 
-	private CompletionStage<Ack> insert(String serviceIdentification, Tuple serviceInfo, int environmentId) {
+	private CompletionStage<Void> insert(String serviceIdentification, Tuple serviceInfo, int databaseEnvironmentId) {
 		int serviceId = serviceInfo.get(service.id);
 		
 		return 
-			insertPublishedService(serviceInfo, serviceId, environmentId).thenCompose(publishedService ->
+			insertPublishedService(serviceInfo, serviceId, databaseEnvironmentId).thenCompose(publishedService ->
 			insertPublishedServiceKeyword(serviceId).thenCompose(publishedServiceKeywords ->
 			insertPublishedServiceStyle(serviceIdentification, serviceId).thenCompose(publishedServiceStyles ->
-			insertPublishedServiceDataset(serviceIdentification, serviceId).thenApply(publishedServiceDatasets -> {
-				
+			insertPublishedServiceDataset(serviceIdentification, serviceId).thenAccept(publishedServiceDatasets -> {
 				log.debug("published service has {} keywords", publishedServiceKeywords);
 				log.debug("published service uses {} styles", publishedServiceStyles);
 				log.debug("published service uses {} datasets", publishedServiceDatasets);
-			
-				return new Ack();
 			}))));
 	}
 

@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import nl.idgis.publisher.data.GenericLayer;
@@ -45,6 +46,10 @@ import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.Style;
 import nl.idgis.publisher.domain.web.TiledLayer;
 
+import nl.idgis.publisher.mx.messages.ServiceUpdateType;
+import nl.idgis.publisher.mx.messages.StagingServiceUpdate;
+import nl.idgis.publisher.service.manager.messages.GetServicesWithLayer;
+import nl.idgis.publisher.utils.TypedIterable;
 import nl.idgis.publisher.utils.TypedList;
 
 import akka.actor.ActorRef;
@@ -61,13 +66,19 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 	
 	private final static PathBuilder<Boolean> confidentialPath = new PathBuilder<> (Boolean.class, "confidential");
 	private final static PathBuilder<Boolean> wmsOnlyPath = new PathBuilder<> (Boolean.class, "wmsOnly");
+
+	private final ActorRef serviceManager, messageBroker;
 	
-	public LayerAdmin(ActorRef database) {
-		super(database); 
+	public LayerAdmin(ActorRef database, ActorRef serviceManager, ActorRef messageBroker) {
+
+		super(database);
+
+		this.serviceManager = serviceManager;
+		this.messageBroker = messageBroker;
 	}
 	
-	public static Props props(ActorRef database) {
-		return Props.create(LayerAdmin.class, database);
+	public static Props props(ActorRef database, ActorRef serviceManager, ActorRef messageBroker) {
+		return Props.create(LayerAdmin.class, database, serviceManager, messageBroker);
 	}
 
 	@Override
@@ -302,7 +313,43 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 			}));
 	}
 	
+	private CompletableFuture<Response<?>> handleDeleteLayer(String layerId) {
+		return f.ask(serviceManager, new GetServicesWithLayer(layerId), TypedIterable.class)
+			.thenApply(itr -> ((TypedIterable<Object>)itr).cast(String.class))
+			.thenCompose(serviceIds -> {
+				return performDeleteLayer(layerId).whenComplete( (response, throwable) -> {
+					if (response != null && response.getOperationResponse() == CrudResponse.OK) {
+						for (String serviceId : serviceIds) {
+							log.debug("sending 'create' update notification to message broker");
+							messageBroker.tell(
+									new StagingServiceUpdate(
+											ServiceUpdateType.CREATE,
+											serviceId),
+									getSelf());
+						}
+					}
+				});
+		});
+	}
+
 	private CompletableFuture<Response<?>> handlePutLayer(Layer l) {
+		return performPutLayer(l).whenComplete( (response, throwable) -> {
+			f.ask(serviceManager, new GetServicesWithLayer(l.id()), TypedIterable.class)
+				.thenApply(itr -> ((TypedIterable<Object>)itr).cast(String.class))
+				.thenAccept(serviceIds -> {
+					for (String serviceId : serviceIds) {
+						log.debug("sending 'create' update notification to message broker");
+						messageBroker.tell(
+								new StagingServiceUpdate(
+										ServiceUpdateType.CREATE,
+										serviceId),
+								getSelf());
+					}
+				});
+		});
+	}
+	
+	private CompletableFuture<Response<?>> performPutLayer(Layer l) {
 		String layerId = l.id();
 		String layerName = l.name();
 		String datasetId = l.datasetId();
@@ -420,7 +467,7 @@ public class LayerAdmin extends LayerGroupCommonAdmin {
 					}));
 	}
 
-	private CompletableFuture<Response<?>> handleDeleteLayer(String layerId) {
+	private CompletableFuture<Response<?>> performDeleteLayer(String layerId) {
 		log.debug("handleDeleteLayer: " + layerId);
 
 		return db.transactional(tx -> tx

@@ -4,13 +4,11 @@ import static nl.idgis.publisher.database.QCategory.category;
 import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
-import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QHarvestNotification.harvestNotification;
 import static nl.idgis.publisher.database.QHarvestJob.harvestJob;
 import static nl.idgis.publisher.database.QImportJob.importJob;
 import static nl.idgis.publisher.database.QJob.job;
 import static nl.idgis.publisher.database.QJobState.jobState;
-import static nl.idgis.publisher.database.QServiceJob.serviceJob;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QSourceDatasetVersionColumn.sourceDatasetVersionColumn;
@@ -76,7 +74,6 @@ import nl.idgis.publisher.domain.web.Status;
 
 import nl.idgis.publisher.job.manager.messages.HarvestJobInfo;
 import nl.idgis.publisher.job.manager.messages.ImportJobInfo;
-import nl.idgis.publisher.job.manager.messages.ServiceJobInfo;
 import nl.idgis.publisher.messages.ActiveJob;
 import nl.idgis.publisher.messages.ActiveJobs;
 import nl.idgis.publisher.messages.GetActiveJobs;
@@ -102,18 +99,17 @@ public class Admin extends AbstractAdmin {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
-	private final ActorRef harvester, loader, provisioning;
+	private final ActorRef harvester, loader;
 	
-	public Admin(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef provisioning) {
+	public Admin(ActorRef database, ActorRef harvester, ActorRef loader) {
 		super(database);
 		
 		this.harvester = harvester;
 		this.loader = loader;
-		this.provisioning = provisioning;
 	}
 	
-	public static Props props(ActorRef database, ActorRef harvester, ActorRef loader, ActorRef provisioning) {
-		return Props.create(Admin.class, database, harvester, loader, provisioning);
+	public static Props props(ActorRef database, ActorRef harvester, ActorRef loader) {
+		return Props.create(Admin.class, database, harvester, loader);
 	}
 	
 	@Override
@@ -201,16 +197,10 @@ public class Admin extends AbstractAdmin {
 				// import job and dataset 
 				.leftJoin(importJob).on(importJob.jobId.eq(job.id))
 				.leftJoin(dataset).on(importJob.datasetId.eq(dataset.id))
-				// service job and generic layer 
-				.leftJoin(serviceJob).on(serviceJob.jobId.eq(job.id))
-				.leftJoin(nl.idgis.publisher.database.QService.service).on(serviceJob.serviceId.eq(nl.idgis.publisher.database.QService.service.id))
-				.leftJoin(genericLayer).on(nl.idgis.publisher.database.QService.service.genericLayerId.eq(genericLayer.id))			
 				.orderBy(jobState.createTime.desc(),job.createTime.desc(),job.type.asc())
 				.where(job.createTime.between(since, new Timestamp(new java.util.Date().getTime()))
 					.and(jobState.state.isNull().or(jobState.state.ne("STARTED")))
-					.and(serviceJob.type.isNull().or(serviceJob.type.ne("VACUUM")))
 				);
-
 	}
 
 	private CompletableFuture<TypedList<Tuple>> recentJobsListQuery(AsyncSQLQuery baseQuery, Long page, Long limit){
@@ -224,11 +214,8 @@ public class Admin extends AbstractAdmin {
 				jobState.createTime,
 				dataSource.name,
 				dataset.name,
-				genericLayer.name,
 				dataSource.identification,
-				dataset.identification,
-				genericLayer.identification,
-				serviceJob.published
+				dataset.identification
 			);
 	}
 	
@@ -280,21 +267,6 @@ private String getEnumName(Enum e){
 									js = new Status(DatasetImportStatusType.IMPORT_FAILED, t.get(jobState.createTime));
 								}
 							}
-						} else if (t.get(job.type).equals("SERVICE")){
-							jt = JobType.SERVICE;
-							identifier = t.get (genericLayer.identification);
-							title = t.get (genericLayer.name);
-							if (t.get(jobState.state) == null){
-								js = new Status(JobStatusType.PLANNED, now);
-							} else {
-								if (t.get(jobState.state).equals("SUCCEEDED")) {
-									js = new Status(JobStatusType.OK, t.get(jobState.createTime));
-								} else if (t.get(jobState.state).equals("ABORTED")) {
-									js = new Status(JobStatusType.ABORTED, t.get(jobState.createTime));
-								} else{
-									js = new Status(JobStatusType.FAILED, t.get(jobState.createTime));
-								}
-							}
 						}
 //						log.debug("\t"+jt + ", " +identifier+ ", " + js );
 						recentJobList.add(
@@ -311,7 +283,7 @@ private String getEnumName(Enum e){
 								false, 
 								// published is false if servicejob is for staging, 
 								// true for publication, null for none servicejobs
-								t.get(serviceJob.published) 
+								false
 							)
 						); 
 					}
@@ -326,7 +298,6 @@ private String getEnumName(Enum e){
 		CompletableFuture<Object> dataSourceInfo = f.ask(database, new GetDataSourceInfo());
 		CompletableFuture<Object> harvestJobs = f.ask(harvester, new GetActiveJobs());
 		CompletableFuture<Object> loaderJobs = f.ask(loader, new GetActiveJobs());
-		CompletableFuture<Object> serviceJobs = f.ask(provisioning, new GetActiveJobs());
 		
 		CompletableFuture<Map<String, String>> dataSourceNames = dataSourceInfo.thenApply(msg -> {
 			List<DataSourceInfo> dataSourceInfos = (List<DataSourceInfo>)msg;
@@ -372,62 +343,42 @@ private String getEnumName(Enum e){
 					final ActiveJobs activeLoaderJobs = (ActiveJobs)msg;
 					
 					final Map<String, CompletableFuture<Object>> datasetInfos = new HashMap<>();
-					
-					return serviceJobs.thenCompose(msg1 -> {
-							final ActiveJobs activeServiceJobs = (ActiveJobs)msg1;
 							
-							List<CompletableFuture<ActiveTask>> activeTasks = new ArrayList<>();
-							for(ActiveJob activeLoaderJob : activeLoaderJobs.getActiveJobs()) {
-								final ImportJobInfo job = (ImportJobInfo)activeLoaderJob.getJob();
-								final Progress progress = (Progress)activeLoaderJob.getProgress();
-								
-								CompletableFuture<Object> dsi;
-								String datasetId = job.getDatasetId();
-								if(!datasetInfos.containsKey(datasetId)) {
-									// TODO: stop using this database message and start using
-									// the stuff in DatasetAdmin.handleListDatasets
-									dsi = f.ask(database, new GetDatasetInfo(datasetId));
-									
-									datasetInfos.put(datasetId, dsi);
-								} else {
-									dsi = datasetInfos.get(datasetId);
-								}
-								
-								activeTasks.add(dsi.thenApply(msg2 -> {
-									DatasetInfo datasetInfo = (DatasetInfo)msg2;
-									
-									return new ActiveTask(
-										"",
-										getEnumName(JobType.IMPORT),
-										new Message(JobType.IMPORT, new DefaultMessageProperties (
-											EntityType.DATASET,
-											datasetInfo.getId (),
-											datasetInfo.getName (), 
-											JobStatusType.RUNNING)),
-										// active is true because this is a current task
-										// published is null because this is not a service job
-										(int)(progress.getCount() * 100 / progress.getTotalCount()), true, null);
-								}));
+						List<CompletableFuture<ActiveTask>> activeTasks = new ArrayList<>();
+						for(ActiveJob activeLoaderJob : activeLoaderJobs.getActiveJobs()) {
+							final ImportJobInfo job = (ImportJobInfo)activeLoaderJob.getJob();
+							final Progress progress = (Progress)activeLoaderJob.getProgress();
+
+							CompletableFuture<Object> dsi;
+							String datasetId = job.getDatasetId();
+							if(!datasetInfos.containsKey(datasetId)) {
+								// TODO: stop using this database message and start using
+								// the stuff in DatasetAdmin.handleListDatasets
+								dsi = f.ask(database, new GetDatasetInfo(datasetId));
+
+								datasetInfos.put(datasetId, dsi);
+							} else {
+								dsi = datasetInfos.get(datasetId);
 							}
-							
-							for(ActiveJob activeServiceJob : activeServiceJobs.getActiveJobs()) {								
-								final ServiceJobInfo job = (ServiceJobInfo)activeServiceJob.getJob();
-								
-								activeTasks.add(f.successful(new ActiveTask(
-									"", 
-									getEnumName(JobType.SERVICE),
-									new Message(JobType.SERVICE, new DefaultMessageProperties (
-											EntityType.DATASET,
-											"",
-											"", 
-											JobStatusType.RUNNING)),
-										// active is true because this is a current task
-										// published is not null because this is a service job
-									new Timestamp(new java.util.Date().getTime()), true, job.isPublished())));
-							}
-							
-							return f.sequence(activeTasks);
-						});					
+
+							activeTasks.add(dsi.thenApply(msg2 -> {
+								DatasetInfo datasetInfo = (DatasetInfo)msg2;
+
+								return new ActiveTask(
+									"",
+									getEnumName(JobType.IMPORT),
+									new Message(JobType.IMPORT, new DefaultMessageProperties (
+										EntityType.DATASET,
+										datasetInfo.getId (),
+										datasetInfo.getName (),
+										JobStatusType.RUNNING)),
+									// active is true because this is a current task
+									// published is null because this is not a service job
+									(int)(progress.getCount() * 100 / progress.getTotalCount()), true, null);
+							}));
+						}
+
+						return f.sequence(activeTasks);
 				});
 		
 			return activeHarvestTasks.thenCompose(harvestTasks -> {

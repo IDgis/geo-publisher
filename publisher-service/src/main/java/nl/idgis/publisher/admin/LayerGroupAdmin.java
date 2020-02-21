@@ -57,6 +57,8 @@ import nl.idgis.publisher.domain.web.TiledLayer;
 import nl.idgis.publisher.domain.web.tree.DefaultGroupLayerRef;
 import nl.idgis.publisher.domain.web.tree.GroupLayer;
 import nl.idgis.publisher.domain.web.tree.LayerRef;
+import nl.idgis.publisher.mx.messages.ServiceUpdateType;
+import nl.idgis.publisher.mx.messages.StagingServiceUpdate;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.service.manager.CycleException;
 import nl.idgis.publisher.service.manager.messages.GetDatasetLayerRef;
@@ -71,19 +73,20 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 	
 	protected final static QGenericLayer child = new QGenericLayer("child"), parent = new QGenericLayer("parent");
 	
-	private final ActorRef serviceManager;
+	private final ActorRef serviceManager, messageBroker;
 
 	private final PathBuilder<Boolean> confidentialPath = new PathBuilder<> (Boolean.class, "confidential");
 	private final PathBuilder<Boolean> wmsOnlyPath = new PathBuilder<> (Boolean.class, "wmsOnly");
 	
-	public LayerGroupAdmin(ActorRef database, ActorRef serviceManager) {
+	public LayerGroupAdmin(ActorRef database, ActorRef serviceManager, ActorRef messageBroker) {
 		super(database); 
 		
 		this.serviceManager = serviceManager;
+		this.messageBroker = messageBroker;
 	}
 	
-	public static Props props(ActorRef database, ActorRef serviceManager) {
-		return Props.create(LayerGroupAdmin.class, database, serviceManager);
+	public static Props props(ActorRef database, ActorRef serviceManager, ActorRef messageBroker) {
+		return Props.create(LayerGroupAdmin.class, database, serviceManager, messageBroker);
 	}
 
 	@Override
@@ -313,8 +316,25 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 				}
 			}));
 	}
-	
+
 	private CompletableFuture<Response<?>> handlePutLayergroup(LayerGroup lg) {
+		return performPutLayergroup(lg).whenComplete( (response, throwable) -> {
+			f.ask(serviceManager, new GetServicesWithLayer(lg.id()), TypedIterable.class)
+					.thenApply(itr -> ((TypedIterable<Object>)itr).cast(String.class))
+					.thenAccept(serviceIds -> {
+						for (String serviceId : serviceIds) {
+							log.debug("sending 'create' update notification to message broker");
+							messageBroker.tell(
+									new StagingServiceUpdate(
+											ServiceUpdateType.CREATE,
+											serviceId),
+									getSelf());
+						}
+					});
+		});
+	}
+	
+	private CompletableFuture<Response<?>> performPutLayergroup(LayerGroup lg) {
 		String layergroupId = lg.id();
 		String layergroupName = lg.name();
 		List<String> userGroups = lg.userGroups();
@@ -397,6 +417,25 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 	}
 
 	private CompletableFuture<Response<?>> handleDeleteLayergroup(String layergroupId) {
+		return f.ask(serviceManager, new GetServicesWithLayer(layergroupId), TypedIterable.class)
+			.thenApply(itr -> ((TypedIterable<Object>)itr).cast(String.class))
+			.thenCompose(serviceIds -> {
+				return performDeleteLayergroup(layergroupId).whenComplete( (response, throwable) -> {
+					if (response != null && response.getOperationResponse() == CrudResponse.OK) {
+						for (String serviceId : serviceIds) {
+							log.debug("sending 'create' update notification to message broker");
+							messageBroker.tell(
+									new StagingServiceUpdate(
+											ServiceUpdateType.CREATE,
+											serviceId),
+									getSelf());
+						}
+					}
+				});
+			});
+	}
+
+	private CompletableFuture<Response<?>> performDeleteLayergroup(String layergroupId) {
 		log.debug("handleDeleteLayergroup: " + layergroupId);
 		//first check if generic layer is available and is not a service rootgroup
 		return db.transactional(tx -> 
@@ -454,8 +493,25 @@ public class LayerGroupAdmin extends LayerGroupCommonAdmin {
 			return response;
 		}
 	}
+
+	private CompletableFuture<Response<String>> handlePutGroupStructure (PutGroupStructure putGroupStructure) {
+		return performPutGroupStructure(putGroupStructure).whenComplete( (response, throwable) -> {
+			f.ask(serviceManager, new GetServicesWithLayer(putGroupStructure.groupId()), TypedIterable.class)
+				.thenApply(itr -> ((TypedIterable<Object>)itr).cast(String.class))
+				.thenAccept(serviceIds -> {
+					for (String serviceId : serviceIds) {
+						log.debug("sending 'create' update notification to message broker");
+						messageBroker.tell(
+								new StagingServiceUpdate(
+										ServiceUpdateType.CREATE,
+										serviceId),
+								getSelf());
+					}
+				});
+		});
+	}
 	
-	private CompletableFuture<Response<String>> handlePutGroupStructure (final PutGroupStructure putGroupStructure) {
+	private CompletableFuture<Response<String>> performPutGroupStructure (final PutGroupStructure putGroupStructure) {
 		String groupId = putGroupStructure.groupId();
 
 		List<String> layerIdList =  putGroupStructure.layerIdList();

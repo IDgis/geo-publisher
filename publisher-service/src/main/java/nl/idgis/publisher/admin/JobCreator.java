@@ -21,10 +21,8 @@ import nl.idgis.publisher.domain.web.Service;
 import nl.idgis.publisher.domain.web.Style;
 
 import nl.idgis.publisher.harvester.messages.GetActiveDataSources;
-import nl.idgis.publisher.job.manager.messages.CreateEnsureServiceJob;
 import nl.idgis.publisher.job.manager.messages.CreateHarvestJob;
 import nl.idgis.publisher.job.manager.messages.CreateImportJob;
-import nl.idgis.publisher.job.manager.messages.CreateVacuumServiceJob;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithDataset;
 import nl.idgis.publisher.service.manager.messages.GetServicesWithLayer;
@@ -49,39 +47,7 @@ public class JobCreator extends AbstractAdmin {
 	public static Props props(ActorRef database, ActorRef serviceManager, ActorRef jobManager, final ActorRef harvester) {
 		return Props.create(JobCreator.class, database, serviceManager, jobManager, harvester);
 	}
-	
-	private void createVacuumServiceJob() {
-		log.debug("creating vacuum service job");
-		
-		jobManager.tell(new CreateVacuumServiceJob(), getSelf());
-	}
-	
-	private void createEnsureServiceJob(String serviceId) {
-		log.debug("creating service job: {}", serviceId);
-		
-		jobManager.tell(new CreateEnsureServiceJob(serviceId), getSelf());
-	}
-	
-	private void createEnsureServiceJobs(TypedIterable<?> serviceIds) {
-		for(String serviceId : serviceIds.cast(String.class)) {
-			createEnsureServiceJob(serviceId);
-		}
-	}
-	
-	private void createEnsureServiceJobsForStyle(String styleId) {
-		log.debug("creating service jobs for style: {}", styleId);
-		
-		f.ask(serviceManager, new GetServicesWithStyle(styleId), TypedIterable.class)
-			.thenAccept(this::createEnsureServiceJobs);
-	}
-	
-	private void createEnsureServiceJobsForLayer(String layerId) {
-		log.debug("creating service jobs for layer: {}", layerId);
-		
-		f.ask(serviceManager, new GetServicesWithLayer(layerId), TypedIterable.class)
-			.thenAccept(this::createEnsureServiceJobs);
-	}
-	
+
 	private CompletableFuture<Boolean> createImportJob(String datasetId) {
 		log.debug("requesting to refresh dataset: {}", datasetId);
 		
@@ -90,46 +56,8 @@ public class JobCreator extends AbstractAdmin {
 
 	@Override
 	protected void preStartAdmin() {
-		onQuery(PerformPublish.class, this::createPublishedServiceJobs);
-		
-		onDelete(Style.class, this::createVacuumServiceJob);		
-		onPut(Style.class, (style, styleId) -> createEnsureServiceJobsForStyle(styleId));
-		
-		onDelete(Service.class, this::createVacuumServiceJob);
-		onPut(Service.class, (service, serviceId) -> createEnsureServiceJob(serviceId));
-		
-		onPut(Layer.class, (layer, layerId) -> createEnsureServiceJobsForLayer(layerId));
-		onPut(LayerGroup.class, (layer, layerId) -> createEnsureServiceJobsForLayer(layerId));
-		
-		onDelete(Layer.class, 
-			layerId -> f.ask(serviceManager, new GetServicesWithLayer(layerId), TypedIterable.class),		
-			(services, layerId) -> createEnsureServiceJobs(services));
-		
-		onDelete(LayerGroup.class, 
-			layerId -> f.ask(serviceManager, new GetServicesWithLayer(layerId), TypedIterable.class),		
-			(services, layerId) -> createEnsureServiceJobs(services));
-		
-		onDelete (Dataset.class,
-			datasetId -> f.ask (serviceManager, new GetServicesWithDataset (datasetId), TypedIterable.class),
-			(services, datasetId) -> createEnsureServiceJobs (services));
-		
 		doQuery(RefreshDataset.class, refreshDataset -> createImportJob(refreshDataset.getDatasetId()));
-		doQuery (HarvestDatasources.class, this::handleHarvestDatasources);
-	}
-	
-	private void createPublishedServiceJobs(PerformPublish performPublish) {
-		log.debug("creating published service jobs");
-		
-		String serviceId = performPublish.getServiceId();
-		Optional<String> environmentId = performPublish.getEnvironmentId();
-		
-		jobManager.tell(new CreateVacuumServiceJob(true), getSelf());
-		if(environmentId.isPresent()) {
-			log.debug("published -> creating ensure job");
-			jobManager.tell(new CreateEnsureServiceJob(serviceId, true), getSelf());
-		} else {
-			log.debug("not published -> not creating ensure job");
-		}
+		doQuery(HarvestDatasources.class, this::handleHarvestDatasources);
 	}
 	
 	@SuppressWarnings("unchecked")
