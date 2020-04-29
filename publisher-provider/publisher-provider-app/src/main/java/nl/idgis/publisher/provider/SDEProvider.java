@@ -83,7 +83,7 @@ public class SDEProvider extends UntypedActor {
 			SDEGetRasterDatasetHandler.props(getSender(), msg, rasterFolder, databaseConfig),
 			nameGenerator.getName(SDEGetRasterDatasetHandler.class));
 			
-		database.tell(new StartTransaction(), handler);
+		database.tell(new StartTransaction(getClass().getName()), handler);
 	}
 
 	private void handleGetVectorDataset(GetVectorDataset msg) {
@@ -93,7 +93,7 @@ public class SDEProvider extends UntypedActor {
 			SDEGetVectorDatasetHandler.props(getSender(), msg, databaseConfig),
 			nameGenerator.getName(SDEGetVectorDatasetHandler.class));
 		
-		database.tell(new StartTransaction(), handler);
+		database.tell(new StartTransaction(getClass().getName()), handler);
 	}
 
 	private void handleGetDatasetInfo(GetDatasetInfo msg) {
@@ -103,7 +103,7 @@ public class SDEProvider extends UntypedActor {
 			SDEGetDatasetInfoHandler.props(getSender(), msg, rasterFolder, databaseConfig, rasterConfig),
 			nameGenerator.getName(SDEGetDatasetInfoHandler.class));
 			
-		database.tell(new StartTransaction(), handler);
+		database.tell(new StartTransaction(getClass().getName()), handler);
 	}
 
 	private void handleListDatasetInfo(ListDatasetInfo msg) {
@@ -113,6 +113,6 @@ public class SDEProvider extends UntypedActor {
 			SDEListDatasetInfoHandler.props(getSender(), msg, rasterFolder, databaseConfig, rasterConfig),
 			nameGenerator.getName(SDEListDatasetInfoHandler.class));
 		
-		database.tell(new StartTransaction(), handler);
+		database.tell(new StartTransaction(getClass().getName()), handler);
 	}
 }

@@ -37,7 +37,7 @@ public class EnvironmentInfoProvider extends UntypedActor {
 	@Override
 	public void preStart() throws Exception {
 		f = new FutureUtils(getContext());
-		db = new AsyncDatabaseHelper(database, f, log);
+		db = new AsyncDatabaseHelper(database, getClass().getName(), f, log);
 	}
 
 	@Override

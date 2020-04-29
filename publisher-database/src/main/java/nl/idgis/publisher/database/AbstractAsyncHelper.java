@@ -15,10 +15,13 @@ public abstract class AbstractAsyncHelper implements AsyncHelper {
 	
 	protected final ActorRef actorRef;
 	
+	protected final String origin;
+	
 	protected final FutureUtils f;
 	
-	AbstractAsyncHelper(ActorRef actorRef, FutureUtils f, LoggingAdapter log) {
+	AbstractAsyncHelper(ActorRef actorRef, String origin, FutureUtils f, LoggingAdapter log) {
 		this.actorRef = actorRef;
+		this.origin = origin;
 		this.f = f;		
 		this.log = log;
 	}

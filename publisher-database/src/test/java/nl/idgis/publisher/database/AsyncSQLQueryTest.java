@@ -32,7 +32,7 @@ public class AsyncSQLQueryTest extends AbstractDatabaseTest {
 		LoggingAdapter log = Logging.getLogger(system, this);
 		
 		f = new FutureUtils(system, Timeout.apply(1, TimeUnit.SECONDS));
-		db = new AsyncDatabaseHelper(database, f, log);
+		db = new AsyncDatabaseHelper(database, getClass().getName(), f, log);
 	}
 	
 	@Test

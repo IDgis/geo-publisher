@@ -1,6 +1,7 @@
 package nl.idgis.publisher.database;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.util.concurrent.TimeUnit;
 
 import scala.concurrent.duration.Duration;
@@ -30,7 +31,7 @@ import com.typesafe.config.Config;
 
 public abstract class JdbcDatabase extends UntypedActor {
 	
-	private static final int DEFAULT_POOL_SIZE = 10;
+	private static final int DEFAULT_POOL_SIZE = 30;
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
@@ -99,7 +100,7 @@ public abstract class JdbcDatabase extends UntypedActor {
 		
 		f = new FutureUtils(getContext());
 		
-		transactionHandler = new TransactionHandler<>(new JdbcTransactionSupplier(getSelf(), f), log);
+		transactionHandler = new TransactionHandler<>(new JdbcTransactionSupplier(getSelf(), getClass().getName(), f), log);
 	}
 	
 	@Override
@@ -155,6 +156,14 @@ public abstract class JdbcDatabase extends UntypedActor {
 			try {
 				Connection connection = connectionFuture.get();
 				log.debug("connection obtained from pool");
+				
+				String sql = "set application_name to publisher_" + msg.getOrigin().replaceAll("\\.", "_");
+				
+				try(
+					PreparedStatement stmt = connection.prepareStatement(sql);
+				) {
+					stmt.execute();
+				}
 				
 				getSelf().tell(new CreateTransaction(sender, connection), getSelf());
 			} catch (Exception e) {

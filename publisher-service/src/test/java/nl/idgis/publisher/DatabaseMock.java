@@ -32,7 +32,7 @@ public class DatabaseMock extends UntypedActor {
 	public void preStart() {
 		f = new FutureUtils(getContext());
 		
-		transactionHandler = new TransactionHandler<>(new JdbcTransactionSupplier(getSelf(), f), log);
+		transactionHandler = new TransactionHandler<>(new JdbcTransactionSupplier(getSelf(), getClass().getName(), f), log);
 	}
 	
 	public static Props props() {

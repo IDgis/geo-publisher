@@ -15,7 +15,7 @@ import nl.idgis.publisher.utils.FutureUtils;
 public final class AsyncTransactionHelper extends AbstractAsyncHelper implements Transaction<AsyncHelper> {  
 	
 	AsyncTransactionHelper(ActorRef actorRef, FutureUtils f, LoggingAdapter log) {		
-		super(actorRef, f, log);
+		super(actorRef, "nl.idgis.publisher.database.AsyncTransactionHelper", f, log);
 	}
 	
 	public CompletableFuture<Ack> commit() {

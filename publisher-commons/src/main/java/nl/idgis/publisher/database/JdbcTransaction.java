@@ -1,14 +1,13 @@
 package nl.idgis.publisher.database;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
-import scala.concurrent.duration.Duration;
 
 import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
@@ -17,15 +16,15 @@ import akka.actor.Terminated;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-
 import nl.idgis.publisher.database.messages.Commit;
+import nl.idgis.publisher.database.messages.NotFound;
 import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.database.messages.Rollback;
-import nl.idgis.publisher.database.messages.NotFound;
 import nl.idgis.publisher.database.messages.StreamingQuery;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.stream.messages.NextItem;
+import scala.concurrent.duration.Duration;
 
 public abstract class JdbcTransaction extends UntypedActor {
 	
@@ -53,8 +52,16 @@ public abstract class JdbcTransaction extends UntypedActor {
 	
 	@Override
 	public final void postStop() throws Exception {
-		log.debug("closing connection");		
-		connection.close();		
+		String sql = "set application_name to publisher_idle";
+		
+		try(
+			PreparedStatement stmt = connection.prepareStatement(sql);
+		) {
+			stmt.execute();
+		}
+		
+		log.debug("closing connection");
+		connection.close();
 		
 		log.debug("shutting down executor service");
 		executorService.shutdown();

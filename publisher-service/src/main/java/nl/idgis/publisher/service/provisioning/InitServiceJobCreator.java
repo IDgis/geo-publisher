@@ -58,7 +58,7 @@ public class InitServiceJobCreator extends UntypedActorWithStash {
 	@Override
 	public void preStart() throws Exception {
 		f = new FutureUtils(getContext());
-		db = new AsyncDatabaseHelper(database, f, log);
+		db = new AsyncDatabaseHelper(database, getClass().getName(), f, log);
 	}
 	
 	private Function<TypedList<String>, CompletableFuture<Stream<Ack>>> createEnsureServiceJobs(AsyncTransactionRef txRef, boolean published) {

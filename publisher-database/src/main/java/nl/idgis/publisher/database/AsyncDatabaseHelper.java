@@ -15,8 +15,8 @@ public class AsyncDatabaseHelper extends AbstractAsyncHelper implements Transact
 	
 	private final TransactionHandler<AsyncHelper> transactionHandler;
 	
-	public AsyncDatabaseHelper(ActorRef database, FutureUtils f, LoggingAdapter log) {
-		super(database, f, log);
+	public AsyncDatabaseHelper(ActorRef database, String origin, FutureUtils f, LoggingAdapter log) {
+		super(database, origin, f, log);
 		
 		transactionHandler = new TransactionHandler<AsyncHelper>(this, log);
 	}
@@ -28,7 +28,7 @@ public class AsyncDatabaseHelper extends AbstractAsyncHelper implements Transact
 	public CompletableFuture<AsyncTransactionHelper> transaction() {
 		CompletableFuture<AsyncTransactionHelper> future = new CompletableFuture<>();
 		
-		f.ask(actorRef, new StartTransaction())
+		f.ask(actorRef, new StartTransaction(origin))
 			.whenComplete((msg, t) -> {
 				if(t == null) {				
 					if(msg instanceof TransactionCreated) {

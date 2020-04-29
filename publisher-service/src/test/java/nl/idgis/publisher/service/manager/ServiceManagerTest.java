@@ -1375,7 +1375,7 @@ public class ServiceManagerTest extends AbstractServiceTest {
 	public void testPreventCycle() throws Exception {
 		LoggingAdapter log = nl.idgis.publisher.utils.Logging.getLogger();
 		FutureUtils f = new FutureUtils(system);
-		AsyncDatabaseHelper db = new AsyncDatabaseHelper(database, f, log);
+		AsyncDatabaseHelper db = new AsyncDatabaseHelper(database, getClass().getName(), f, log);
 		
 		assertEquals(
 			db.transactional(tx -> {

@@ -138,7 +138,7 @@ public class ProvisioningManager extends UntypedActorWithStash {
 		jobContexts = new HashSet<>();
 		
 		f = new FutureUtils(getContext());
-		db = new AsyncDatabaseHelper(database, f, log);
+		db = new AsyncDatabaseHelper(database, getClass().getName(), f, log);
 		
 		environmentInfoProvider = getContext().actorOf(
 			provisioningPropsFactory.environmentInfoProviderProps(database),

@@ -85,7 +85,7 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 		super.preStart();
 		
 		f = new FutureUtils(getContext());
-		db = new AsyncDatabaseHelper(database, f, log);
+		db = new AsyncDatabaseHelper(database, getClass().getName(), f, log);
 	}
 	
 	public static Props props(VectorImportJobInfo importJob, ActorRef jobContext, ActorRef database, ActorRef datasetManager) {
