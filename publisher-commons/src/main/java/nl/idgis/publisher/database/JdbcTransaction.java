@@ -9,6 +9,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
 import akka.actor.ReceiveTimeout;
@@ -34,12 +36,15 @@ public abstract class JdbcTransaction extends UntypedActor {
 	
 	protected final Connection connection;
 	
+	protected final Config config;
+	
 	protected ExecutorService executorService;
 		
 	private Set<ActorRef> cursors;
 	
-	protected JdbcTransaction(Connection connection) {
-		this.connection = connection;		
+	protected JdbcTransaction(Config config, Connection connection) {
+		this.connection = connection;
+		this.config = config;
 	}
 	
 	protected Object executeQuery(Query query) throws Exception {
@@ -52,22 +57,25 @@ public abstract class JdbcTransaction extends UntypedActor {
 	
 	@Override
 	public final void postStop() throws Exception {
-		String sql = "set application_name to publisher_idle";
 		
-		try(
-			Statement stmt = connection.createStatement();
-		) {
-			stmt.execute(sql);
-			connection.commit();
+		if(config.getBoolean("setApplicationName")) {
+			String sql = "set application_name to publisher_idle";
 			
-			log.debug("closing connection");
-			connection.close();
-			
-			log.debug("shutting down executor service");
-			executorService.shutdown();
-			
-			log.debug("stopped");
+			try(
+				Statement stmt = connection.createStatement();
+			) {
+				stmt.execute(sql);
+				connection.commit();
+			}
 		}
+		
+		log.debug("closing connection");
+		connection.close();
+		
+		log.debug("shutting down executor service");
+		executorService.shutdown();
+		
+		log.debug("stopped");
 	};
 	
 	protected void transactionPreStart() throws Exception {

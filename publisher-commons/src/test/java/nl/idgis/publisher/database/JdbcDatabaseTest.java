@@ -90,12 +90,12 @@ public class JdbcDatabaseTest {
 	
 	public static class TestTransaction extends JdbcTransaction {
 
-		public TestTransaction(Connection connection) {
-			super(connection);
+		public TestTransaction(Config config, Connection connection) {
+			super(config, connection);
 		}
 		
-		public static Props props(Connection connection) {
-			return Props.create(TestTransaction.class, connection);
+		public static Props props(Config config, Connection connection) {
+			return Props.create(TestTransaction.class, config, connection);
 		}
 		
 		@Override
@@ -154,8 +154,8 @@ public class JdbcDatabaseTest {
 		}
 
 		@Override
-		protected Props createTransaction(Connection connection) { 
-			return TestTransaction.props(connection);
+		protected Props createTransaction(Config config, Connection connection) { 
+			return TestTransaction.props(config, connection);
 		}		
 	}
 	
@@ -173,7 +173,8 @@ public class JdbcDatabaseTest {
 			.withValue("driver", ConfigValueFactory.fromAnyRef("org.h2.Driver"))
 			.withValue("url", ConfigValueFactory.fromAnyRef("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1"))
 			.withValue("user", ConfigValueFactory.fromAnyRef(""))
-			.withValue("password", ConfigValueFactory.fromAnyRef(""));
+			.withValue("password", ConfigValueFactory.fromAnyRef(""))
+			.withValue("setApplicationName", ConfigValueFactory.fromAnyRef("false"));
 		
 		database = actorSystem.actorOf(TestDatabase.props(config, "test", POOL_SIZE));
 		

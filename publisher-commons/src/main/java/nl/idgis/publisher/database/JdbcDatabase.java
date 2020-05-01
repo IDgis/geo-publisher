@@ -107,7 +107,7 @@ public abstract class JdbcDatabase extends UntypedActor {
 		connectionPool.close();		
 	}
 	
-	protected abstract Props createTransaction(Connection connection);
+	protected abstract Props createTransaction(Config config, Connection connection);
 	
 	@Override
 	public final void onReceive(final Object msg) throws Exception {
@@ -125,7 +125,7 @@ public abstract class JdbcDatabase extends UntypedActor {
 	private void handleCreateTransaction(CreateTransaction msg) {
 		log.debug("creating transaction");
 		
-		Props transactionProps = createTransaction(msg.getConnection());
+		Props transactionProps = createTransaction(config, msg.getConnection());
 		ActorRef transaction = getContext().actorOf(
 				transactionProps, 
 				nameGenerator.getName(transactionProps.clazz()));
@@ -155,16 +155,18 @@ public abstract class JdbcDatabase extends UntypedActor {
 				Connection connection = connectionFuture.get();
 				log.debug("connection obtained from pool");
 				
-				String sql = "set application_name to publisher_" + msg.getOrigin().replaceAll("\\.", "_");
-				
-				try(
-					Statement stmt = connection.createStatement();
-				) {
-					stmt.execute(sql);
-					connection.commit();
+				if(config.getBoolean("setApplicationName")) {
+					String sql = "set application_name to publisher_" + msg.getOrigin().replaceAll("\\.", "_");
 					
-					getSelf().tell(new CreateTransaction(sender, connection), getSelf());
+					try(
+						Statement stmt = connection.createStatement();
+					) {
+						stmt.execute(sql);
+						connection.commit();
+					}
 				}
+				
+				getSelf().tell(new CreateTransaction(sender, connection), getSelf());
 			} catch (Exception e) {
 				log.error("couldn't obtain connection from pool: {}", e);
 				
