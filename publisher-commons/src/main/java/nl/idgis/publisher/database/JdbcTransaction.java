@@ -1,8 +1,8 @@
 package nl.idgis.publisher.database;
 
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -55,18 +55,19 @@ public abstract class JdbcTransaction extends UntypedActor {
 		String sql = "set application_name to publisher_idle";
 		
 		try(
-			PreparedStatement stmt = connection.prepareStatement(sql);
+			Statement stmt = connection.createStatement();
 		) {
-			stmt.execute();
+			stmt.execute(sql);
+			connection.commit();
+			
+			log.debug("closing connection");
+			connection.close();
+			
+			log.debug("shutting down executor service");
+			executorService.shutdown();
+			
+			log.debug("stopped");
 		}
-		
-		log.debug("closing connection");
-		connection.close();
-		
-		log.debug("shutting down executor service");
-		executorService.shutdown();
-		
-		log.debug("stopped");
 	};
 	
 	protected void transactionPreStart() throws Exception {
