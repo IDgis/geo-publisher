@@ -172,7 +172,7 @@ public class AsyncDatabaseHelperTest {
 		LoggingAdapter log = Logging.getLogger(actorSystem, this);
 		
 		f = new FutureUtils(actorSystem, Timeout.apply(1, TimeUnit.SECONDS));
-		db = new AsyncDatabaseHelper(database, f, log);
+		db = new AsyncDatabaseHelper(database, getClass().getName(), f, log);
 	}
 	
 	private Recording playRecording() throws Exception {

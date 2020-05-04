@@ -53,7 +53,7 @@ import nl.idgis.publisher.utils.TypedList;
 
 public class JdbcDatabaseTest {
 	
-	private static final int POOL_SIZE = 10;
+	private static final int POOL_SIZE = 30;
 	
 	private static enum SqlQueryType {
 		QUERY,
@@ -90,12 +90,12 @@ public class JdbcDatabaseTest {
 	
 	public static class TestTransaction extends JdbcTransaction {
 
-		public TestTransaction(Connection connection) {
-			super(connection);
+		public TestTransaction(Config config, Connection connection) {
+			super(config, connection);
 		}
 		
-		public static Props props(Connection connection) {
-			return Props.create(TestTransaction.class, connection);
+		public static Props props(Config config, Connection connection) {
+			return Props.create(TestTransaction.class, config, connection);
 		}
 		
 		@Override
@@ -155,7 +155,7 @@ public class JdbcDatabaseTest {
 
 		@Override
 		protected Props createTransaction(Connection connection) { 
-			return TestTransaction.props(connection);
+			return TestTransaction.props(config, connection);
 		}		
 	}
 	
@@ -182,7 +182,7 @@ public class JdbcDatabaseTest {
 	
 	@After
 	public void shutdown() throws Exception {
-		ActorRef transaction = f.ask(database, new StartTransaction(), TransactionCreated.class).get().getActor();
+		ActorRef transaction = f.ask(database, new StartTransaction(getClass().getName()), TransactionCreated.class).get().getActor();
 		f.ask(transaction, new SqlQuery("shutdown", SqlQueryType.UPDATE)).get();
 		
 		actorSystem.shutdown();
@@ -212,7 +212,7 @@ public class JdbcDatabaseTest {
 		
 		Set<ActorRef> transactions = new HashSet<>();
 		for(int i = 0; i < numberOfTransactions; i++) {
-			transactions.add(f.ask(database, new StartTransaction(), TransactionCreated.class).get().getActor());
+			transactions.add(f.ask(database, new StartTransaction(getClass().getName()), TransactionCreated.class).get().getActor());
 		}
 		
 		ActorRef identityRecorder = actorSystem.actorOf(AnyRecorder.props());
@@ -259,7 +259,7 @@ public class JdbcDatabaseTest {
 	public void testTransactionRollback() throws Exception {
 		f.ask(database, new SqlQuery("create table test(id integer)", SqlQueryType.UPDATE), Integer.class).get();
 		
-		ActorRef transaction = f.ask(database, new StartTransaction(), TransactionCreated.class).get().getActor();
+		ActorRef transaction = f.ask(database, new StartTransaction(getClass().getName()), TransactionCreated.class).get().getActor();
 		
 		f.ask(transaction, new SqlQuery("insert into test(id) values(42)", SqlQueryType.UPDATE), Integer.class).get();		
 		f.ask(transaction, new Rollback(), Ack.class).get();
@@ -272,7 +272,7 @@ public class JdbcDatabaseTest {
 	public void testTransactionCommit() throws Exception {
 		f.ask(database, new SqlQuery("create table test(id integer)", SqlQueryType.UPDATE), Integer.class).get();
 		
-		ActorRef transaction = f.ask(database, new StartTransaction(), TransactionCreated.class).get().getActor();
+		ActorRef transaction = f.ask(database, new StartTransaction(getClass().getName()), TransactionCreated.class).get().getActor();
 		
 		f.ask(transaction, new SqlQuery("insert into test(id) values(42)", SqlQueryType.UPDATE), Integer.class).get();
 		
@@ -287,7 +287,7 @@ public class JdbcDatabaseTest {
 	
 	@Test
 	public void testTransactionCrash() throws Exception {
-		ActorRef transaction = f.ask(database, new StartTransaction(), TransactionCreated.class).get().getActor();
+		ActorRef transaction = f.ask(database, new StartTransaction(getClass().getName()), TransactionCreated.class).get().getActor();
 		
 		Throwable t = f.ask(transaction, new SqlQuery("invalid sql", SqlQueryType.QUERY), Failure.class).get().getCause();
 		assertNotNull(t);
@@ -316,9 +316,9 @@ public class JdbcDatabaseTest {
 		Set<ActorRef> transactions = new HashSet<>();
 		for(int i = 0; i < numberOfTransactions; i++) {
 			if(i < POOL_SIZE) {
-				transactions.add(f.ask(database, new StartTransaction(), TransactionCreated.class).get().getActor());
+				transactions.add(f.ask(database, new StartTransaction(getClass().getName()), TransactionCreated.class).get().getActor());
 			} else {
-				f.ask(database, new StartTransaction(), Failure.class).get();
+				f.ask(database, new StartTransaction(getClass().getName()), Failure.class).get();
 			}
 		}
 		
@@ -335,7 +335,7 @@ public class JdbcDatabaseTest {
 			f.ask(database, new SqlQuery("select 1", SqlQueryType.QUERY), TypedList.class).get();
 		}
 		
-		ActorRef transaction = f.ask(database, new StartTransaction(), TransactionCreated.class).get().getActor();
+		ActorRef transaction = f.ask(database, new StartTransaction(getClass().getName()), TransactionCreated.class).get().getActor();
 		f.ask(transaction, new Commit(), Ack.class).get();
 	}
 	
@@ -347,7 +347,7 @@ public class JdbcDatabaseTest {
 			f.ask(database, new SqlQuery("invalid sql", SqlQueryType.QUERY), Failed.class);
 		}
 		
-		ActorRef transaction = f.ask(database, new StartTransaction(), TransactionCreated.class).get().getActor();
+		ActorRef transaction = f.ask(database, new StartTransaction(getClass().getName()), TransactionCreated.class).get().getActor();
 		f.ask(transaction, new Commit(), Ack.class).get();
 	}
 	
@@ -359,7 +359,7 @@ public class JdbcDatabaseTest {
 			f.ask(database, new SqlQuery("select 1", SqlQueryType.QUERY), TypedList.class).get();
 		}
 		
-		ActorRef transaction = f.ask(database, new StartTransaction(), TransactionCreated.class).get().getActor();
+		ActorRef transaction = f.ask(database, new StartTransaction(getClass().getName()), TransactionCreated.class).get().getActor();
 		f.ask(transaction, new Commit(), Ack.class).get();
 	}
 	

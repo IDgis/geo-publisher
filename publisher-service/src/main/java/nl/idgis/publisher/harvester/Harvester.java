@@ -102,7 +102,7 @@ public class Harvester extends UntypedActor {
 		sessions = HashBiMap.create();
 		
 		f = new FutureUtils(getContext());
-		db = new AsyncDatabaseHelper(database, f, log);
+		db = new AsyncDatabaseHelper(database, getClass().getName(), f, log);
 	}
 
 	@Override

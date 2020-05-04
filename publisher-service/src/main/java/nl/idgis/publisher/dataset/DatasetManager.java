@@ -120,7 +120,7 @@ public class DatasetManager extends UntypedActor {
 		Timeout timeout = Timeout.apply(15000);
 
 		f = new FutureUtils(getContext(), timeout);
-		db = new AsyncDatabaseHelper(database, f, log);		
+		db = new AsyncDatabaseHelper(database, getClass().getName(), f, log);		
 	}
 
 	private <T> void returnToSender(CompletableFuture<T> future) {

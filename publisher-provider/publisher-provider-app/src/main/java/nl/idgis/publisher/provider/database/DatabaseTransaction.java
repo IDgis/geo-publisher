@@ -6,6 +6,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.Logging;
@@ -32,12 +34,12 @@ public class DatabaseTransaction extends JdbcTransaction {
 	
 	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
 	
-	public DatabaseTransaction(Connection connection) {
-		super(connection);
+	public DatabaseTransaction(Config config, Connection connection) {
+		super(config, connection);
 	}
 	
-	public static Props props(Connection connection) {
-		return Props.create(DatabaseTransaction.class, connection);
+	public static Props props(Config config, Connection connection) {
+		return Props.create(DatabaseTransaction.class, config, connection);
 	}
 
 	@Override

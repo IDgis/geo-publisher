@@ -20,12 +20,9 @@ import nl.idgis.publisher.utils.TypedList;
 public abstract class QueryDSLTransaction extends JdbcTransaction {
 		
 	private SQLTemplates templates;
-	private Config config;
 
 	public QueryDSLTransaction(Config config, Connection connection) {
-		super(connection);
-		
-		this.config = config;
+		super(config, connection);
 	}
 	
 	@Override

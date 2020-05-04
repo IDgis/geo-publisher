@@ -203,7 +203,7 @@ public abstract class AbstractAdmin extends UntypedActorWithStash {
 	@Override
 	public final void preStart() throws Exception {
 		f = new FutureUtils(getContext(), Timeout.apply(15000));		
-		db = new AsyncDatabaseHelper(database, f, log);
+		db = new AsyncDatabaseHelper(database, getClass().getName(), f, log);
 		
 		doQuery = new HashMap<>();
 		doList = new HashMap<>();

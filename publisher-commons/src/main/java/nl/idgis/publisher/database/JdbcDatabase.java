@@ -1,10 +1,23 @@
 package nl.idgis.publisher.database;
 
 import java.sql.Connection;
+import java.sql.Statement;
 import java.util.concurrent.TimeUnit;
 
-import scala.concurrent.duration.Duration;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.jolbox.bonecp.BoneCP;
+import com.jolbox.bonecp.BoneCPConfig;
+import com.typesafe.config.Config;
 
+import akka.actor.ActorRef;
+import akka.actor.OneForOneStrategy;
+import akka.actor.Props;
+import akka.actor.SupervisorStrategy;
+import akka.actor.SupervisorStrategy.Directive;
+import akka.actor.UntypedActor;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
+import akka.japi.Function;
 import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.database.messages.StartTransaction;
 import nl.idgis.publisher.database.messages.TransactionCreated;
@@ -12,25 +25,11 @@ import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.utils.ConfigUtils;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
-
-import akka.actor.ActorRef;
-import akka.actor.OneForOneStrategy;
-import akka.actor.Props;
-import akka.actor.SupervisorStrategy;
-import akka.actor.UntypedActor;
-import akka.actor.SupervisorStrategy.Directive;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
-import akka.japi.Function;
-
-import com.google.common.util.concurrent.ListenableFuture;
-import com.jolbox.bonecp.BoneCP;
-import com.jolbox.bonecp.BoneCPConfig;
-import com.typesafe.config.Config;
+import scala.concurrent.duration.Duration;
 
 public abstract class JdbcDatabase extends UntypedActor {
 	
-	private static final int DEFAULT_POOL_SIZE = 10;
+	private static final int DEFAULT_POOL_SIZE = 30;
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
@@ -99,7 +98,7 @@ public abstract class JdbcDatabase extends UntypedActor {
 		
 		f = new FutureUtils(getContext());
 		
-		transactionHandler = new TransactionHandler<>(new JdbcTransactionSupplier(getSelf(), f), log);
+		transactionHandler = new TransactionHandler<>(new JdbcTransactionSupplier(getSelf(), getClass().getName(), f), log);
 	}
 	
 	@Override
@@ -155,6 +154,17 @@ public abstract class JdbcDatabase extends UntypedActor {
 			try {
 				Connection connection = connectionFuture.get();
 				log.debug("connection obtained from pool");
+				
+				if(config.hasPath("setApplicationName") && config.getBoolean("setApplicationName")) {
+					String sql = "set application_name to publisher_" + msg.getOrigin().replaceAll("\\.", "_");
+					
+					try(
+						Statement stmt = connection.createStatement();
+					) {
+						stmt.execute(sql);
+						connection.commit();
+					}
+				}
 				
 				getSelf().tell(new CreateTransaction(sender, connection), getSelf());
 			} catch (Exception e) {
