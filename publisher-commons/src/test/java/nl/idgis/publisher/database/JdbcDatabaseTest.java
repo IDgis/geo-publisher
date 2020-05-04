@@ -154,7 +154,7 @@ public class JdbcDatabaseTest {
 		}
 
 		@Override
-		protected Props createTransaction(Config config, Connection connection) { 
+		protected Props createTransaction(Connection connection) { 
 			return TestTransaction.props(config, connection);
 		}		
 	}

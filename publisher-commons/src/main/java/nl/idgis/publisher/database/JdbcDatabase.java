@@ -107,7 +107,7 @@ public abstract class JdbcDatabase extends UntypedActor {
 		connectionPool.close();		
 	}
 	
-	protected abstract Props createTransaction(Config config, Connection connection);
+	protected abstract Props createTransaction(Connection connection);
 	
 	@Override
 	public final void onReceive(final Object msg) throws Exception {
@@ -125,7 +125,7 @@ public abstract class JdbcDatabase extends UntypedActor {
 	private void handleCreateTransaction(CreateTransaction msg) {
 		log.debug("creating transaction");
 		
-		Props transactionProps = createTransaction(config, msg.getConnection());
+		Props transactionProps = createTransaction(msg.getConnection());
 		ActorRef transaction = getContext().actorOf(
 				transactionProps, 
 				nameGenerator.getName(transactionProps.clazz()));
