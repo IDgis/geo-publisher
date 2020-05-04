@@ -58,7 +58,7 @@ public abstract class JdbcTransaction extends UntypedActor {
 	@Override
 	public final void postStop() throws Exception {
 		
-		if(config.getBoolean("setApplicationName")) {
+		if(config.hasPath("setApplicationName") && config.getBoolean("setApplicationName")) {
 			String sql = "set application_name to publisher_idle";
 			
 			try(

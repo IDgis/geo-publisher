@@ -173,8 +173,7 @@ public class JdbcDatabaseTest {
 			.withValue("driver", ConfigValueFactory.fromAnyRef("org.h2.Driver"))
 			.withValue("url", ConfigValueFactory.fromAnyRef("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1"))
 			.withValue("user", ConfigValueFactory.fromAnyRef(""))
-			.withValue("password", ConfigValueFactory.fromAnyRef(""))
-			.withValue("setApplicationName", ConfigValueFactory.fromAnyRef("false"));
+			.withValue("password", ConfigValueFactory.fromAnyRef(""));
 		
 		database = actorSystem.actorOf(TestDatabase.props(config, "test", POOL_SIZE));
 		

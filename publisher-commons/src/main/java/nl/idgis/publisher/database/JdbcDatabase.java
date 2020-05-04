@@ -155,7 +155,7 @@ public abstract class JdbcDatabase extends UntypedActor {
 				Connection connection = connectionFuture.get();
 				log.debug("connection obtained from pool");
 				
-				if(config.getBoolean("setApplicationName")) {
+				if(config.hasPath("setApplicationName") && config.getBoolean("setApplicationName")) {
 					String sql = "set application_name to publisher_" + msg.getOrigin().replaceAll("\\.", "_");
 					
 					try(
