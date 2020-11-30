@@ -30,7 +30,7 @@ import org.deegree.geometry.Geometry;
 import org.deegree.geometry.io.WKBWriter;
 import org.deegree.sqldialect.oracle.sdo.SDOGeometryConverter;
 
-public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
+public class DatabaseOracleCursor extends StreamCursor<ResultSet, Records> {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
@@ -42,7 +42,7 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 	
 	private Boolean currentHasNext = null;
 
-	public DatabaseCursor(ResultSet t, FetchTable fetchTable, ExecutorService executorService) {
+	public DatabaseOracleCursor(ResultSet t, FetchTable fetchTable, ExecutorService executorService) {
 		super(t);
 		
 		this.fetchTable = fetchTable;
@@ -50,7 +50,7 @@ public class DatabaseCursor extends StreamCursor<ResultSet, Records> {
 	}
 	
 	public static Props props(ResultSet t, FetchTable fetchTable, ExecutorService executorService) {
-		return Props.create(DatabaseCursor.class, t, fetchTable, executorService);
+		return Props.create(DatabaseOracleCursor.class, t, fetchTable, executorService);
 	}
 	
 	private Object convert(DatabaseColumnInfo columnInfo, Object value) throws Exception {

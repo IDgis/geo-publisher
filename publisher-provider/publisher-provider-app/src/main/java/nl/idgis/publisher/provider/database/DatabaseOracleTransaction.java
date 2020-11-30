@@ -28,18 +28,18 @@ import nl.idgis.publisher.provider.database.messages.ColumnFilter;
 import nl.idgis.publisher.provider.database.messages.TableNotFound;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
 
-public class DatabaseTransaction extends JdbcTransaction {
+public class DatabaseOracleTransaction extends JdbcTransaction {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
 	
-	public DatabaseTransaction(Config config, Connection connection) {
+	public DatabaseOracleTransaction(Config config, Connection connection) {
 		super(config, connection);
 	}
 	
 	public static Props props(Config config, Connection connection) {
-		return Props.create(DatabaseTransaction.class, config, connection);
+		return Props.create(DatabaseOracleTransaction.class, config, connection);
 	}
 
 	@Override
@@ -234,8 +234,8 @@ public class DatabaseTransaction extends JdbcTransaction {
 		ResultSet rs = stmt.executeQuery(query);
 		
 		ActorRef cursor = getContext().actorOf(
-				DatabaseCursor.props(rs, msg, executorService), 
-				nameGenerator.getName(DatabaseCursor.class));
+				DatabaseOracleCursor.props(rs, msg, executorService),
+				nameGenerator.getName(DatabaseOracleCursor.class));
 		
 		return cursor;
 	}
