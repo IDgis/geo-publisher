@@ -1,40 +1,32 @@
 package nl.idgis.publisher.provider.database;
 
+import akka.actor.ActorRef;
+import akka.actor.Props;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
+import com.typesafe.config.Config;
+import nl.idgis.publisher.provider.database.messages.*;
+import nl.idgis.publisher.utils.UniqueNameGenerator;
+
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 
-import com.typesafe.config.Config;
+public class DatabasePostgresTransaction extends DatabaseTransaction {
 
-import akka.actor.ActorRef;
-import akka.actor.Props;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
-
-import nl.idgis.publisher.provider.database.messages.DatabaseColumnInfo;
-import nl.idgis.publisher.provider.database.messages.DatabaseTableInfo;
-import nl.idgis.publisher.provider.database.messages.DescribeTable;
-import nl.idgis.publisher.provider.database.messages.FetchTable;
-import nl.idgis.publisher.provider.database.messages.PerformCount;
-import nl.idgis.publisher.provider.database.messages.TableNotFound;
-import nl.idgis.publisher.utils.UniqueNameGenerator;
-
-public class DatabaseOracleTransaction extends DatabaseTransaction {
-	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
-	
 	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
-	
-	public DatabaseOracleTransaction(Config config, Connection connection) {
+
+	public DatabasePostgresTransaction(Config config, Connection connection) {
 		super(config, connection);
 	}
-	
+
 	public static Props props(Config config, Connection connection) {
-		return Props.create(DatabaseOracleTransaction.class, config, connection);
+		return Props.create(DatabasePostgresTransaction.class, config, connection);
 	}
-	
+
 	Object handleDescribeTable(DescribeTable query) throws SQLException {
 		String requestedTableName = query.getTableName();
 		
@@ -166,8 +158,8 @@ public class DatabaseOracleTransaction extends DatabaseTransaction {
 		ResultSet rs = stmt.executeQuery(query);
 		
 		ActorRef cursor = getContext().actorOf(
-				DatabaseOracleCursor.props(rs, msg, executorService),
-				nameGenerator.getName(DatabaseOracleCursor.class));
+				DatabasePostgresCursor.props(rs, msg, executorService),
+				nameGenerator.getName(DatabasePostgresCursor.class));
 		
 		return cursor;
 	}

@@ -20,6 +20,18 @@ public class Database extends JdbcDatabase {
 	
 	@Override
 	protected Props createTransaction(Connection connection) {
-		return DatabaseOracleTransaction.props(config, connection);
+		Props props;
+
+		// Value should come from config
+		String databasetype_from_config = "oracle";
+
+		/* Return props from Oracle or Postgis*/
+		if ("oracle".equalsIgnoreCase(databasetype_from_config)) {
+			props = DatabaseOracleTransaction.props(config, connection);
+		} else {
+			props = DatabasePostgresTransaction.props(config, connection);
+		}
+
+		return props;
 	}	
 }
