@@ -15,18 +15,18 @@ import nl.idgis.publisher.utils.UniqueNameGenerator;
 import java.sql.Connection;
 import java.sql.SQLException;
 
-public abstract class DatabaseTransaction extends JdbcTransaction {
+public abstract class AbstractDatabaseTransaction extends JdbcTransaction {
 
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
 	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
 
-	public DatabaseTransaction(Config config, Connection connection) {
+	public AbstractDatabaseTransaction(Config config, Connection connection) {
 		super(config, connection);
 	}
 	
 	public static Props props(Config config, Connection connection) {
-		return Props.create(DatabaseTransaction.class, config, connection);
+		return Props.create(AbstractDatabaseTransaction.class, config, connection);
 	}
 
 	@Override

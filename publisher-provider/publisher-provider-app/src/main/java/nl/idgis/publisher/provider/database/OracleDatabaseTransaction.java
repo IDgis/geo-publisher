@@ -21,18 +21,18 @@ import nl.idgis.publisher.provider.database.messages.PerformCount;
 import nl.idgis.publisher.provider.database.messages.TableNotFound;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
 
-public class DatabaseOracleTransaction extends DatabaseTransaction {
+public class OracleDatabaseTransaction extends AbstractDatabaseTransaction {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	
 	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
 	
-	public DatabaseOracleTransaction(Config config, Connection connection) {
+	public OracleDatabaseTransaction(Config config, Connection connection) {
 		super(config, connection);
 	}
 	
 	public static Props props(Config config, Connection connection) {
-		return Props.create(DatabaseOracleTransaction.class, config, connection);
+		return Props.create(OracleDatabaseTransaction.class, config, connection);
 	}
 	
 	Object handleDescribeTable(DescribeTable query) throws SQLException {
@@ -166,8 +166,8 @@ public class DatabaseOracleTransaction extends DatabaseTransaction {
 		ResultSet rs = stmt.executeQuery(query);
 		
 		ActorRef cursor = getContext().actorOf(
-				DatabaseOracleCursor.props(rs, msg, executorService),
-				nameGenerator.getName(DatabaseOracleCursor.class));
+				OracleDatabaseCursor.props(rs, msg, executorService),
+				nameGenerator.getName(OracleDatabaseCursor.class));
 		
 		return cursor;
 	}

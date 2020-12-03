@@ -14,17 +14,17 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 
-public class DatabasePostgresTransaction extends DatabaseTransaction {
+public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
 
-	public DatabasePostgresTransaction(Config config, Connection connection) {
+	public PostgresDatabaseTransaction(Config config, Connection connection) {
 		super(config, connection);
 	}
 
 	public static Props props(Config config, Connection connection) {
-		return Props.create(DatabasePostgresTransaction.class, config, connection);
+		return Props.create(PostgresDatabaseTransaction.class, config, connection);
 	}
 
 	Object handleDescribeTable(DescribeTable query) throws SQLException {
@@ -158,8 +158,8 @@ public class DatabasePostgresTransaction extends DatabaseTransaction {
 		ResultSet rs = stmt.executeQuery(query);
 		
 		ActorRef cursor = getContext().actorOf(
-				DatabasePostgresCursor.props(rs, msg, executorService),
-				nameGenerator.getName(DatabasePostgresCursor.class));
+				PostgresDatabaseCursor.props(rs, msg, executorService),
+				nameGenerator.getName(PostgresDatabaseCursor.class));
 		
 		return cursor;
 	}

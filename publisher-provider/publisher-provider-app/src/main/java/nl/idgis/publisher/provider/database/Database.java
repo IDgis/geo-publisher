@@ -27,9 +27,9 @@ public class Database extends JdbcDatabase {
 
 		/* Return props from Oracle or Postgis*/
 		if ("oracle".equalsIgnoreCase(databasetype_from_config)) {
-			props = DatabaseOracleTransaction.props(config, connection);
+			props = OracleDatabaseTransaction.props(config, connection);
 		} else {
-			props = DatabasePostgresTransaction.props(config, connection);
+			props = PostgresDatabaseTransaction.props(config, connection);
 		}
 
 		return props;
