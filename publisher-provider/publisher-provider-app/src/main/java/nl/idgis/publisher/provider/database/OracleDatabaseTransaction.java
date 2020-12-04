@@ -83,7 +83,7 @@ public class OracleDatabaseTransaction extends AbstractDatabaseTransaction {
 	
 	Object handlePerformCount(PerformCount query) throws SQLException {
 		String sql = "select count(*) from " + query.getTableName();
-		
+		log.debug(String.format("executing count query: %s", sql));
 		Statement stmt = connection.createStatement();
 		
 		ResultSet rs = stmt.executeQuery(sql);
