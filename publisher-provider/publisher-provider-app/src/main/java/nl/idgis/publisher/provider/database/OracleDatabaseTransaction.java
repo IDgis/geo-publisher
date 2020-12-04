@@ -1,30 +1,22 @@
 package nl.idgis.publisher.provider.database;
 
+import akka.actor.ActorRef;
+import akka.actor.Props;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
+import com.typesafe.config.Config;
+import nl.idgis.publisher.provider.database.messages.*;
+import nl.idgis.publisher.utils.UniqueNameGenerator;
+
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 
-import com.typesafe.config.Config;
-
-import akka.actor.ActorRef;
-import akka.actor.Props;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
-
-import nl.idgis.publisher.provider.database.messages.DatabaseColumnInfo;
-import nl.idgis.publisher.provider.database.messages.DatabaseTableInfo;
-import nl.idgis.publisher.provider.database.messages.DescribeTable;
-import nl.idgis.publisher.provider.database.messages.FetchTable;
-import nl.idgis.publisher.provider.database.messages.PerformCount;
-import nl.idgis.publisher.provider.database.messages.TableNotFound;
-import nl.idgis.publisher.utils.UniqueNameGenerator;
-
 public class OracleDatabaseTransaction extends AbstractDatabaseTransaction {
 	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
-	
 	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
 	
 	public OracleDatabaseTransaction(Config config, Connection connection) {
