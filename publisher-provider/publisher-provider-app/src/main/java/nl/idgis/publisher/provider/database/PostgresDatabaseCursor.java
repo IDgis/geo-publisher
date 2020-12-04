@@ -1,5 +1,22 @@
 package nl.idgis.publisher.provider.database;
 
+import akka.actor.Props;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
+import nl.idgis.publisher.domain.service.Type;
+import nl.idgis.publisher.provider.database.messages.DatabaseColumnInfo;
+import nl.idgis.publisher.provider.database.messages.FetchTable;
+import nl.idgis.publisher.provider.protocol.Record;
+import nl.idgis.publisher.provider.protocol.Records;
+import nl.idgis.publisher.provider.protocol.WKBGeometry;
+import nl.idgis.publisher.stream.StreamCursor;
+import oracle.sql.STRUCT;
+import oracle.sql.TIMESTAMP;
+import org.apache.commons.io.IOUtils;
+import org.deegree.geometry.Geometry;
+import org.deegree.geometry.io.WKBWriter;
+import org.deegree.sqldialect.oracle.sdo.SDOGeometryConverter;
+
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.ResultSet;
@@ -9,40 +26,19 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
-import org.apache.commons.io.IOUtils;
+public class PostgresDatabaseCursor extends StreamCursor<ResultSet, Records> {
 
-import nl.idgis.publisher.domain.service.Type;
-import nl.idgis.publisher.provider.database.messages.DatabaseColumnInfo;
-import nl.idgis.publisher.provider.database.messages.FetchTable;
-import nl.idgis.publisher.provider.protocol.Record;
-import nl.idgis.publisher.provider.protocol.Records;
-import nl.idgis.publisher.provider.protocol.WKBGeometry;
-import nl.idgis.publisher.stream.StreamCursor;
-
-import akka.actor.Props;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
-
-import oracle.sql.STRUCT;
-import oracle.sql.TIMESTAMP;
-
-import org.deegree.geometry.Geometry;
-import org.deegree.geometry.io.WKBWriter;
-import org.deegree.sqldialect.oracle.sdo.SDOGeometryConverter;
-
-public class DatabaseOracleCursor extends StreamCursor<ResultSet, Records> {
-	
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
-	
+
 	private final SDOGeometryConverter converter = new SDOGeometryConverter();
-		
+
 	private final FetchTable fetchTable;
-	
+
 	private final ExecutorService executorService;
-	
+
 	private Boolean currentHasNext = null;
 
-	public DatabaseOracleCursor(ResultSet t, FetchTable fetchTable, ExecutorService executorService) {
+	public PostgresDatabaseCursor(ResultSet t, FetchTable fetchTable, ExecutorService executorService) {
 		super(t);
 		
 		this.fetchTable = fetchTable;
@@ -50,7 +46,7 @@ public class DatabaseOracleCursor extends StreamCursor<ResultSet, Records> {
 	}
 	
 	public static Props props(ResultSet t, FetchTable fetchTable, ExecutorService executorService) {
-		return Props.create(DatabaseOracleCursor.class, t, fetchTable, executorService);
+		return Props.create(PostgresDatabaseCursor.class, t, fetchTable, executorService);
 	}
 	
 	private Object convert(DatabaseColumnInfo columnInfo, Object value) throws Exception {
@@ -86,7 +82,9 @@ public class DatabaseOracleCursor extends StreamCursor<ResultSet, Records> {
 					
 					STRUCT struct = (STRUCT)value;
 					log.debug("struct object: " + struct);
-					
+
+					// De converter is een specifieke ORACLE converter.
+					// Hoe krijg ik hier een Postgis converter
 					Geometry geom = converter.toGeometry(struct, null);
 					log.debug("geom object: " + geom);
 					

@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
-public class DatabasePostgresCursor extends StreamCursor<ResultSet, Records> {
+public class AbstractDatabaseCursor extends StreamCursor<ResultSet, Records> {
 
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
@@ -38,7 +38,7 @@ public class DatabasePostgresCursor extends StreamCursor<ResultSet, Records> {
 
 	private Boolean currentHasNext = null;
 
-	public DatabasePostgresCursor(ResultSet t, FetchTable fetchTable, ExecutorService executorService) {
+	public AbstractDatabaseCursor(ResultSet t, FetchTable fetchTable, ExecutorService executorService) {
 		super(t);
 		
 		this.fetchTable = fetchTable;
@@ -46,7 +46,7 @@ public class DatabasePostgresCursor extends StreamCursor<ResultSet, Records> {
 	}
 	
 	public static Props props(ResultSet t, FetchTable fetchTable, ExecutorService executorService) {
-		return Props.create(DatabasePostgresCursor.class, t, fetchTable, executorService);
+		return Props.create(AbstractDatabaseCursor.class, t, fetchTable, executorService);
 	}
 	
 	private Object convert(DatabaseColumnInfo columnInfo, Object value) throws Exception {
@@ -82,9 +82,7 @@ public class DatabasePostgresCursor extends StreamCursor<ResultSet, Records> {
 					
 					STRUCT struct = (STRUCT)value;
 					log.debug("struct object: " + struct);
-
-					// De converter is een specifieke ORACLE converter.
-					// Hoe krijg ik hier een Postgis converter
+					
 					Geometry geom = converter.toGeometry(struct, null);
 					log.debug("geom object: " + geom);
 					
