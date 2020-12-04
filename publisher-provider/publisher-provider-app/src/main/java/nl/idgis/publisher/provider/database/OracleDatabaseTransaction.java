@@ -152,7 +152,7 @@ public class OracleDatabaseTransaction extends AbstractDatabaseTransaction {
 		
 		String query = sb.toString();
 		
-		log.debug("executing query: {}", query);
+		log.debug("executing fetchtable query: {}", query);
 		
 		Statement stmt = connection.createStatement();
 		ResultSet rs = stmt.executeQuery(query);
