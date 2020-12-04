@@ -48,88 +48,16 @@ public class AbstractDatabaseCursor extends StreamCursor<ResultSet, Records> {
 	public static Props props(ResultSet t, FetchTable fetchTable, ExecutorService executorService) {
 		return Props.create(AbstractDatabaseCursor.class, t, fetchTable, executorService);
 	}
-	
-	private Object convert(DatabaseColumnInfo columnInfo, Object value) throws Exception {
+
+	Object convert(DatabaseColumnInfo columnInfo, Object value) throws Exception {
 		if(value == null) {
 			return null;
-		}
-		
-		log.debug("database column value: " + value);
-		
-		if(columnInfo.getType() == Type.DATE) {
-			String typeName = columnInfo.getTypeName();
-			if("TIMESTAMP(6)".equals(typeName)) {
-				log.debug("database column value is of type timestamp(6)");
-				if(value instanceof TIMESTAMP) {
-					log.debug("database column value is of type oracle.sql.timestamp");
-					
-					TIMESTAMP timestamp = (TIMESTAMP)value;
-					return timestamp.timestampValue();
-				} else {
-					log.error("unsupported value class: {}", value.getClass().getCanonicalName());
-					return null;
-				}
-			} else {
-				return value;
-			}
-		} else if(columnInfo.getType() == Type.GEOMETRY) {
-			String typeName = columnInfo.getTypeName();
-			if("SDO_GEOMETRY".equals(typeName)) {
-				log.debug("database column value is of type sdo_geometry");
-				
-				if(value instanceof STRUCT) {
-					log.debug("database column value is of type struct");
-					
-					STRUCT struct = (STRUCT)value;
-					log.debug("struct object: " + struct);
-					
-					Geometry geom = converter.toGeometry(struct, null);
-					log.debug("geom object: " + geom);
-					
-					return new WKBGeometry(WKBWriter.write(geom));
-				} else {
-					log.error("unsupported value class: {}", value.getClass().getCanonicalName());
-					return null;
-				}
-			} else if("ST_GEOMETRY".equals(typeName)) {
-				log.debug("database column value is of type st_geometry");
-				
-				if(value instanceof Blob) {
-					Blob blob = (Blob)value;
-					long blobLength = blob.length();
-					if(blobLength > Integer.MAX_VALUE) {
-						log.error("blob value too large: {}", blobLength);
-						return null;
-					} if(blobLength == 0) { // known to be returned by SDE.ST_ASBINARY on empty geometries
-						log.error("empty blob");
-						return null;
-					} else {
-						return new WKBGeometry(blob.getBytes(1l, (int)blobLength));
-					}
-				} else {
-					log.error("unsupported value class: {}", value.getClass().getCanonicalName());
-					return null;
-				}
-			} else {
-				log.error("unsupported geometry type: {}", typeName);
-				return null;
-			}
 		} else {
-			if(value instanceof Clob) {
-				Clob clob = (Clob)value;
-				if(clob.length() > Integer.MAX_VALUE) {
-					log.error("clob value too large: {}", clob.length());
-					return null;
-				}
-				
-				return IOUtils.toString(clob.getCharacterStream());
-			}
-			
 			return value;
 		}
 	}
-	
-	private Record toRecord() throws Exception {
+
+	protected Record toRecord() throws Exception {
 		currentHasNext = null;
 		
 		List<Object> values = new ArrayList<>();
