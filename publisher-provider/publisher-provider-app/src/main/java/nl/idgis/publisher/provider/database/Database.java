@@ -2,6 +2,8 @@ package nl.idgis.publisher.provider.database;
 
 import java.sql.Connection;
 
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
 import nl.idgis.publisher.database.JdbcDatabase;
 
 import akka.actor.Props;
@@ -9,7 +11,9 @@ import akka.actor.Props;
 import com.typesafe.config.Config;
 
 public class Database extends JdbcDatabase {
-	
+
+	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+
 	public Database(Config config, String name) {
 		super(config, name + "-database");
 	}
@@ -23,10 +27,11 @@ public class Database extends JdbcDatabase {
 		Props props;
 
 		// Value should come from config
-		String databasetype_from_config = "oracle";
+		String vendor = config.getString("vendor");
+		log.debug(String.format("Using database: %s", vendor));
 
-		/* Return props from Oracle or Postgis*/
-		if ("oracle".equalsIgnoreCase(databasetype_from_config)) {
+		/* Return props from Oracle or Postgis */
+		if ("oracle".equalsIgnoreCase(vendor)) {
 			props = OracleDatabaseTransaction.props(config, connection);
 		} else {
 			props = PostgresDatabaseTransaction.props(config, connection);
