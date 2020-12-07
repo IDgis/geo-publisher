@@ -30,11 +30,16 @@ public class Database extends JdbcDatabase {
 		String vendor = config.getString("vendor");
 		log.debug(String.format("Using database: %s", vendor));
 
-		/* Return props from Oracle or Postgis */
+		/* Return props from Oracle or postgres */
 		if ("oracle".equalsIgnoreCase(vendor)) {
 			props = OracleDatabaseTransaction.props(config, connection);
-		} else {
+		} else if ("postgres".equalsIgnoreCase(vendor)) {
 			props = PostgresDatabaseTransaction.props(config, connection);
+		} else {
+			// TODO
+			// implement error
+			log.error("Vendor is not supported");
+			props = null;
 		}
 
 		return props;
