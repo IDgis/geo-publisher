@@ -324,6 +324,7 @@ project(':publisher-provider:publisher-provider-app') {
 		compile project(':publisher-provider:publisher-provider-protocol')
 		compile "commons-io:commons-io:${commonsIOVersion}"
 		compile 'com.fasterxml:aalto-xml:0.9.9'
+		compile 'org.postgresql:postgresql:42.2.18.jre7'
 		compile 'com.oracle:ojdbc7:12.1.0.1.0'
 		compile("org.deegree:deegree-sqldialect-oracle:${deegreeVersion}") {
 			exclude group: 'org.deegree', module: 'deegree-sqldialect-commons'
