@@ -24,7 +24,24 @@ public class DatabaseColumnInfo implements Serializable {
 	public String getTypeName() {
 		return typeName;
 	}
-	
+
+	public Type getTypePostgres() {
+		switch(typeName.toUpperCase()) {
+			case "INTEGER":
+			case "NUMERIC":
+				return Type.NUMERIC;
+			//case "DATE":
+			//case "TIMESTAMP(6)":
+			//	return Type.DATE;
+			case "CHARACTER VARYING(32)":
+				return Type.TEXT;
+			case "GEOMETRY(POLYGON,28992)":
+				return Type.GEOMETRY;
+		}
+
+		return null;
+	}
+
 	public Type getType() {
 		switch(typeName.toUpperCase()) {
 			case "NUMBER":
