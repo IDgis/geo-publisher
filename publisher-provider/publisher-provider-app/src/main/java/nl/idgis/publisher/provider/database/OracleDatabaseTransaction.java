@@ -28,7 +28,7 @@ public class OracleDatabaseTransaction extends AbstractDatabaseTransaction {
 	}
 	
 	Object handleDescribeTable(DescribeTable query) throws SQLException {
-		String requestedTableName = query.getTableName();
+		String requestedTableName = query.getTableName().toUpperCase();
 		
 		final String sql;
 		int separatorIndex = requestedTableName.indexOf(".");
