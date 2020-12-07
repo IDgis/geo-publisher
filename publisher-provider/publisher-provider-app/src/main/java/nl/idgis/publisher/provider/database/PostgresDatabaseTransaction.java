@@ -28,21 +28,28 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 	}
 
 	Object handleDescribeTable(DescribeTable query) throws SQLException {
+		log.debug("Describing table");
 		String requestedTableName = query.getTableName();
 		
 		final String sql;
 		int separatorIndex = requestedTableName.indexOf(".");
 		if(separatorIndex == -1) {
-			sql = "select column_name, data_type from user_tab_columns "
-					+ "where table_name = '" + requestedTableName + "' "
-					+ "order by column_id";
+
+			// Er wordt geen gebruik gemaakt van schema.table notatie in metadata bestand
+			log.warning("Schema-table name not clear from database");
+			return new TableNotFound();
+
 		} else {
-			String owner = requestedTableName.substring(0, separatorIndex);
+			String schema = requestedTableName.substring(0, separatorIndex);
 			String tableName = requestedTableName.substring(separatorIndex + 1);
-			
-			sql = "select column_name, data_type from all_tab_columns "
-					+ "where owner = '" + owner + "' and table_name = '" + tableName
-					+ "' " + "order by column_id";
+
+			// https://stackoverflow.com/questions/20194806/how-to-get-a-list-column-names-and-datatype-of-a-table-in-postgresql
+			sql = " SELECT pg_attribute.attname AS column_name, pg_catalog.format_type(pg_attribute.atttypid, pg_attribute.atttypmod) AS data_type "
+				+ "FROM pg_catalog.pg_attribute "
+				+ "INNER JOIN pg_catalog.pg_class ON pg_class.oid = pg_attribute.attrelid "
+				+ "INNER JOIN pg_catalog.pg_namespace ON pg_namespace.oid = pg_class.relnamespace "
+				+ "WHERE pg_attribute.attnum > 0 AND NOT pg_attribute.attisdropped AND pg_namespace.nspname = '" + schema + "' AND pg_class.relname = '" + tableName + "' "
+				+ "ORDER BY attnum";
 		}
 		
 		log.debug("executing data dictionary query: {}", sql);
