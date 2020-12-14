@@ -6,17 +6,10 @@ import akka.event.LoggingAdapter;
 import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.provider.database.messages.AbstractDatabaseColumnInfo;
 import nl.idgis.publisher.provider.database.messages.FetchTable;
-import nl.idgis.publisher.provider.protocol.WKBGeometry;
-import oracle.sql.STRUCT;
-import oracle.sql.TIMESTAMP;
 import org.apache.commons.io.IOUtils;
-import org.deegree.geometry.Geometry;
-import org.deegree.geometry.io.WKBWriter;
 import org.deegree.sqldialect.oracle.sdo.SDOGeometryConverter;
 
-import java.sql.Blob;
-import java.sql.Clob;
-import java.sql.ResultSet;
+import java.sql.*;
 import java.util.concurrent.ExecutorService;
 
 public class PostgresDatabaseCursor extends AbstractDatabaseCursor {
@@ -38,10 +31,20 @@ public class PostgresDatabaseCursor extends AbstractDatabaseCursor {
 			return null;
 		}
 
-		log.debug("database column value: " + value);
+		Type columnType = columnInfo.getType();
+		String typeName = columnInfo.getTypeName();
+		log.debug(String.format("database column typeName, Type and value: %s, %s, %s", typeName, columnType, value));
 
-		if (columnInfo.getType() == Type.DATE) {
-			String typeName = columnInfo.getTypeName();
+		if (columnType == Type.DATE) {
+			if ("TIMESTAMP WITHOUT TIME ZONE".equalsIgnoreCase(typeName)) {
+				if (value instanceof Timestamp) {
+					Timestamp timestamp = (Timestamp) value;
+					Date newDate = new Date(timestamp.getTime());
+					log.debug(String.format("Converting a timestamp to a date value: %s", newDate.toString()));
+					return newDate;
+				}
+			}
+			/*
 			if ("TIMESTAMP(6)".equals(typeName)) {
 				log.debug("database column value is of type timestamp(6)");
 				if (value instanceof TIMESTAMP) {
@@ -56,8 +59,11 @@ public class PostgresDatabaseCursor extends AbstractDatabaseCursor {
 			} else {
 				return value;
 			}
-		} else if (columnInfo.getType() == Type.GEOMETRY) {
-			String typeName = columnInfo.getTypeName();
+			*/
+
+			return value;
+		} else if (columnType == Type.GEOMETRY) {
+			/*
 			if ("SDO_GEOMETRY".equals(typeName)) {
 				log.debug("database column value is of type sdo_geometry");
 
@@ -100,7 +106,8 @@ public class PostgresDatabaseCursor extends AbstractDatabaseCursor {
 			} else {
 				log.error("unsupported geometry type: {}", typeName);
 				return null;
-			}
+			}*/
+			return value;
 		} else {
 			if (value instanceof Clob) {
 				Clob clob = (Clob) value;
