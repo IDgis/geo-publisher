@@ -4,7 +4,7 @@ import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import nl.idgis.publisher.domain.service.Type;
-import nl.idgis.publisher.provider.database.messages.DatabaseColumnInfo;
+import nl.idgis.publisher.provider.database.messages.AbstractDatabaseColumnInfo;
 import nl.idgis.publisher.provider.database.messages.FetchTable;
 import nl.idgis.publisher.provider.protocol.WKBGeometry;
 import oracle.sql.STRUCT;
@@ -33,7 +33,7 @@ public class PostgresDatabaseCursor extends AbstractDatabaseCursor {
 		return Props.create(PostgresDatabaseCursor.class, t, fetchTable, executorService);
 	}
 
-	Object convert(DatabaseColumnInfo columnInfo, Object value) throws Exception {
+	Object convert(AbstractDatabaseColumnInfo columnInfo, Object value) throws Exception {
 		if (value == null) {
 			return null;
 		}

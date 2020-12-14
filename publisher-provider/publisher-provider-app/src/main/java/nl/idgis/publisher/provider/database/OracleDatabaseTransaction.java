@@ -47,14 +47,14 @@ public class OracleDatabaseTransaction extends AbstractDatabaseTransaction {
 		
 		log.debug("executing data dictionary query: {}", sql);
 		
-		ArrayList<DatabaseColumnInfo> columns = new ArrayList<>();
+		ArrayList<AbstractDatabaseColumnInfo> columns = new ArrayList<>();
 		Statement stmt = connection.createStatement();
 		ResultSet rs = stmt.executeQuery(sql);
 		while(rs.next()) {
 			String name = rs.getString(1);
 			String typeName = rs.getString(2);
 			
-			DatabaseColumnInfo columnInfo = new DatabaseColumnInfo(name, typeName);
+			AbstractDatabaseColumnInfo columnInfo = new OracleDatabaseColumnInfo(name, typeName);
 			// not reporting columns with unsupported data types
 			if("CLOB".equals(typeName) || columnInfo.getType() == null) {
 				log.debug("unsupported data type: " + columnInfo.getTypeName());
@@ -69,7 +69,7 @@ public class OracleDatabaseTransaction extends AbstractDatabaseTransaction {
 		if(columns.isEmpty()) {
 			return new TableNotFound();
 		} else {
-			return new DatabaseTableInfo(columns.toArray(new DatabaseColumnInfo[columns.size()]));
+			return new DatabaseTableInfo(columns.toArray(new AbstractDatabaseColumnInfo[columns.size()]));
 		}
 	}
 	
@@ -95,7 +95,7 @@ public class OracleDatabaseTransaction extends AbstractDatabaseTransaction {
 		StringBuilder sb = new StringBuilder("SELECT ");
 		
 		String separator = "";
-		for(DatabaseColumnInfo columnInfo : msg.getColumns()) {
+		for(AbstractDatabaseColumnInfo columnInfo : msg.getColumns()) {
 			sb.append(separator);
 			
 			String typeName = columnInfo.getTypeName();

@@ -8,11 +8,11 @@ import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.service.DatabaseLog;
 import nl.idgis.publisher.domain.service.DatasetLogType;
 import nl.idgis.publisher.domain.service.Type;
-import nl.idgis.publisher.provider.database.messages.DatabaseColumnInfo;
 import nl.idgis.publisher.provider.database.messages.DatabaseTableInfo;
 import nl.idgis.publisher.provider.database.messages.DescribeTable;
 import nl.idgis.publisher.provider.database.messages.PerformCount;
 import nl.idgis.publisher.provider.database.messages.TableNotFound;
+import nl.idgis.publisher.provider.database.messages.AbstractDatabaseColumnInfo;
 import nl.idgis.publisher.provider.messages.SkipDataset;
 import nl.idgis.publisher.provider.protocol.Attachment;
 import nl.idgis.publisher.provider.protocol.AttachmentType;
@@ -54,7 +54,7 @@ public class VectorDatasetInfoBuilder extends AbstractDatasetInfoBuilder {
 			log.debug("table info");
 			
 			ArrayList<ColumnInfo> columns = new ArrayList<>();
-			for(DatabaseColumnInfo columnInfo : ((DatabaseTableInfo)msg).getColumns()) {
+			for(AbstractDatabaseColumnInfo columnInfo : ((DatabaseTableInfo)msg).getColumns()) {
 				String columnName = columnInfo.getName();
 				Type columnType = columnInfo.getType();
 				String columnAlias = attributeAliases.get(columnName);

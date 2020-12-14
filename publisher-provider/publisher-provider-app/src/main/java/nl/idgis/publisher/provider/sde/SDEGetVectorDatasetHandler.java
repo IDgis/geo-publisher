@@ -12,7 +12,7 @@ import com.typesafe.config.ConfigException;
 import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.protocol.messages.Ack;
-import nl.idgis.publisher.provider.database.messages.DatabaseColumnInfo;
+import nl.idgis.publisher.provider.database.messages.AbstractDatabaseColumnInfo;
 import nl.idgis.publisher.provider.database.messages.DatabaseTableInfo;
 import nl.idgis.publisher.provider.database.messages.DescribeTable;
 import nl.idgis.publisher.provider.database.messages.FetchTable;
@@ -144,7 +144,7 @@ public class SDEGetVectorDatasetHandler extends UntypedActor {
 			@Override
 			public void apply(Object msg) throws Exception {
 				if(msg instanceof DatabaseTableInfo) {
-					Map<String, DatabaseColumnInfo> columnInfos = 
+					Map<String, AbstractDatabaseColumnInfo> columnInfos =
 						Stream.of(((DatabaseTableInfo) msg).getColumns())
 							.collect(Collectors.toMap(
 								columnInfo -> columnInfo.getName(),

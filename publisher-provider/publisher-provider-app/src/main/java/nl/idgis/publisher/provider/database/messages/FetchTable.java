@@ -8,21 +8,21 @@ import nl.idgis.publisher.database.messages.StreamingQuery;
 
 public class FetchTable extends StreamingQuery {		
 
-	private static final long serialVersionUID = -2891224433843529687L;
+	private static final long serialVersionUID = -2891224433843529688L;
 	
 	private final String tableName;
 	
-	private final List<DatabaseColumnInfo> columns;
+	private final List<AbstractDatabaseColumnInfo> columns;
 	
 	private final int messageSize;
 	
 	private final Filter filter;
 	
-	public FetchTable(String tableName, List<DatabaseColumnInfo> columns, int messageSize) {
+	public FetchTable(String tableName, List<AbstractDatabaseColumnInfo> columns, int messageSize) {
 		this(tableName, columns, messageSize, null);
 	}
 	
-	public FetchTable(String tableName, List<DatabaseColumnInfo> columns, int messageSize, Filter filter) {
+	public FetchTable(String tableName, List<AbstractDatabaseColumnInfo> columns, int messageSize, Filter filter) {
 		this.tableName = tableName;
 		this.columns = columns;
 		this.messageSize = messageSize;
@@ -33,7 +33,7 @@ public class FetchTable extends StreamingQuery {
 		return tableName;
 	}
 	
-	public List<DatabaseColumnInfo> getColumns() {
+	public List<AbstractDatabaseColumnInfo> getColumns() {
 		return Collections.unmodifiableList(columns);
 	}
 	

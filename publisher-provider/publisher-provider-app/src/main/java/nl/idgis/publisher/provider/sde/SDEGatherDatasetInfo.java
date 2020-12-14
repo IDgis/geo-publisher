@@ -36,11 +36,11 @@ import nl.idgis.publisher.folder.messages.GetFileSize;
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.provider.ProviderUtils;
-import nl.idgis.publisher.provider.database.messages.DatabaseColumnInfo;
 import nl.idgis.publisher.provider.database.messages.DatabaseTableInfo;
 import nl.idgis.publisher.provider.database.messages.DescribeTable;
 import nl.idgis.publisher.provider.database.messages.PerformCount;
 import nl.idgis.publisher.provider.database.messages.TableNotFound;
+import nl.idgis.publisher.provider.database.messages.AbstractDatabaseColumnInfo;
 import nl.idgis.publisher.provider.protocol.Attachment;
 import nl.idgis.publisher.provider.protocol.AttachmentType;
 import nl.idgis.publisher.provider.protocol.ColumnInfo;
@@ -246,7 +246,7 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 			log.debug("count received: {}", numberOfRecords);
 			
 			ArrayList<ColumnInfo> columns = new ArrayList<>();
-			for(DatabaseColumnInfo columnInfo : databaseTableInfo.getColumns()) {
+			for(AbstractDatabaseColumnInfo columnInfo : databaseTableInfo.getColumns()) {
 				Type columnType = columnInfo.getType();
 				
 				if(columnType == null) {

@@ -9,9 +9,9 @@ import java.util.stream.Stream;
 
 import nl.idgis.publisher.provider.database.messages.ColumnFilter;
 import nl.idgis.publisher.provider.database.messages.CompoundFilter;
-import nl.idgis.publisher.provider.database.messages.DatabaseColumnInfo;
 import nl.idgis.publisher.provider.database.messages.FetchTable;
 import nl.idgis.publisher.provider.database.messages.Filter;
+import nl.idgis.publisher.provider.database.messages.AbstractDatabaseColumnInfo;
 import nl.idgis.publisher.provider.protocol.Record;
 import nl.idgis.publisher.provider.protocol.Records;
 
@@ -23,7 +23,7 @@ final class SDEUtils {
 		return new CompoundFilter(
 			"AND",
 			new ColumnFilter(
-				new DatabaseColumnInfo(
+				new SDEDatabaseColumnInfo(
 					"PHYSICALNAME",
 					"CHAR"),
 				"IS NOT NULL"),
@@ -32,7 +32,7 @@ final class SDEUtils {
 				Stream.of(SDEItemInfoType.values())
 					.map(itemInfoType ->
 						new ColumnFilter(	
-							new DatabaseColumnInfo(
+							new SDEDatabaseColumnInfo(
 								"TYPE", 
 								"CHAR"),
 							"=", 
@@ -45,7 +45,7 @@ final class SDEUtils {
 			"AND",
 			getItemsFilter(),
 			new ColumnFilter(
-				new DatabaseColumnInfo(
+				new SDEDatabaseColumnInfo(
 						"UUID", 
 						"CHAR"),
 					"=",
@@ -53,11 +53,11 @@ final class SDEUtils {
 	}
 	
 	static FetchTable getFetchTable(Filter filter, String databaseScheme) {
-		List<DatabaseColumnInfo> columns = new ArrayList<>();
-		columns.add(new DatabaseColumnInfo("UUID", "CHAR"));
-		columns.add(new DatabaseColumnInfo("TYPE", "CHAR"));
-		columns.add(new DatabaseColumnInfo("PHYSICALNAME", "CHAR"));
-		columns.add(new DatabaseColumnInfo("DOCUMENTATION", "CLOB"));
+		List<AbstractDatabaseColumnInfo> columns = new ArrayList<>();
+		columns.add(new SDEDatabaseColumnInfo("TYPE", "CHAR"));
+		columns.add(new SDEDatabaseColumnInfo("UUID", "CHAR"));
+		columns.add(new SDEDatabaseColumnInfo("PHYSICALNAME", "CHAR"));
+		columns.add(new SDEDatabaseColumnInfo("DOCUMENTATION", "CLOB"));
 		
 		return new FetchTable(
 			databaseScheme + ".GDB_ITEMS_VW", 

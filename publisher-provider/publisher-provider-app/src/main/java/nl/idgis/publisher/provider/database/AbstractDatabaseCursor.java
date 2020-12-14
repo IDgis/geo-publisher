@@ -4,7 +4,7 @@ import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import nl.idgis.publisher.domain.service.Type;
-import nl.idgis.publisher.provider.database.messages.DatabaseColumnInfo;
+import nl.idgis.publisher.provider.database.messages.AbstractDatabaseColumnInfo;
 import nl.idgis.publisher.provider.database.messages.FetchTable;
 import nl.idgis.publisher.provider.protocol.Record;
 import nl.idgis.publisher.provider.protocol.Records;
@@ -49,7 +49,7 @@ public class AbstractDatabaseCursor extends StreamCursor<ResultSet, Records> {
 		return Props.create(AbstractDatabaseCursor.class, t, fetchTable, executorService);
 	}
 
-	Object convert(DatabaseColumnInfo columnInfo, Object value) throws Exception {
+	Object convert(AbstractDatabaseColumnInfo columnInfo, Object value) throws Exception {
 		if(value == null) {
 			return null;
 		} else {
@@ -63,7 +63,7 @@ public class AbstractDatabaseCursor extends StreamCursor<ResultSet, Records> {
 		List<Object> values = new ArrayList<>();
 		
 		int j = 1;
-		for(DatabaseColumnInfo columnInfo : fetchTable.getColumns()) {
+		for(AbstractDatabaseColumnInfo columnInfo : fetchTable.getColumns()) {
 			Object value = t.getObject(j++);
 			values.add(convert(columnInfo, value));
 		}

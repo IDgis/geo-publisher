@@ -1,0 +1,17 @@
+package nl.idgis.publisher.provider.database.messages;
+
+public class FactoryDatabaseColumnInfo {
+
+    public static AbstractDatabaseColumnInfo getDatabaseColumnInfo(String name, String typeName, String vendor) {
+        switch(vendor) {
+            case "SDE":
+                return new SDEDatabaseColumnInfo(name, typeName);
+            case "oracle":
+                return new OracleDatabaseColumnInfo(name, typeName);
+            case "postgres":
+            case "postgis":
+                return new PostgresDatabaseColumnInfo(name, typeName);
+        }
+        return null;
+    }
+}

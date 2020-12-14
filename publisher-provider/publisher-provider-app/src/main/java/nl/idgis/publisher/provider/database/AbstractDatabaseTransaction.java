@@ -70,7 +70,7 @@ public abstract class AbstractDatabaseTransaction extends JdbcTransaction {
 			}
 		} else if(filter instanceof ColumnFilter) {
 			ColumnFilter columnFilter = (ColumnFilter)filter;
-			DatabaseColumnInfo column = columnFilter.getColumn();
+			AbstractDatabaseColumnInfo column = columnFilter.getColumn();
 			
 			sb
 				.append("\"")
