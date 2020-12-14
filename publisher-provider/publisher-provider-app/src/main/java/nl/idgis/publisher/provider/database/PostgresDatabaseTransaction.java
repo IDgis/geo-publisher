@@ -84,8 +84,15 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 
 	@Override
 	Object handlePerformCount(PerformCount query) throws SQLException {
-		String sql = "select count(*) from " + query.getTableName();
 
+
+		String requestedTableName = query.getTableName();
+		int separatorIndex = requestedTableName.indexOf(".");
+		String schema = requestedTableName.substring(0, separatorIndex);
+		String tableName = requestedTableName.substring(separatorIndex + 1);
+
+		String sql = "SELECT count(*) FROM \"" + schema + "\".\"" + tableName + "\"";
+		log.debug(String.format("executing count query: %s", sql));
 		Statement stmt = connection.createStatement();
 		
 		ResultSet rs = stmt.executeQuery(sql);
