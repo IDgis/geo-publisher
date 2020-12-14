@@ -145,11 +145,15 @@ public class VectorDatasetFetcher extends AbstractDatasetFetcher<GetVectorDatase
 							log.debug("table info received: {}", describeTableResult);
 							
 							DatabaseTableInfo tableInfo = (DatabaseTableInfo)describeTableResult;
+
 							Map<String, String> columnTypes = Arrays.asList(tableInfo.getColumns()).stream()
-								.collect(Collectors.toMap(DatabaseColumnInfo::getName, DatabaseColumnInfo::getTypeName));
-							
-							List<DatabaseColumnInfo> columnInfos = request.getColumnNames().stream()
-								.map(columnName -> new DatabaseColumnInfo(columnName, columnTypes.get(columnName)))
+								.collect(Collectors.toMap(AbstractDatabaseColumnInfo::getName, AbstractDatabaseColumnInfo::getTypeName));
+
+							Map<String, String> columnVendor = Arrays.asList(tableInfo.getColumns()).stream()
+									.collect(Collectors.toMap(AbstractDatabaseColumnInfo::getName, AbstractDatabaseColumnInfo::getVendor));
+
+							List<AbstractDatabaseColumnInfo> columnInfos = request.getColumnNames().stream()
+								.map(columnName -> FactoryDatabaseColumnInfo.getDatabaseColumnInfo(columnName, columnTypes.get(columnName), columnVendor.get(columnName)))
 								.collect(Collectors.toList());
 							
 							transaction.tell(new FetchTable(tableName, columnInfos, request.getMessageSize()), getSelf());

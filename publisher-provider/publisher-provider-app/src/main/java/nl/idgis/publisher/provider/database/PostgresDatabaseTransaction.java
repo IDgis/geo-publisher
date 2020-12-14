@@ -27,6 +27,7 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 		return Props.create(PostgresDatabaseTransaction.class, config, connection);
 	}
 
+	@Override
 	Object handleDescribeTable(DescribeTable query) throws SQLException {
 		log.debug("Describing table");
 		String requestedTableName = query.getTableName();
@@ -44,7 +45,7 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 			String tableName = requestedTableName.substring(separatorIndex + 1);
 
 			// https://stackoverflow.com/questions/20194806/how-to-get-a-list-column-names-and-datatype-of-a-table-in-postgresql
-			sql = " SELECT pg_attribute.attname AS column_name, pg_catalog.format_type(pg_attribute.atttypid, pg_attribute.atttypmod) AS data_type "
+			sql = "SELECT pg_attribute.attname AS column_name, pg_catalog.format_type(pg_attribute.atttypid, pg_attribute.atttypmod) AS data_type "
 				+ "FROM pg_catalog.pg_attribute "
 				+ "INNER JOIN pg_catalog.pg_class ON pg_class.oid = pg_attribute.attrelid "
 				+ "INNER JOIN pg_catalog.pg_namespace ON pg_namespace.oid = pg_class.relnamespace "
@@ -63,10 +64,10 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 			
 			AbstractDatabaseColumnInfo columnInfo = new PostgresDatabaseColumnInfo(name, typeName);
 			// not reporting columns with unsupported data types
-			if("CLOB".equals(typeName) || columnInfo.getTypePostgres() == null) {
+			if("CLOB".equals(typeName) || columnInfo.getType() == null) {
 				log.debug("unsupported data type: " + columnInfo.getTypeName() + " in column: " + name);
 			} else {
-				log.debug("Found column: " + name + " with data type: " + columnInfo.getTypeName() + ". Converted to: " + columnInfo.getTypePostgres());
+				log.debug("Found column: " + name + " with data type: " + columnInfo.getTypeName() + ". Converted to: " + columnInfo.getType());
 				columns.add(columnInfo);
 			}
 		}
@@ -80,10 +81,11 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 			return new DatabaseTableInfo(columns.toArray(new AbstractDatabaseColumnInfo[columns.size()]));
 		}
 	}
-	
+
+	@Override
 	Object handlePerformCount(PerformCount query) throws SQLException {
 		String sql = "select count(*) from " + query.getTableName();
-		
+
 		Statement stmt = connection.createStatement();
 		
 		ResultSet rs = stmt.executeQuery(sql);
@@ -96,7 +98,8 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 		
 		return retval;
 	}
-	
+
+	@Override
 	ActorRef handleFetchTable(FetchTable msg) throws SQLException {
 		log.debug("fetch table: " + msg);
 		
@@ -105,35 +108,9 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 		String separator = "";
 		for(AbstractDatabaseColumnInfo columnInfo : msg.getColumns()) {
 			sb.append(separator);
-			
-			String typeName = columnInfo.getTypeName();
+
 			String columnName = columnInfo.getName();
-			if("SDO_GEOMETRY".equals(typeName)) {
-				sb
-					.append("CASE ") 
-						.append("WHEN T.\"").append(columnName).append("\".GET_LRS_DIM() = 0 THEN ")
-							.append("CASE ")
-								.append("WHEN T.\"").append(columnName).append("\".GET_DIMS() = 3 THEN SDO_CS.MAKE_2D(T.\"").append(columnName).append("\") ")
-								.append("ELSE T.\"").append(columnName).append("\" ")
-							.append("END ")
-						.append("ELSE ") 
-							.append("CASE ") 
-								.append("WHEN T.\"").append(columnName).append("\".GET_DIMS() = 3 THEN SDO_LRS.CONVERT_TO_STD_GEOM(T.\"").append(columnName).append("\") ")
-								.append("WHEN T.\"").append(columnName).append("\".GET_DIMS() = 4 THEN SDO_LRS.CONVERT_TO_STD_GEOM(SDO_CS.MAKE_2D(T.\"").append(columnName).append("\")) ")
-							.append("END ")
-					.append("END");
-			} else if("ST_GEOMETRY".equals(typeName)) {
-				sb
-					.append("SDE.ST_ASBINARY")
-					.append("(\"")
-					.append(columnName)
-					.append("\")");
-			} else {
-				sb
-					.append("\"")
-					.append(columnName)
-					.append("\"");
-			}
+			sb.append("\"").append(columnName).append("\"");
 			
 			separator = ", ";
 		}

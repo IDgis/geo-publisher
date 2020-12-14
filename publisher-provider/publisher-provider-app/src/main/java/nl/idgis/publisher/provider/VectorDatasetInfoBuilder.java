@@ -65,9 +65,9 @@ public class VectorDatasetInfoBuilder extends AbstractDatasetInfoBuilder {
 			tableInfo = new TableInfo(columns.toArray(new ColumnInfo[columns.size()]));
 			sendResponse();
 		} else if(msg instanceof Long) {
-			log.debug("number of records");
 			
 			numberOfRecords = (Long)msg;
+			log.debug(String.format("number of records: %s", numberOfRecords));
 			sendResponse();
 		} else {
 			unhandled(msg);
@@ -75,6 +75,7 @@ public class VectorDatasetInfoBuilder extends AbstractDatasetInfoBuilder {
 	}
 
 	protected void processMetadata() {
+		log.debug("Processing metadata");
 		if(!"vector".equals(spatialRepresentationType) && !"textTable".equals(spatialRepresentationType)) {
 			tellTarget(new SkipDataset(identification));
 			return;
