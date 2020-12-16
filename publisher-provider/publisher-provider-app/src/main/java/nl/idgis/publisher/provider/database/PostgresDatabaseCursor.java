@@ -6,8 +6,9 @@ import akka.event.LoggingAdapter;
 import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.provider.database.messages.AbstractDatabaseColumnInfo;
 import nl.idgis.publisher.provider.database.messages.FetchTable;
+import nl.idgis.publisher.provider.protocol.WKBGeometry;
 import org.apache.commons.io.IOUtils;
-import org.deegree.sqldialect.oracle.sdo.SDOGeometryConverter;
+import org.postgresql.util.PGobject;
 
 import java.sql.*;
 import java.util.concurrent.ExecutorService;
@@ -15,8 +16,6 @@ import java.util.concurrent.ExecutorService;
 public class PostgresDatabaseCursor extends AbstractDatabaseCursor {
 
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
-
-	private final SDOGeometryConverter converter = new SDOGeometryConverter();
 
 	public PostgresDatabaseCursor(ResultSet t, FetchTable fetchTable, ExecutorService executorService) {
 		super(t, fetchTable, executorService);
@@ -63,51 +62,14 @@ public class PostgresDatabaseCursor extends AbstractDatabaseCursor {
 
 			return value;
 		} else if (columnType == Type.GEOMETRY) {
-			/*
-			if ("SDO_GEOMETRY".equals(typeName)) {
-				log.debug("database column value is of type sdo_geometry");
+			if (value instanceof PGobject) {
+				log.debug("Value is a PostGis EWKB geometry. Converting to WKB");
 
-				if (value instanceof STRUCT) {
-					log.debug("database column value is of type struct");
-
-					STRUCT struct = (STRUCT) value;
-					log.debug("struct object: " + struct);
-
-					// De converter is een specifieke ORACLE converter.
-					// Hoe krijg ik hier een Postgis converter
-					Geometry geom = converter.toGeometry(struct, null);
-					log.debug("geom object: " + geom);
-
-					return new WKBGeometry(WKBWriter.write(geom));
+				PGobject pgobject = (PGobject) value;
+				return new WKBGeometry(pgobject.getValue().getBytes());
 				} else {
-					log.error("unsupported value class: {}", value.getClass().getCanonicalName());
 					return null;
 				}
-			} else if ("ST_GEOMETRY".equals(typeName)) {
-				log.debug("database column value is of type st_geometry");
-
-				if (value instanceof Blob) {
-					Blob blob = (Blob) value;
-					long blobLength = blob.length();
-					if (blobLength > Integer.MAX_VALUE) {
-						log.error("blob value too large: {}", blobLength);
-						return null;
-					}
-					if (blobLength == 0) { // known to be returned by SDE.ST_ASBINARY on empty geometries
-						log.error("empty blob");
-						return null;
-					} else {
-						return new WKBGeometry(blob.getBytes(1l, (int) blobLength));
-					}
-				} else {
-					log.error("unsupported value class: {}", value.getClass().getCanonicalName());
-					return null;
-				}
-			} else {
-				log.error("unsupported geometry type: {}", typeName);
-				return null;
-			}*/
-			return value;
 		} else {
 			if (value instanceof Clob) {
 				Clob clob = (Clob) value;
