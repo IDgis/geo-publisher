@@ -37,29 +37,17 @@ public class PostgresDatabaseCursor extends AbstractDatabaseCursor {
 		if (columnType == Type.DATE) {
 			if ("TIMESTAMP WITHOUT TIME ZONE".equalsIgnoreCase(typeName)) {
 				if (value instanceof Timestamp) {
-					Timestamp timestamp = (Timestamp) value;
-					Date newDate = new Date(timestamp.getTime());
-					log.debug(String.format("Converting a timestamp to a date value: %s", newDate.toString()));
-					return newDate;
-				}
-			}
-			/*
-			if ("TIMESTAMP(6)".equals(typeName)) {
-				log.debug("database column value is of type timestamp(6)");
-				if (value instanceof TIMESTAMP) {
-					log.debug("database column value is of type oracle.sql.timestamp");
-
-					TIMESTAMP timestamp = (TIMESTAMP) value;
-					return timestamp.timestampValue();
+					//Timestamp timestamp = (Timestamp) value;
+					//Date newDate = new Date(timestamp.getTime());
+					//log.debug(String.format("Converting a timestamp to a date value: %s", newDate.toString()));
+					//return newDate;
+					log.debug("Found a timestamp. Looks fine");
+					return value;
 				} else {
 					log.error("unsupported value class: {}", value.getClass().getCanonicalName());
 					return null;
 				}
-			} else {
-				return value;
 			}
-			*/
-
 			return value;
 		} else if (columnType == Type.GEOMETRY) {
 			if (value instanceof PGobject) {
@@ -67,9 +55,9 @@ public class PostgresDatabaseCursor extends AbstractDatabaseCursor {
 
 				PGobject pgobject = (PGobject) value;
 				return new WKBGeometry(pgobject.getValue().getBytes());
-				} else {
-					return null;
-				}
+			} else {
+				return null;
+			}
 		} else {
 			if (value instanceof Clob) {
 				Clob clob = (Clob) value;
