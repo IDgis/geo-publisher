@@ -7,18 +7,19 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import nl.idgis.publisher.provider.database.messages.AbstractDatabaseColumnInfo;
 import nl.idgis.publisher.provider.database.messages.ColumnFilter;
 import nl.idgis.publisher.provider.database.messages.CompoundFilter;
 import nl.idgis.publisher.provider.database.messages.FetchTable;
 import nl.idgis.publisher.provider.database.messages.Filter;
-import nl.idgis.publisher.provider.database.messages.AbstractDatabaseColumnInfo;
+import nl.idgis.publisher.provider.database.messages.SDEDatabaseColumnInfo;
 import nl.idgis.publisher.provider.protocol.Record;
 import nl.idgis.publisher.provider.protocol.Records;
 
 final class SDEUtils {
 	
 	private SDEUtils() {}
-	
+
 	static Filter getItemsFilter() {
 		return new CompoundFilter(
 			"AND",
