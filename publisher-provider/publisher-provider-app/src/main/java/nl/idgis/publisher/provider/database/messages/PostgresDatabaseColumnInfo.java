@@ -4,7 +4,7 @@ import nl.idgis.publisher.domain.service.Type;
 
 public class PostgresDatabaseColumnInfo extends AbstractDatabaseColumnInfo {
 
-	private static final long serialVersionUID = 8052868017910750427L;
+	private static final long serialVersionUID = 8052868017910750437L;
 
 	public PostgresDatabaseColumnInfo(String name, String typeName) {
 		super(name, typeName, "postgres");

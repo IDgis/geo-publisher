@@ -8,7 +8,7 @@ import nl.idgis.publisher.database.messages.StreamingQuery;
 
 public class FetchTable extends StreamingQuery {		
 
-	private static final long serialVersionUID = -2891224433843529688L;
+	private static final long serialVersionUID = -2891224433843529689L;
 	
 	private final String tableName;
 	

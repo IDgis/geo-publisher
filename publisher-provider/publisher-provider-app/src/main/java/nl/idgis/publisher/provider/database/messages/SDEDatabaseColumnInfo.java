@@ -6,7 +6,7 @@ import java.io.Serializable;
 
 public class SDEDatabaseColumnInfo extends AbstractDatabaseColumnInfo {
 
-	private static final long serialVersionUID = 8052868017910750428L;
+	private static final long serialVersionUID = 8052868017910750438L;
 
 	public SDEDatabaseColumnInfo(String name, String typeName) {
 		super(name, typeName, "SDE");
