@@ -2,26 +2,19 @@ package nl.idgis.publisher.provider.database;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
 import com.typesafe.config.Config;
 import nl.idgis.publisher.database.JdbcTransaction;
 import nl.idgis.publisher.database.messages.Query;
 import nl.idgis.publisher.database.messages.StreamingQuery;
 import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.provider.database.messages.*;
-import nl.idgis.publisher.utils.UniqueNameGenerator;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 
 public abstract class AbstractDatabaseTransaction extends JdbcTransaction {
 
-	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
-
-	private final UniqueNameGenerator nameGenerator = new UniqueNameGenerator();
-
-	public AbstractDatabaseTransaction(Config config, Connection connection) {
+	AbstractDatabaseTransaction(Config config, Connection connection) {
 		super(config, connection);
 	}
 	

@@ -8,11 +8,11 @@ abstract public class AbstractDatabaseColumnInfo implements Serializable {
 
 	private static final long serialVersionUID = 8052868017910750435L;
 
-	final String name;
+	private final String name;
 	
 	final String typeName;
 
-	String vendor = "";
+	private String vendor = "";
 	
 	public AbstractDatabaseColumnInfo(String name, String typeName) {
 		this.name = name;
@@ -22,11 +22,6 @@ abstract public class AbstractDatabaseColumnInfo implements Serializable {
 	public AbstractDatabaseColumnInfo(String name, String typeName, String vendor) {
 		this(name, typeName);
 		this.vendor =  vendor;
-	}
-
-	public Void setVendor(final String vendor) {
-		this.vendor = vendor;
-		return null;
 	}
 
 	public String getName() {

@@ -79,7 +79,7 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 		if(columns.isEmpty()) {
 			return new TableNotFound();
 		} else {
-			return new DatabaseTableInfo(columns.toArray(new AbstractDatabaseColumnInfo[columns.size()]));
+			return new DatabaseTableInfo(columns.toArray(new AbstractDatabaseColumnInfo[0]));
 		}
 	}
 
@@ -136,7 +136,7 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 			sb.append(tableName);
 		} else {
 			sb
-				.append(tableName.substring(0, separatorIdx))
+				.append(tableName, 0, separatorIdx)
 				.append("\".\"")
 				.append(tableName.substring(separatorIdx + 1));
 		}
@@ -154,11 +154,9 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 		
 		Statement stmt = connection.createStatement();
 		ResultSet rs = stmt.executeQuery(query);
-		
-		ActorRef cursor = getContext().actorOf(
+
+		return getContext().actorOf(
 				PostgresDatabaseCursor.props(rs, msg, executorService),
 				nameGenerator.getName(PostgresDatabaseCursor.class));
-		
-		return cursor;
 	}
 }

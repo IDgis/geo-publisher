@@ -2,8 +2,6 @@ package nl.idgis.publisher.provider.database.messages;
 
 import nl.idgis.publisher.domain.service.Type;
 
-import java.io.Serializable;
-
 public class SDEDatabaseColumnInfo extends AbstractDatabaseColumnInfo {
 
 	private static final long serialVersionUID = 8052868017910750438L;

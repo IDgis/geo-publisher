@@ -8,7 +8,6 @@ import nl.idgis.publisher.provider.database.messages.FetchTable;
 import nl.idgis.publisher.provider.protocol.Record;
 import nl.idgis.publisher.provider.protocol.Records;
 import nl.idgis.publisher.stream.StreamCursor;
-import org.deegree.sqldialect.oracle.sdo.SDOGeometryConverter;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -21,15 +20,13 @@ public class AbstractDatabaseCursor extends StreamCursor<ResultSet, Records> {
 
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
-	private final SDOGeometryConverter converter = new SDOGeometryConverter();
-
 	private final FetchTable fetchTable;
 
 	private final ExecutorService executorService;
 
 	private Boolean currentHasNext = null;
 
-	public AbstractDatabaseCursor(ResultSet t, FetchTable fetchTable, ExecutorService executorService) {
+	AbstractDatabaseCursor(ResultSet t, FetchTable fetchTable, ExecutorService executorService) {
 		super(t);
 		
 		this.fetchTable = fetchTable;
@@ -41,14 +38,10 @@ public class AbstractDatabaseCursor extends StreamCursor<ResultSet, Records> {
 	}
 
 	Object convert(AbstractDatabaseColumnInfo columnInfo, Object value) throws Exception {
-		if(value == null) {
-			return null;
-		} else {
-			return value;
-		}
+		return value;
 	}
 
-	protected Record toRecord() throws Exception {
+	private Record toRecord() throws Exception {
 		currentHasNext = null;
 		
 		List<Object> values = new ArrayList<>();

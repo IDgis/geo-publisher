@@ -37,10 +37,6 @@ public class PostgresDatabaseCursor extends AbstractDatabaseCursor {
 		if (columnType == Type.DATE) {
 			if ("TIMESTAMP WITHOUT TIME ZONE".equalsIgnoreCase(typeName)) {
 				if (value instanceof Timestamp) {
-					//Timestamp timestamp = (Timestamp) value;
-					//Date newDate = new Date(timestamp.getTime());
-					//log.debug(String.format("Converting a timestamp to a date value: %s", newDate.toString()));
-					//return newDate;
 					log.debug("Found a timestamp. Looks fine");
 					return value;
 				} else {
@@ -54,7 +50,7 @@ public class PostgresDatabaseCursor extends AbstractDatabaseCursor {
 				log.warning("Value is a PostGis PGobject. Skipping...");
 				return null;
 			} else if (value instanceof byte[]) {
-				log.warning("Value is a byte[]. Converting to WKBGeometry");
+				log.debug("Value is a byte[]. Converting to WKBGeometry");
 				byte[] newValue = (byte[]) value;
 				return new WKBGeometry(newValue);
 			} else {
