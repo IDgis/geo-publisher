@@ -5,6 +5,7 @@ import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import com.typesafe.config.Config;
+import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.provider.database.messages.*;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
 
@@ -117,7 +118,12 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 			sb.append(separator);
 
 			String columnName = columnInfo.getName();
-			sb.append("\"").append(columnName).append("\"");
+			Type columnType = columnInfo.getType();
+			if ("GEOMETRY".equals(columnType.toString())) {
+				sb.append("ST_AsBinary(\"").append(columnName).append("\") AS \"").append(columnName).append("\"");
+			} else {
+				sb.append("\"").append(columnName).append("\"");
+			}
 			
 			separator = ", ";
 		}

@@ -44,18 +44,21 @@ public class PostgresDatabaseCursor extends AbstractDatabaseCursor {
 					log.debug("Found a timestamp. Looks fine");
 					return value;
 				} else {
-					log.error("unsupported value class: {}", value.getClass().getCanonicalName());
+					log.error("unsupported DATE class: {}", value.getClass().getCanonicalName());
 					return null;
 				}
 			}
 			return value;
 		} else if (columnType == Type.GEOMETRY) {
 			if (value instanceof PGobject) {
-				log.debug("Value is a PostGis EWKB geometry. Converting to WKB");
-
-				PGobject pgobject = (PGobject) value;
-				return new WKBGeometry(pgobject.getValue().getBytes());
+				log.warning("Value is a PostGis PGobject. Skipping...");
+				return null;
+			} else if (value instanceof byte[]) {
+				log.warning("Value is a byte[]. Converting to WKBGeometry");
+				byte[] newValue = (byte[]) value;
+				return new WKBGeometry(newValue);
 			} else {
+				log.error("unsupported GEOMETRY class: {}", value.getClass().getCanonicalName());
 				return null;
 			}
 		} else {
