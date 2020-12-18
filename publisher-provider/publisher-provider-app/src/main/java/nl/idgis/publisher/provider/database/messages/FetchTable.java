@@ -6,9 +6,9 @@ import java.util.Optional;
 
 import nl.idgis.publisher.database.messages.StreamingQuery;
 
-public class FetchTable extends StreamingQuery {		
+public class FetchTable extends StreamingQuery {
 
-	private static final long serialVersionUID = -2891224433843529689L;
+	private static final long serialVersionUID = 589029130785645339L;
 	
 	private final String tableName;
 	

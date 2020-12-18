@@ -4,7 +4,7 @@ import nl.idgis.publisher.domain.service.Type;
 
 public class SDEDatabaseColumnInfo extends AbstractDatabaseColumnInfo {
 
-	private static final long serialVersionUID = 8052868017910750438L;
+	private static final long serialVersionUID = -4671833426227572827L;
 
 	public SDEDatabaseColumnInfo(String name, String typeName) {
 		super(name, typeName, "SDE");

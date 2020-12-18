@@ -4,7 +4,7 @@ import nl.idgis.publisher.domain.service.Type;
 
 public class OracleDatabaseColumnInfo extends AbstractDatabaseColumnInfo {
 
-	private static final long serialVersionUID = 8052868017910750436L;
+	private static final long serialVersionUID = -404115030380853646L;
 
 	public OracleDatabaseColumnInfo(String name, String typeName) {
 		super(name, typeName, "oracle");

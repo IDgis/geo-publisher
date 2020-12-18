@@ -6,7 +6,7 @@ import nl.idgis.publisher.domain.service.Type;
 
 abstract public class AbstractDatabaseColumnInfo implements Serializable {
 
-	private static final long serialVersionUID = 8052868017910750435L;
+	private static final long serialVersionUID = 334332451552136350L;
 
 	private final String name;
 	
