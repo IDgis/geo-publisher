@@ -57,7 +57,8 @@ class DatasetQueryBuilder {
 			.join(sourceDataset).on(sourceDataset.id.eq(dataset.sourceDatasetId))
 			.join(sourceDatasetMetadata).on(sourceDatasetMetadata.sourceDatasetId.eq(sourceDataset.id))
 			.where(isPublishedDataset()
-				.and(sourceDataset.deleteTime.isNull())));
+				.and(sourceDataset.deleteTime.isNull())
+				.and(dataset.filterConditions.eq("{}"))));
 	}
 	
 	SQLQuery fromSourceDataset(Transaction tx) {
