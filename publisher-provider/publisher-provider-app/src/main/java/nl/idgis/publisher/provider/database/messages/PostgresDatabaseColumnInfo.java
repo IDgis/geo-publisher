@@ -34,6 +34,13 @@ public class PostgresDatabaseColumnInfo extends AbstractDatabaseColumnInfo {
 			case "TEXT":
 				return Type.TEXT;
 			case "GEOMETRY": // Geometry(POLYGON, 28992) etc.
+			case "ST_GEOMETRY":
+			case "ST_POINT":
+			case "ST_LINESTRING":
+			case "ST_POLYGON":
+			case "ST_MULTIPOINT":
+			case "ST_MULTILINESTRING":
+			case "ST_MULTIPOLYGON":
 				return Type.GEOMETRY;
 			case "BOOLEAN":
 				return Type.BOOLEAN;
