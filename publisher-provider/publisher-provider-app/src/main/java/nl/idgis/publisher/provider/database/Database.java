@@ -10,6 +10,7 @@ import nl.idgis.publisher.database.JdbcDatabase;
 import akka.actor.Props;
 
 import com.typesafe.config.Config;
+import nl.idgis.publisher.provider.sde.SDEType;
 
 public class Database extends JdbcDatabase {
 
@@ -24,25 +25,29 @@ public class Database extends JdbcDatabase {
 	}
 	
 	@Override
-	protected Props createTransaction(Connection connection) throws Exception {
-		Props props;
+	protected Props createTransaction(Connection connection) throws ConfigException {
+        SDEType databaseVendor;
 
 		// Value should come from config
 		String vendor = config.getString("vendor");
 		log.debug(String.format("Using database: %s", vendor));
 
-		/* Return props from Oracle or postgres */
-		if ("oracle".equalsIgnoreCase(vendor)) {
-			props = OracleDatabaseTransaction.props(config, connection);
-		} else if ("postgres".equalsIgnoreCase(vendor)) {
-			props = PostgresDatabaseTransaction.props(config, connection);
-		} else {
-			// TODO
-			// implement error
-			log.error("Vendor is not supported");
-			throw new ConfigException.BadValue("database{ vendor }", "Vendor not supported");
-		}
+        try {
+            databaseVendor = SDEType.valueOf(config.getString("vendor").toUpperCase());
+        } catch(IllegalArgumentException iae) {
+            throw new ConfigException.BadValue("database {vendor}", "Invalid vendor supplied in config");
+        }
 
-		return props;
+
+		/* Return props from Oracle or postgres */
+        switch(databaseVendor) {
+            case ORACLE:
+                return OracleDatabaseTransaction.props(config, connection);
+            case POSTGRES:
+                return PostgresDatabaseTransaction.props(config, connection);
+            default:
+                log.error("Vendor is not supported");
+                throw new ConfigException.BadValue("database {vendor}", "Invalid vendor supplied in config");
+        }
 	}	
 }

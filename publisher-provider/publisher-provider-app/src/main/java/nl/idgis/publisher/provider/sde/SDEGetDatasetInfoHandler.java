@@ -139,9 +139,6 @@ public class SDEGetDatasetInfoHandler extends UntypedActor {
 
 			log.debug("database scheme before calling get fetch table: " + databaseScheme);
 
-			databaseVendor = databaseConfig.getString("vendor");
-			log.debug("database vendor before calling get fetch table: " + databaseVendor);
-
 			transaction.tell(
 				sdeUtils.getFetchTable(sdeUtils.getItemsFilter(originalMsg.getIdentification()), databaseScheme),
 				itemInfoReceiver);

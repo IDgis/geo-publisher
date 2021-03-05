@@ -16,19 +16,22 @@ import nl.idgis.publisher.provider.protocol.Records;
 
 final class SDEUtils {
 
-	private String databaseVendor;
+	private SDEType databaseVendor;
 
 	private String mdTable;
 
-	public SDEUtils(Config databaseConfig) {
+	SDEUtils(Config databaseConfig) throws ConfigException {
 
+		String dbVendor = databaseConfig.getString("vendor").toUpperCase();
 		try {
-			this.databaseVendor = databaseConfig.getString("vendor");
-			this.mdTable = "oracle".equalsIgnoreCase(this.databaseVendor) ? ".gdb_items_vw" : ".gdb_items";
-		} catch(ConfigException.Missing cem) {}
+			this.databaseVendor = SDEType.valueOf(dbVendor);
+			this.mdTable = databaseVendor == (SDEType.ORACLE) ? ".gdb_items_vw" : ".gdb_items";
+		} catch(IllegalArgumentException iae) {
+			throw new ConfigException.BadValue("database {vendor}", "Invalid vendor supplied in config");
+		}
 	}
 
-	public Filter getItemsFilter() {
+	Filter getItemsFilter() {
 		return new CompoundFilter(
 			"AND",
 			new ColumnFilter(
@@ -51,7 +54,7 @@ final class SDEUtils {
 					.toArray(length -> new ColumnFilter[length])));
 	}
 	
-	public Filter getItemsFilter(String uuid) {
+	Filter getItemsFilter(String uuid) {
 		return new CompoundFilter(
 			"AND",
 			getItemsFilter(),
@@ -64,7 +67,7 @@ final class SDEUtils {
 					Objects.requireNonNull(uuid, "uuid should not be null")));
 	}
 	
-	public FetchTable getFetchTable(Filter filter, String databaseScheme) {
+	FetchTable getFetchTable(Filter filter, String databaseScheme) {
 
 		List<AbstractDatabaseColumnInfo> columns = new ArrayList<>();
 		columns.add(FactoryDatabaseColumnInfo.getDatabaseColumnInfo("TYPE", "CHAR", databaseVendor));
