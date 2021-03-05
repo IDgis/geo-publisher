@@ -9,7 +9,6 @@ public class FactoryDatabaseColumnInfo {
             case "oracle":
                 return new OracleDatabaseColumnInfo(name, typeName);
             case "postgres":
-            case "postgis":
                 return new PostgresDatabaseColumnInfo(name, typeName);
         }
         return null;
