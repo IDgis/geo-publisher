@@ -1,11 +1,11 @@
 package nl.idgis.publisher.provider.database.messages;
 
 import com.typesafe.config.ConfigException;
-import nl.idgis.publisher.provider.sde.SDEType;
+import nl.idgis.publisher.provider.database.DatabaseType;
 
 public class FactoryDatabaseColumnInfo {
 
-    public static AbstractDatabaseColumnInfo getDatabaseColumnInfo(String name, String typeName, SDEType type) {
+    public static AbstractDatabaseColumnInfo getDatabaseColumnInfo(String name, String typeName, DatabaseType type) {
         switch(type) {
             case ORACLE:
                 return new OracleDatabaseColumnInfo(name, typeName);

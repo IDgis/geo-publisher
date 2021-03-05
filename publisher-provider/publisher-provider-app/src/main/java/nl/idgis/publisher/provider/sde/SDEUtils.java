@@ -10,13 +10,14 @@ import java.util.stream.Stream;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 
+import nl.idgis.publisher.provider.database.DatabaseType;
 import nl.idgis.publisher.provider.database.messages.*;
 import nl.idgis.publisher.provider.protocol.Record;
 import nl.idgis.publisher.provider.protocol.Records;
 
 final class SDEUtils {
 
-	private SDEType databaseVendor;
+	private DatabaseType databaseVendor;
 
 	private String mdTable;
 
@@ -24,8 +25,8 @@ final class SDEUtils {
 
 		String dbVendor = databaseConfig.getString("vendor").toUpperCase();
 		try {
-			this.databaseVendor = SDEType.valueOf(dbVendor);
-			this.mdTable = databaseVendor == (SDEType.ORACLE) ? ".gdb_items_vw" : ".gdb_items";
+			this.databaseVendor = DatabaseType.valueOf(dbVendor);
+			this.mdTable = databaseVendor == (DatabaseType.ORACLE) ? ".gdb_items_vw" : ".gdb_items";
 		} catch(IllegalArgumentException iae) {
 			throw new ConfigException.BadValue("database {vendor}", "Invalid vendor supplied in config");
 		}

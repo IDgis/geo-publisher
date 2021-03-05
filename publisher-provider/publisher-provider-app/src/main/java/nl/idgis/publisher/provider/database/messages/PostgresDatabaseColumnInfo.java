@@ -1,13 +1,14 @@
 package nl.idgis.publisher.provider.database.messages;
 
 import nl.idgis.publisher.domain.service.Type;
+import nl.idgis.publisher.provider.database.DatabaseType;
 
 public class PostgresDatabaseColumnInfo extends AbstractDatabaseColumnInfo {
 
 	private static final long serialVersionUID = -2871088454751961295L;
 
 	public PostgresDatabaseColumnInfo(String name, String typeName) {
-		super(name, typeName, "postgres");
+		super(name, typeName, DatabaseType.POSTGRES);
 	}
 
 	@Override

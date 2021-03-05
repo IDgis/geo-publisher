@@ -10,7 +10,6 @@ import nl.idgis.publisher.database.JdbcDatabase;
 import akka.actor.Props;
 
 import com.typesafe.config.Config;
-import nl.idgis.publisher.provider.sde.SDEType;
 
 public class Database extends JdbcDatabase {
 
@@ -26,14 +25,14 @@ public class Database extends JdbcDatabase {
 	
 	@Override
 	protected Props createTransaction(Connection connection) throws ConfigException {
-        SDEType databaseVendor;
+        DatabaseType databaseVendor;
 
 		// Value should come from config
 		String vendor = config.getString("vendor");
 		log.debug(String.format("Using database: %s", vendor));
 
         try {
-            databaseVendor = SDEType.valueOf(config.getString("vendor").toUpperCase());
+            databaseVendor = DatabaseType.valueOf(config.getString("vendor").toUpperCase());
         } catch(IllegalArgumentException iae) {
             throw new ConfigException.BadValue("database {vendor}", "Invalid vendor supplied in config");
         }

@@ -3,6 +3,7 @@ package nl.idgis.publisher.provider.database.messages;
 import java.io.Serializable;
 
 import nl.idgis.publisher.domain.service.Type;
+import nl.idgis.publisher.provider.database.DatabaseType;
 
 abstract public class AbstractDatabaseColumnInfo implements Serializable {
 
@@ -12,14 +13,14 @@ abstract public class AbstractDatabaseColumnInfo implements Serializable {
 	
 	final String typeName;
 
-	private String vendor = "";
+	private DatabaseType vendor;
 	
 	public AbstractDatabaseColumnInfo(String name, String typeName) {
 		this.name = name;
 		this.typeName = typeName;
 	}
 
-	public AbstractDatabaseColumnInfo(String name, String typeName, String vendor) {
+	public AbstractDatabaseColumnInfo(String name, String typeName, DatabaseType vendor) {
 		this(name, typeName);
 		this.vendor =  vendor;
 	}
@@ -32,7 +33,7 @@ abstract public class AbstractDatabaseColumnInfo implements Serializable {
 		return typeName;
 	}
 
-	public String getVendor() {
+	public DatabaseType getVendor() {
 		return vendor;
 	}
 
