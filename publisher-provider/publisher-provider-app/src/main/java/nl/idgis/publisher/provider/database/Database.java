@@ -4,6 +4,7 @@ import java.sql.Connection;
 
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import com.typesafe.config.ConfigException;
 import nl.idgis.publisher.database.JdbcDatabase;
 
 import akka.actor.Props;
@@ -23,7 +24,7 @@ public class Database extends JdbcDatabase {
 	}
 	
 	@Override
-	protected Props createTransaction(Connection connection) {
+	protected Props createTransaction(Connection connection) throws Exception {
 		Props props;
 
 		// Value should come from config
@@ -39,7 +40,7 @@ public class Database extends JdbcDatabase {
 			// TODO
 			// implement error
 			log.error("Vendor is not supported");
-			props = null;
+			throw new ConfigException.BadValue("database{ vendor }", "Vendor not supported");
 		}
 
 		return props;
