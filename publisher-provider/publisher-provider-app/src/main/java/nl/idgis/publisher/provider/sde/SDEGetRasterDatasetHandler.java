@@ -36,6 +36,8 @@ public class SDEGetRasterDatasetHandler extends UntypedActor {
 	
 	private String databaseScheme;
 
+	private String databaseVendor;
+
 	private FutureUtils f;
 
 	private Config databaseConfig;
@@ -115,9 +117,12 @@ public class SDEGetRasterDatasetHandler extends UntypedActor {
 			}
 			
 			log.debug("database scheme before calling get fetch table: " + databaseScheme);
+
+			databaseVendor = databaseConfig.getString("vendor");
+			log.debug("database vendor before calling get fetch table: " + databaseVendor);
 			
 			transaction.tell(
-				SDEUtils.getFetchTable(SDEUtils.getItemsFilter(originalMsg.getIdentification()), databaseScheme),
+				SDEUtils.getFetchTable(SDEUtils.getItemsFilter(originalMsg.getIdentification(), databaseVendor), databaseScheme, databaseVendor),
 				recordsReceiver);
 			getContext().become(onReceiveItemRecords());
 		} else if(msg instanceof ReceiveTimeout) {

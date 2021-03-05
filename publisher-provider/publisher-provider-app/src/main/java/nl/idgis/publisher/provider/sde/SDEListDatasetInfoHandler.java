@@ -43,6 +43,8 @@ public class SDEListDatasetInfoHandler extends UntypedActor {
 	private ActorRef transaction;
 	
 	private String databaseScheme;
+
+	private String databaseVendor;
 	
 	private Config databaseConfig;
 	
@@ -77,9 +79,12 @@ public class SDEListDatasetInfoHandler extends UntypedActor {
 			}
 			
 			log.debug("database scheme before calling get fetch table: " + databaseScheme);
+
+			databaseVendor = databaseConfig.getString("vendor");
+			log.debug("database vendor before calling get fetch table: " + databaseVendor);
 			
 			transaction = ((TransactionCreated)msg).getActor();
-			transaction.tell(SDEUtils.getFetchTable(SDEUtils.getItemsFilter(), databaseScheme), getSelf());
+			transaction.tell(SDEUtils.getFetchTable(SDEUtils.getItemsFilter(databaseVendor), databaseScheme, databaseVendor), getSelf());
 			
 			getContext().become(onReceiveStreaming());
 		} else if(msg instanceof ReceiveTimeout) {

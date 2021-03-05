@@ -46,6 +46,8 @@ public class SDEGetVectorDatasetHandler extends UntypedActor {
 	private ActorRef transaction;
 	
 	private String databaseScheme;
+
+	private String databaseVendor;
 	
 	private String tableName;
 
@@ -229,9 +231,12 @@ public class SDEGetVectorDatasetHandler extends UntypedActor {
 			}
 			
 			log.debug("database scheme before calling get fetch table: " + databaseScheme);
+
+			databaseVendor = databaseConfig.getString("vendor");
+			log.debug("database vendor before calling get fetch table: " + databaseVendor);
 			
 			transaction.tell(
-				SDEUtils.getFetchTable(SDEUtils.getItemsFilter(originalMsg.getIdentification()), databaseScheme),
+				SDEUtils.getFetchTable(SDEUtils.getItemsFilter(originalMsg.getIdentification(), databaseVendor), databaseScheme, databaseVendor),
 				recordsReceiver);
 			getContext().become(onReceiveItemRecords());
 		} else if(msg instanceof ReceiveTimeout) {

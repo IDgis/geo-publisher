@@ -140,7 +140,7 @@ public class SDEGetDatasetInfoHandler extends UntypedActor {
 			log.debug("database vendor before calling get fetch table: " + databaseVendor);
 
 			transaction.tell(
-				SDEUtils.getFetchTable(SDEUtils.getItemsFilter(originalMsg.getIdentification()), databaseScheme, databaseVendor),
+				SDEUtils.getFetchTable(SDEUtils.getItemsFilter(originalMsg.getIdentification(), databaseVendor), databaseScheme, databaseVendor),
 				itemInfoReceiver);
 			
 			getContext().become(onReceiveDatasetInfo());

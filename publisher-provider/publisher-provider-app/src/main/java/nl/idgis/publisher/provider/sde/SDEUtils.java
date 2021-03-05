@@ -7,12 +7,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import nl.idgis.publisher.provider.database.messages.AbstractDatabaseColumnInfo;
-import nl.idgis.publisher.provider.database.messages.ColumnFilter;
-import nl.idgis.publisher.provider.database.messages.CompoundFilter;
-import nl.idgis.publisher.provider.database.messages.FetchTable;
-import nl.idgis.publisher.provider.database.messages.Filter;
-import nl.idgis.publisher.provider.database.messages.SDEDatabaseColumnInfo;
+import nl.idgis.publisher.provider.database.messages.*;
 import nl.idgis.publisher.provider.protocol.Record;
 import nl.idgis.publisher.provider.protocol.Records;
 
@@ -20,35 +15,38 @@ final class SDEUtils {
 	
 	private SDEUtils() {}
 
-	static Filter getItemsFilter() {
+	static Filter getItemsFilter(String databaseVendor) {
 		return new CompoundFilter(
 			"AND",
 			new ColumnFilter(
-				new SDEDatabaseColumnInfo(
+					FactoryDatabaseColumnInfo.getDatabaseColumnInfo(
 					"PHYSICALNAME",
-					"CHAR"),
+					"CHAR",
+							databaseVendor),
 				"IS NOT NULL"),
 			new CompoundFilter(
 				"OR",
 				Stream.of(SDEItemInfoType.values())
 					.map(itemInfoType ->
-						new ColumnFilter(	
-							new SDEDatabaseColumnInfo(
+						new ColumnFilter(
+								FactoryDatabaseColumnInfo.getDatabaseColumnInfo(
 								"TYPE", 
-								"CHAR"),
+								"CHAR",
+										databaseVendor),
 							"=", 
 							itemInfoType.getUuid()))
 					.toArray(length -> new ColumnFilter[length])));
 	}
 	
-	static Filter getItemsFilter(String uuid) {
+	static Filter getItemsFilter(String uuid, String databaseVendor) {
 		return new CompoundFilter(
 			"AND",
-			getItemsFilter(),
+			getItemsFilter(databaseVendor),
 			new ColumnFilter(
-				new SDEDatabaseColumnInfo(
+				FactoryDatabaseColumnInfo.getDatabaseColumnInfo(
 						"UUID", 
-						"CHAR"),
+						"CHAR",
+						databaseVendor),
 					"=",
 					Objects.requireNonNull(uuid, "uuid should not be null")));
 	}
@@ -58,10 +56,10 @@ final class SDEUtils {
 		String mdTable = "oracle".equalsIgnoreCase(databaseVendor) ? ".gdb_items_vw" : ".gdb_items";
 
 		List<AbstractDatabaseColumnInfo> columns = new ArrayList<>();
-		columns.add(new SDEDatabaseColumnInfo("TYPE", "CHAR"));
-		columns.add(new SDEDatabaseColumnInfo("UUID", "CHAR"));
-		columns.add(new SDEDatabaseColumnInfo("PHYSICALNAME", "CHAR"));
-		columns.add(new SDEDatabaseColumnInfo("DOCUMENTATION", "CLOB"));
+		columns.add(FactoryDatabaseColumnInfo.getDatabaseColumnInfo("TYPE", "CHAR", databaseVendor));
+		columns.add(FactoryDatabaseColumnInfo.getDatabaseColumnInfo("UUID", "CHAR", databaseVendor));
+		columns.add(FactoryDatabaseColumnInfo.getDatabaseColumnInfo("PHYSICALNAME", "CHAR", databaseVendor));
+		columns.add(FactoryDatabaseColumnInfo.getDatabaseColumnInfo("DOCUMENTATION", "CLOB", databaseVendor));
 		
 		return new FetchTable(
 			databaseScheme + mdTable.toUpperCase(),
