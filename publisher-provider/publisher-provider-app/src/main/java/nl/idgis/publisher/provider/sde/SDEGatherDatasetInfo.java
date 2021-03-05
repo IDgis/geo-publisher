@@ -76,6 +76,8 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 	private String categoryId;
 	
 	private String databaseScheme;
+
+	private String databaseVendor;
 	
 	private DatabaseTableInfo databaseTableInfo;
 
@@ -191,7 +193,10 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 			}
 			
 			log.debug("database scheme in sde gather dataset info: " + databaseScheme);
-			
+
+			databaseVendor = databaseConfig.getString("vendor");
+			String mdTable = "oracle".equalsIgnoreCase(databaseVendor) ? ".gdb_items_vw" : ".gdb_items";
+
 			itemInfo.getDocumentation().ifPresent(documentation -> {
 				try {
 					MetadataDocumentFactory mdf = new MetadataDocumentFactory();
@@ -204,14 +209,14 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 					
 					if(attachmentTypes.contains(AttachmentType.METADATA)) {
 						attachments.add(new Attachment(
-							databaseScheme + ".gdb_items_vw.documentation", 
+							databaseScheme + mdTable + ".documentation",
 							AttachmentType.METADATA,
 							md.getContent()));
 					}
 					
 					if(attachmentTypes.contains(AttachmentType.PHYSICAL_NAME)) {
 						attachments.add(new Attachment(
-							databaseScheme + ".gdb_items_vw.physicalname", 
+							databaseScheme + mdTable + ".physicalname",
 							AttachmentType.PHYSICAL_NAME,
 							physicalname));
 					}

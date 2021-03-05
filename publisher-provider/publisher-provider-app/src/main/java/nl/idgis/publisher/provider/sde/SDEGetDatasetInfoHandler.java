@@ -36,6 +36,8 @@ public class SDEGetDatasetInfoHandler extends UntypedActor {
 	
 	private String databaseScheme;
 
+	private String databaseVendor;
+
 	private Config databaseConfig;
 
 	private Config rasterConfig;
@@ -131,11 +133,14 @@ public class SDEGetDatasetInfoHandler extends UntypedActor {
 			} catch(ConfigException.Missing cem) {
 				databaseScheme = "SDE";
 			}
-			
+
 			log.debug("database scheme before calling get fetch table: " + databaseScheme);
-			
+
+			databaseVendor = databaseConfig.getString("vendor");
+			log.debug("database vendor before calling get fetch table: " + databaseVendor);
+
 			transaction.tell(
-				SDEUtils.getFetchTable(SDEUtils.getItemsFilter(originalMsg.getIdentification()), databaseScheme), 
+				SDEUtils.getFetchTable(SDEUtils.getItemsFilter(originalMsg.getIdentification()), databaseScheme, databaseVendor),
 				itemInfoReceiver);
 			
 			getContext().become(onReceiveDatasetInfo());

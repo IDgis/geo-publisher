@@ -7,7 +7,7 @@ public class SDEDatabaseColumnInfo extends AbstractDatabaseColumnInfo {
 	private static final long serialVersionUID = -4671833426227572827L;
 
 	public SDEDatabaseColumnInfo(String name, String typeName) {
-		super(name, typeName, "SDE");
+		super(name, typeName, "oracle");
 	}
 
 	@Override
