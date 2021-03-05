@@ -13,6 +13,7 @@ import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
+import nl.idgis.publisher.provider.database.DatabaseType;
 import nl.idgis.publisher.provider.database.messages.AbstractDatabaseColumnInfo;
 import nl.idgis.publisher.provider.database.messages.DatabaseTableInfo;
 import nl.idgis.publisher.provider.database.messages.DescribeTable;
@@ -150,11 +151,8 @@ public class VectorDatasetFetcher extends AbstractDatasetFetcher<GetVectorDatase
 							Map<String, String> columnTypes = Arrays.asList(tableInfo.getColumns()).stream()
 								.collect(Collectors.toMap(AbstractDatabaseColumnInfo::getName, AbstractDatabaseColumnInfo::getTypeName));
 
-							Map<String, String> columnVendor = Arrays.asList(tableInfo.getColumns()).stream()
-									.collect(Collectors.toMap(AbstractDatabaseColumnInfo::getName, AbstractDatabaseColumnInfo::getVendor));
-
 							List<AbstractDatabaseColumnInfo> columnInfos = request.getColumnNames().stream()
-								.map(columnName -> FactoryDatabaseColumnInfo.getDatabaseColumnInfo(columnName, columnTypes.get(columnName), columnVendor.get(columnName)))
+								.map(columnName -> FactoryDatabaseColumnInfo.getDatabaseColumnInfo(columnName, columnTypes.get(columnName), DatabaseType.ORACLE))
 								.collect(Collectors.toList());
 							
 							transaction.tell(new FetchTable(tableName, columnInfos, request.getMessageSize()), getSelf());
