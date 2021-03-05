@@ -41,13 +41,16 @@ public class SDEGetDatasetInfoHandler extends UntypedActor {
 	private Config databaseConfig;
 
 	private Config rasterConfig;
-		
+
+	private SDEUtils sdeUtils;
+
 	public SDEGetDatasetInfoHandler(ActorRef originalSender, GetDatasetInfo originalMsg, ActorRef rasterFolder, Config databaseConfig, Config rasterConfig) {
 		this.originalSender = originalSender;
 		this.originalMsg = originalMsg;
 		this.rasterFolder = rasterFolder;
 		this.databaseConfig = databaseConfig;
 		this.rasterConfig = rasterConfig;
+		this.sdeUtils = new SDEUtils(databaseConfig);
 	}
 	
 	@Override
@@ -140,7 +143,7 @@ public class SDEGetDatasetInfoHandler extends UntypedActor {
 			log.debug("database vendor before calling get fetch table: " + databaseVendor);
 
 			transaction.tell(
-				SDEUtils.getFetchTable(SDEUtils.getItemsFilter(originalMsg.getIdentification(), databaseVendor), databaseScheme, databaseVendor),
+				sdeUtils.getFetchTable(sdeUtils.getItemsFilter(originalMsg.getIdentification()), databaseScheme),
 				itemInfoReceiver);
 			
 			getContext().become(onReceiveDatasetInfo());

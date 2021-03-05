@@ -53,12 +53,15 @@ public class SDEGetVectorDatasetHandler extends UntypedActor {
 
 	private FutureUtils f;
 
+	private SDEUtils sdeUtils;
+
 	private Config databaseConfig;
 	
 	public SDEGetVectorDatasetHandler(ActorRef originalSender, GetVectorDataset originalMsg, Config databaseConfig) {
 		this.originalSender = originalSender;
 		this.originalMsg = originalMsg;
 		this.databaseConfig = databaseConfig;
+		this.sdeUtils = new SDEUtils(databaseConfig);
 	}
 	
 	@Override
@@ -231,12 +234,9 @@ public class SDEGetVectorDatasetHandler extends UntypedActor {
 			}
 			
 			log.debug("database scheme before calling get fetch table: " + databaseScheme);
-
-			databaseVendor = databaseConfig.getString("vendor");
-			log.debug("database vendor before calling get fetch table: " + databaseVendor);
 			
 			transaction.tell(
-				SDEUtils.getFetchTable(SDEUtils.getItemsFilter(originalMsg.getIdentification(), databaseVendor), databaseScheme, databaseVendor),
+				sdeUtils.getFetchTable(sdeUtils.getItemsFilter(originalMsg.getIdentification()), databaseScheme),
 				recordsReceiver);
 			getContext().become(onReceiveItemRecords());
 		} else if(msg instanceof ReceiveTimeout) {

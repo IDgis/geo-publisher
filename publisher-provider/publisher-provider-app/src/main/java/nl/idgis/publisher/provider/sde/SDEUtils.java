@@ -7,15 +7,28 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigException;
+
 import nl.idgis.publisher.provider.database.messages.*;
 import nl.idgis.publisher.provider.protocol.Record;
 import nl.idgis.publisher.provider.protocol.Records;
 
 final class SDEUtils {
-	
-	private SDEUtils() {}
 
-	static Filter getItemsFilter(String databaseVendor) {
+	private String databaseVendor;
+
+	private String mdTable;
+
+	public SDEUtils(Config databaseConfig) {
+
+		try {
+			this.databaseVendor = databaseConfig.getString("vendor");
+			this.mdTable = "oracle".equalsIgnoreCase(this.databaseVendor) ? ".gdb_items_vw" : ".gdb_items";
+		} catch(ConfigException.Missing cem) {}
+	}
+
+	public Filter getItemsFilter() {
 		return new CompoundFilter(
 			"AND",
 			new ColumnFilter(
@@ -38,10 +51,10 @@ final class SDEUtils {
 					.toArray(length -> new ColumnFilter[length])));
 	}
 	
-	static Filter getItemsFilter(String uuid, String databaseVendor) {
+	public Filter getItemsFilter(String uuid) {
 		return new CompoundFilter(
 			"AND",
-			getItemsFilter(databaseVendor),
+			getItemsFilter(),
 			new ColumnFilter(
 				FactoryDatabaseColumnInfo.getDatabaseColumnInfo(
 						"UUID", 
@@ -51,9 +64,7 @@ final class SDEUtils {
 					Objects.requireNonNull(uuid, "uuid should not be null")));
 	}
 	
-	static FetchTable getFetchTable(Filter filter, String databaseScheme, String databaseVendor) {
-
-		String mdTable = "oracle".equalsIgnoreCase(databaseVendor) ? ".gdb_items_vw" : ".gdb_items";
+	public FetchTable getFetchTable(Filter filter, String databaseScheme) {
 
 		List<AbstractDatabaseColumnInfo> columns = new ArrayList<>();
 		columns.add(FactoryDatabaseColumnInfo.getDatabaseColumnInfo("TYPE", "CHAR", databaseVendor));

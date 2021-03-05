@@ -49,6 +49,8 @@ public class SDEListDatasetInfoHandler extends UntypedActor {
 	private Config databaseConfig;
 	
 	private Config rasterConfig;
+
+	private SDEUtils sdeUtils;
 	
 	public SDEListDatasetInfoHandler(ActorRef originalSender, ListDatasetInfo originalMsg, ActorRef rasterFolder, Config databaseConfig, Config rasterConfig) {
 		this.originalSender = originalSender;
@@ -56,6 +58,7 @@ public class SDEListDatasetInfoHandler extends UntypedActor {
 		this.rasterFolder = rasterFolder;
 		this.databaseConfig = databaseConfig;
 		this.rasterConfig = rasterConfig;
+		this.sdeUtils = new SDEUtils(databaseConfig);
 	}
 	
 	public static Props props(ActorRef originalSender, ListDatasetInfo originalMsg, ActorRef rasterFolder, Config databaseConfig, Config rasterConfig) {
@@ -84,7 +87,8 @@ public class SDEListDatasetInfoHandler extends UntypedActor {
 			log.debug("database vendor before calling get fetch table: " + databaseVendor);
 			
 			transaction = ((TransactionCreated)msg).getActor();
-			transaction.tell(SDEUtils.getFetchTable(SDEUtils.getItemsFilter(databaseVendor), databaseScheme, databaseVendor), getSelf());
+
+			transaction.tell(sdeUtils.getFetchTable(sdeUtils.getItemsFilter(), databaseScheme), getSelf());
 			
 			getContext().become(onReceiveStreaming());
 		} else if(msg instanceof ReceiveTimeout) {
