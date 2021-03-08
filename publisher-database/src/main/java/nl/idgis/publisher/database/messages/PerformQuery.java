@@ -15,4 +15,9 @@ public class PerformQuery extends Query {
 	public QueryMetadata getMetadata() {
 		return metadata;
 	}
+	
+	@Override
+	public String toString() {
+		return "PerformQuery [metadata=" + metadata + "]";
+	}
 }
