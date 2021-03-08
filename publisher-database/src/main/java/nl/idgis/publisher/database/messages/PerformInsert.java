@@ -40,4 +40,10 @@ public class PerformInsert extends Query {
 	public Optional<Path<?>> getKey() {
 		return Optional.ofNullable(key);
 	}
+	
+	@Override
+	public String toString() {
+		return "PerformInsert [entity=" + entity + ", batches=" + batches
+				+ ", key=" + key + "]";
+	}
 }
