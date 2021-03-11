@@ -19,25 +19,51 @@ final class SDEUtils {
 
 	private DatabaseType databaseVendor;
 
-	private String mdTable;
+	private String metadataTable;
+
+	private String columnType;
+
+	private String columnUUID;
+
+	private String columnPhysicalName;
+
+	private String columnDocumentation;
 
 	SDEUtils(Config databaseConfig) throws ConfigException {
 
-		String dbVendor = databaseConfig.getString("vendor").toUpperCase();
 		try {
-			this.databaseVendor = DatabaseType.valueOf(dbVendor);
-			this.mdTable = databaseVendor == (DatabaseType.ORACLE) ? ".gdb_items_vw" : ".gdb_items";
+			this.databaseVendor = DatabaseType.valueOf(databaseConfig.getString("vendor").toUpperCase());
 		} catch(IllegalArgumentException iae) {
 			throw new ConfigException.BadValue("database {vendor}", "Invalid vendor supplied in config");
 		}
+
+		try {
+			this.metadataTable = databaseConfig.getString("metadataTable");
+		} catch(ConfigException.Missing cem) {
+			this.metadataTable = "GDB_ITEMS_VW";
+		}
+
+		if (databaseVendor == DatabaseType.ORACLE) {
+			this.columnType = "TYPE";
+			this.columnUUID = "UUID";
+			this.columnPhysicalName = "PHYSICALNAME";
+			this.columnDocumentation = "DOCUMENTATION";
+		} else {
+			this.columnType = "type";
+			this.columnUUID = "uuid";
+			this.columnPhysicalName = "physicalname";
+			this.columnDocumentation = "documentation";
+		}
+
 	}
 
 	Filter getItemsFilter() {
+
 		return new CompoundFilter(
 			"AND",
 			new ColumnFilter(
 					FactoryDatabaseColumnInfo.getDatabaseColumnInfo(
-					"PHYSICALNAME",
+					columnPhysicalName,
 					"CHAR",
 							databaseVendor),
 				"IS NOT NULL"),
@@ -47,7 +73,7 @@ final class SDEUtils {
 					.map(itemInfoType ->
 						new ColumnFilter(
 								FactoryDatabaseColumnInfo.getDatabaseColumnInfo(
-								"TYPE", 
+								columnType,
 								"CHAR",
 										databaseVendor),
 							"=", 
@@ -61,7 +87,7 @@ final class SDEUtils {
 			getItemsFilter(),
 			new ColumnFilter(
 				FactoryDatabaseColumnInfo.getDatabaseColumnInfo(
-						"UUID", 
+						columnUUID,
 						"CHAR",
 						databaseVendor),
 					"=",
@@ -71,13 +97,13 @@ final class SDEUtils {
 	FetchTable getFetchTable(Filter filter, String databaseScheme) {
 
 		List<AbstractDatabaseColumnInfo> columns = new ArrayList<>();
-		columns.add(FactoryDatabaseColumnInfo.getDatabaseColumnInfo("TYPE", "CHAR", databaseVendor));
-		columns.add(FactoryDatabaseColumnInfo.getDatabaseColumnInfo("UUID", "CHAR", databaseVendor));
-		columns.add(FactoryDatabaseColumnInfo.getDatabaseColumnInfo("PHYSICALNAME", "CHAR", databaseVendor));
-		columns.add(FactoryDatabaseColumnInfo.getDatabaseColumnInfo("DOCUMENTATION", "CLOB", databaseVendor));
-		
+		columns.add(FactoryDatabaseColumnInfo.getDatabaseColumnInfo(columnType, "CHAR", databaseVendor));
+		columns.add(FactoryDatabaseColumnInfo.getDatabaseColumnInfo(columnUUID, "CHAR", databaseVendor));
+		columns.add(FactoryDatabaseColumnInfo.getDatabaseColumnInfo(columnPhysicalName, "CHAR", databaseVendor));
+		columns.add(FactoryDatabaseColumnInfo.getDatabaseColumnInfo(columnDocumentation, "CLOB", databaseVendor));
+
 		return new FetchTable(
-			databaseScheme + mdTable.toUpperCase(),
+			databaseScheme + metadataTable,
 			columns, 
 			1 /* messageSize */, 
 			Objects.requireNonNull(filter, "filter should not be null"));

@@ -33,10 +33,6 @@ public class SDEGetDatasetInfoHandler extends UntypedActor {
 	private final GetDatasetInfo originalMsg;
 	
 	private ActorRef transaction;
-	
-	private String databaseScheme;
-
-	private String databaseVendor;
 
 	private Config databaseConfig;
 
@@ -130,7 +126,8 @@ public class SDEGetDatasetInfoHandler extends UntypedActor {
 			ActorRef itemInfoReceiver = getContext().actorOf(
 				SDEReceiveSingleItemInfo.props(datasetInfoGatherer), 
 				"item-info-receiver");
-			
+
+			String databaseScheme;
 			try {
 				databaseScheme = databaseConfig.getString("scheme");
 			} catch(ConfigException.Missing cem) {

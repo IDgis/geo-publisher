@@ -6,7 +6,6 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -62,9 +61,7 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 	private final ActorRef rasterFolder;
 	
 	private final Set<AttachmentType> attachmentTypes;
-	
-	private SDEItemInfo itemInfo;
-	
+
 	private String identification;
 	
 	private String title;
@@ -77,19 +74,15 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 	
 	private String databaseScheme;
 
-	private String databaseVendor;
-	
+	private String metadataTable;
+
 	private DatabaseTableInfo databaseTableInfo;
 
-	private Path rasterFile;
-	
 	private Set<Attachment> attachments;
 	
 	private ZonedDateTime revisionDate;
 	
 	private Map<String, String> attributeAliases;
-
-	private Config databaseConfig;
 
 	private Config rasterConfig;
 	
@@ -98,8 +91,20 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 		this.transaction = transaction;
 		this.rasterFolder = rasterFolder;
 		this.attachmentTypes = attachmentTypes;
-		this.databaseConfig = databaseConfig;
 		this.rasterConfig = rasterConfig;
+
+		try {
+			this.databaseScheme = databaseConfig.getString("scheme");
+		} catch(ConfigException.Missing cem) {
+			this.databaseScheme = "SDE";
+		}
+
+		try {
+			this.metadataTable = databaseConfig.getString("metadataTable");
+		} catch(ConfigException.Missing cem) {
+			this.metadataTable = "GDB_ITEMS_VW";
+		}
+
 	}
 	
 	public static Props props(ActorRef target, ActorRef transaction, ActorRef rasterFolder, Set<AttachmentType> attachmentTypes, Config databaseConfig, Config rasterConfig) {
@@ -178,24 +183,15 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 			getContext().stop(getSelf());
 		} else if(msg instanceof SDEItemInfo) {
 			log.debug("item info received: {}", msg);
-			
-			itemInfo = (SDEItemInfo)msg;
+
+			SDEItemInfo itemInfo = (SDEItemInfo) msg;
 			identification = itemInfo.getUuid();
 			physicalname = itemInfo.getPhysicalname();
 			categoryId = ProviderUtils.getCategoryId(physicalname);
 			
 			title = physicalname;
-			
-			try {
-				databaseScheme = databaseConfig.getString("scheme");
-			} catch(ConfigException.Missing cem) {
-				databaseScheme = "SDE";
-			}
-			
-			log.debug("database scheme in sde gather dataset info: " + databaseScheme);
 
-			databaseVendor = databaseConfig.getString("vendor");
-			String mdTable = "oracle".equalsIgnoreCase(databaseVendor) ? ".gdb_items_vw" : ".gdb_items";
+			log.debug("database scheme in sde gather dataset info: " + databaseScheme + "." + metadataTable);
 
 			itemInfo.getDocumentation().ifPresent(documentation -> {
 				try {
@@ -209,14 +205,14 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 					
 					if(attachmentTypes.contains(AttachmentType.METADATA)) {
 						attachments.add(new Attachment(
-							databaseScheme + mdTable + ".documentation",
+							databaseScheme + metadataTable + ".documentation",
 							AttachmentType.METADATA,
 							md.getContent()));
 					}
 					
 					if(attachmentTypes.contains(AttachmentType.PHYSICAL_NAME)) {
 						attachments.add(new Attachment(
-							databaseScheme + mdTable + ".physicalname",
+							databaseScheme + metadataTable + ".physicalname",
 							AttachmentType.PHYSICAL_NAME,
 							physicalname));
 					}
@@ -235,7 +231,7 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 			SDEItemInfoType type = itemInfo.getType();
 			switch(type) {
 				case RASTER_DATASET:
-					rasterFile = Paths.get(physicalname + ".tif");
+					Path rasterFile = Paths.get(physicalname + ".tif");
 					rasterFolder.tell(new GetFileSize(rasterFile), getSelf());
 					break;
 				case TABLE:

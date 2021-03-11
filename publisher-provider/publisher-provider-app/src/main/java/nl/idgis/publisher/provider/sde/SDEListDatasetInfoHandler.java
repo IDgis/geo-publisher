@@ -41,11 +41,7 @@ public class SDEListDatasetInfoHandler extends UntypedActor {
 	private final ActorRef rasterFolder;
 	
 	private ActorRef transaction;
-	
-	private String databaseScheme;
 
-	private String databaseVendor;
-	
 	private Config databaseConfig;
 	
 	private Config rasterConfig;
@@ -74,7 +70,8 @@ public class SDEListDatasetInfoHandler extends UntypedActor {
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof TransactionCreated) {
 			log.debug("transaction created");
-			
+
+			String databaseScheme;
 			try {
 				databaseScheme = databaseConfig.getString("scheme");
 			} catch(ConfigException.Missing cem) {
@@ -83,7 +80,7 @@ public class SDEListDatasetInfoHandler extends UntypedActor {
 			
 			log.debug("database scheme before calling get fetch table: " + databaseScheme);
 
-			databaseVendor = databaseConfig.getString("vendor");
+			String databaseVendor = databaseConfig.getString("vendor");
 			log.debug("database vendor before calling get fetch table: " + databaseVendor);
 			
 			transaction = ((TransactionCreated)msg).getActor();

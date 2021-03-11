@@ -33,10 +33,6 @@ public class SDEGetRasterDatasetHandler extends UntypedActor {
 	private final ActorRef rasterFolder;
 	
 	private ActorRef transaction;
-	
-	private String databaseScheme;
-
-	private String databaseVendor;
 
 	private FutureUtils f;
 
@@ -112,7 +108,8 @@ public class SDEGetRasterDatasetHandler extends UntypedActor {
 			ActorRef recordsReceiver = getContext().actorOf(
 				SDEReceiveSingleItemInfo.props(getSelf()), 
 				"item-records-receiver");
-			
+
+			String databaseScheme;
 			try {
 				databaseScheme = databaseConfig.getString("scheme");
 			} catch(ConfigException.Missing cem) {
@@ -121,7 +118,7 @@ public class SDEGetRasterDatasetHandler extends UntypedActor {
 			
 			log.debug("database scheme before calling get fetch table: " + databaseScheme);
 
-			databaseVendor = databaseConfig.getString("vendor");
+			String databaseVendor = databaseConfig.getString("vendor");
 			log.debug("database vendor before calling get fetch table: " + databaseVendor);
 			
 			transaction.tell(

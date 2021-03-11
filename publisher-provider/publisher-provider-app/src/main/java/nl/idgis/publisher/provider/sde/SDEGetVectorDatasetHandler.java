@@ -44,11 +44,7 @@ public class SDEGetVectorDatasetHandler extends UntypedActor {
 	private final GetVectorDataset originalMsg;
 	
 	private ActorRef transaction;
-	
-	private String databaseScheme;
 
-	private String databaseVendor;
-	
 	private String tableName;
 
 	private FutureUtils f;
@@ -226,7 +222,8 @@ public class SDEGetVectorDatasetHandler extends UntypedActor {
 			ActorRef recordsReceiver = getContext().actorOf(
 				SDEReceiveSingleItemInfo.props(getSelf()), 
 				"item-records-receiver");
-			
+
+			String databaseScheme;
 			try {
 				databaseScheme = databaseConfig.getString("scheme");
 			} catch(ConfigException.Missing cem) {
