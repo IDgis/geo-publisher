@@ -205,14 +205,14 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 					
 					if(attachmentTypes.contains(AttachmentType.METADATA)) {
 						attachments.add(new Attachment(
-							databaseScheme + metadataTable + ".documentation",
+							databaseScheme + "." + metadataTable + ".documentation",
 							AttachmentType.METADATA,
 							md.getContent()));
 					}
 					
 					if(attachmentTypes.contains(AttachmentType.PHYSICAL_NAME)) {
 						attachments.add(new Attachment(
-							databaseScheme + metadataTable + ".physicalname",
+							databaseScheme + "." +metadataTable + ".physicalname",
 							AttachmentType.PHYSICAL_NAME,
 							physicalname));
 					}

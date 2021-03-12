@@ -103,7 +103,7 @@ final class SDEUtils {
 		columns.add(FactoryDatabaseColumnInfo.getDatabaseColumnInfo(columnDocumentation, "CLOB", databaseVendor));
 
 		return new FetchTable(
-			databaseScheme + metadataTable,
+			databaseScheme + "." + metadataTable,
 			columns, 
 			1 /* messageSize */, 
 			Objects.requireNonNull(filter, "filter should not be null"));
