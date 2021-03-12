@@ -35,6 +35,7 @@ import nl.idgis.publisher.folder.messages.GetFileSize;
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.provider.ProviderUtils;
+import nl.idgis.publisher.provider.database.DatabaseType;
 import nl.idgis.publisher.provider.database.messages.DatabaseTableInfo;
 import nl.idgis.publisher.provider.database.messages.DescribeTable;
 import nl.idgis.publisher.provider.database.messages.PerformCount;
@@ -99,12 +100,20 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 			this.databaseScheme = "SDE";
 		}
 
-		try {
-			this.metadataTable = databaseConfig.getString("metadataTable");
-		} catch(ConfigException.Missing cem) {
+		if (databaseConfig.hasPath("vendor")) {
+			try {
+				DatabaseType databaseVendor = DatabaseType.valueOf(databaseConfig.getString("vendor").toUpperCase());
+				if (databaseVendor == DatabaseType.POSTGRES) {
+					this.metadataTable = "gdb_items";
+				} else {
+					this.metadataTable = "GDB_ITEMS_VW";
+				}
+			} catch(IllegalArgumentException iae) {
+				throw new ConfigException.BadValue("vendor", "Invalid vendor supplied in config");
+			}
+		} else {
 			this.metadataTable = "GDB_ITEMS_VW";
 		}
-
 	}
 	
 	public static Props props(ActorRef target, ActorRef transaction, ActorRef rasterFolder, Set<AttachmentType> attachmentTypes, Config databaseConfig, Config rasterConfig) {

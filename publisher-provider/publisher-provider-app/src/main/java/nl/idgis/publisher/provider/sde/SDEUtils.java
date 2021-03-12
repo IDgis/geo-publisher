@@ -17,42 +17,60 @@ import nl.idgis.publisher.provider.protocol.Records;
 
 final class SDEUtils {
 
-	private DatabaseType databaseVendor;
+	private final DatabaseType databaseVendor;
 
-	private String metadataTable;
+	private final String metadataTable;
 
-	private String columnType;
+	private final String columnType;
 
-	private String columnUUID;
+	private final String columnUUID;
 
-	private String columnPhysicalName;
+	private final String columnPhysicalName;
 
-	private String columnDocumentation;
+	private final String columnDocumentation;
+
+	private final String columnTypeDataType;
+
+	private final String columnUUIDDataType;
+
+	private final String columnPhysicalNameDataType;
+
+	private final String columnDocumentationDataType;
 
 	SDEUtils(Config databaseConfig) throws ConfigException {
 
-		try {
-			this.databaseVendor = DatabaseType.valueOf(databaseConfig.getString("vendor").toUpperCase());
-		} catch(IllegalArgumentException iae) {
-			throw new ConfigException.BadValue("database {vendor}", "Invalid vendor supplied in config");
-		}
 
-		try {
-			this.metadataTable = databaseConfig.getString("metadataTable");
-		} catch(ConfigException.Missing cem) {
-			this.metadataTable = "GDB_ITEMS_VW";
-		}
 
-		if (databaseVendor == DatabaseType.ORACLE) {
-			this.columnType = "TYPE";
-			this.columnUUID = "UUID";
-			this.columnPhysicalName = "PHYSICALNAME";
-			this.columnDocumentation = "DOCUMENTATION";
+		if (databaseConfig.hasPath("vendor")) {
+			try {
+				this.databaseVendor = DatabaseType.valueOf(databaseConfig.getString("vendor").toUpperCase());
+			} catch(IllegalArgumentException iae) {
+				throw new ConfigException.BadValue("vendor", "Invalid vendor supplied in config");
+			}
 		} else {
+			this.databaseVendor = DatabaseType.ORACLE;
+		}
+
+		if (databaseVendor == DatabaseType.POSTGRES) {
+			this.metadataTable = "gdb_items";
 			this.columnType = "type";
 			this.columnUUID = "uuid";
 			this.columnPhysicalName = "physicalname";
 			this.columnDocumentation = "documentation";
+			this.columnTypeDataType = "character varying(38)";
+			this.columnUUIDDataType = "character varying(38)";
+			this.columnPhysicalNameDataType = "character varying(257)";
+			this.columnDocumentationDataType = "xml";
+		} else {
+			this.metadataTable = "GDB_ITEMS_VW";
+			this.columnType = "TYPE";
+			this.columnUUID = "UUID";
+			this.columnPhysicalName = "PHYSICALNAME";
+			this.columnDocumentation = "DOCUMENTATION";
+			this.columnTypeDataType = "CHAR";
+			this.columnUUIDDataType = "CHAR";
+			this.columnPhysicalNameDataType = "CHAR";
+			this.columnDocumentationDataType = "CLOB";
 		}
 
 	}
@@ -64,7 +82,7 @@ final class SDEUtils {
 			new ColumnFilter(
 					FactoryDatabaseColumnInfo.getDatabaseColumnInfo(
 					columnPhysicalName,
-					"CHAR",
+					columnPhysicalNameDataType,
 							databaseVendor),
 				"IS NOT NULL"),
 			new CompoundFilter(
@@ -74,7 +92,7 @@ final class SDEUtils {
 						new ColumnFilter(
 								FactoryDatabaseColumnInfo.getDatabaseColumnInfo(
 								columnType,
-								"CHAR",
+										columnTypeDataType,
 										databaseVendor),
 							"=", 
 							itemInfoType.getUuid()))
@@ -88,7 +106,7 @@ final class SDEUtils {
 			new ColumnFilter(
 				FactoryDatabaseColumnInfo.getDatabaseColumnInfo(
 						columnUUID,
-						"CHAR",
+						columnUUIDDataType,
 						databaseVendor),
 					"=",
 					Objects.requireNonNull(uuid, "uuid should not be null")));
@@ -97,10 +115,10 @@ final class SDEUtils {
 	FetchTable getFetchTable(Filter filter, String databaseScheme) {
 
 		List<AbstractDatabaseColumnInfo> columns = new ArrayList<>();
-		columns.add(FactoryDatabaseColumnInfo.getDatabaseColumnInfo(columnUUID, "CHAR", databaseVendor));
-		columns.add(FactoryDatabaseColumnInfo.getDatabaseColumnInfo(columnType, "CHAR", databaseVendor));
-		columns.add(FactoryDatabaseColumnInfo.getDatabaseColumnInfo(columnPhysicalName, "CHAR", databaseVendor));
-		columns.add(FactoryDatabaseColumnInfo.getDatabaseColumnInfo(columnDocumentation, "CLOB", databaseVendor));
+		columns.add(FactoryDatabaseColumnInfo.getDatabaseColumnInfo(columnUUID, columnUUIDDataType, databaseVendor));
+		columns.add(FactoryDatabaseColumnInfo.getDatabaseColumnInfo(columnType, columnTypeDataType, databaseVendor));
+		columns.add(FactoryDatabaseColumnInfo.getDatabaseColumnInfo(columnPhysicalName, columnPhysicalNameDataType, databaseVendor));
+		columns.add(FactoryDatabaseColumnInfo.getDatabaseColumnInfo(columnDocumentation, columnDocumentationDataType, databaseVendor));
 
 		return new FetchTable(
 			databaseScheme + "." + metadataTable,
