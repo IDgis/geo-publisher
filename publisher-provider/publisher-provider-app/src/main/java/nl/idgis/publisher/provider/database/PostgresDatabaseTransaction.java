@@ -118,13 +118,13 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 		for(AbstractDatabaseColumnInfo columnInfo : msg.getColumns()) {
 			sb.append(separator);
 
+			String typeName = columnInfo.getTypeName();
 			String columnName = columnInfo.getName();
-			Type columnType = columnInfo.getType();
 			log.debug("Column Info: ");
 			log.debug("name: " + columnName);
-			log.debug("type: " + columnType.toString());
+			log.debug("typeName: " + typeName);
 
-			if (Type.GEOMETRY == columnType) {
+			if ("GEOMETRY".equals(typeName)) {
 				sb.append("ST_AsBinary(\"").append(columnName).append("\") AS \"").append(columnName).append("\"");
 			} else {
 				sb.append("\"").append(columnName).append("\"");
