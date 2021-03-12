@@ -33,6 +33,8 @@ public class PostgresDatabaseColumnInfo extends AbstractDatabaseColumnInfo {
 			case "CHARACTER VARYING": // CHARACTER VARYING(32) etc.
 			case "CHARACTER": // CHARACTER(21) etc.
 			case "TEXT":
+			case "CHAR":
+			case "CLOB":
 				return Type.TEXT;
 			case "GEOMETRY": // Geometry(POLYGON, 28992) etc.
 			case "ST_GEOMETRY":
