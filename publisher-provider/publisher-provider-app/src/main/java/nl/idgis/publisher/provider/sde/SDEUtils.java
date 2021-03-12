@@ -97,8 +97,8 @@ final class SDEUtils {
 	FetchTable getFetchTable(Filter filter, String databaseScheme) {
 
 		List<AbstractDatabaseColumnInfo> columns = new ArrayList<>();
-		columns.add(FactoryDatabaseColumnInfo.getDatabaseColumnInfo(columnType, "CHAR", databaseVendor));
 		columns.add(FactoryDatabaseColumnInfo.getDatabaseColumnInfo(columnUUID, "CHAR", databaseVendor));
+		columns.add(FactoryDatabaseColumnInfo.getDatabaseColumnInfo(columnType, "CHAR", databaseVendor));
 		columns.add(FactoryDatabaseColumnInfo.getDatabaseColumnInfo(columnPhysicalName, "CHAR", databaseVendor));
 		columns.add(FactoryDatabaseColumnInfo.getDatabaseColumnInfo(columnDocumentation, "CLOB", databaseVendor));
 
@@ -122,7 +122,7 @@ final class SDEUtils {
 		// Note: parameter order should match column order in 'getFetchTable'
 		return new SDEItemInfo(
 			valueItr.next(), // uuid
-			SDEItemInfoType.fromUuid(valueItr.next()), // type 
+			SDEItemInfoType.fromUuid(valueItr.next()), // type
 			valueItr.next(), // physicalname
 			valueItr.next()); // documentation
 	}
