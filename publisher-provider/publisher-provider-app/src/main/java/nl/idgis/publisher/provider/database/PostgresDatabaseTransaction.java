@@ -120,9 +120,12 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 
 			String typeName = columnInfo.getTypeName();
 			String columnName = columnInfo.getName();
+			Type type = columnInfo.getType();
+
 			log.debug("Column Info: ");
 			log.debug("name: " + columnName);
 			log.debug("typeName: " + typeName);
+			log.debug("type: " + type.toString());
 
 			if ("GEOMETRY".equals(typeName)) {
 				sb.append("ST_AsBinary(\"").append(columnName).append("\") AS \"").append(columnName).append("\"");
