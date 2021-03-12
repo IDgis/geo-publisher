@@ -13,4 +13,4 @@ In de [geo-publisher-compose](https://github.com/IDgis/geo-publisher-compose) re
   
 Voor de provider worden de artifacts gebouwd en naar Nexus gestuurd. 
 Hier kan de [geo-publisher-deployment](https://github.com/IDgis/geo-publisher-deployment) repo mee verder
-``./gradlew publisher-provider:clean publisher-provider:publish``
+``./gradlew publisher-provider:clean publisher-provider:build publish``
