@@ -35,6 +35,7 @@ public class PostgresDatabaseColumnInfo extends AbstractDatabaseColumnInfo {
 			case "TEXT":
 			case "CHAR":
 			case "CLOB":
+			case "XML":
 				return Type.TEXT;
 			case "GEOMETRY": // Geometry(POLYGON, 28992) etc.
 			case "ST_GEOMETRY":
