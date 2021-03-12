@@ -109,7 +109,8 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 
 	@Override
 	ActorRef handleFetchTable(FetchTable msg) throws SQLException {
-		log.debug("fetch table: " + msg);
+		log.debug("Fetch table: " + msg);
+		log.debug("Table name: " + msg.getTableName());
 		
 		StringBuilder sb = new StringBuilder("SELECT ");
 		
@@ -119,7 +120,11 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 
 			String columnName = columnInfo.getName();
 			Type columnType = columnInfo.getType();
-			if ("GEOMETRY".equals(columnType.toString())) {
+			log.debug("Column Info: ");
+			log.debug("name: " + columnName);
+			log.debug("type: " + columnType.toString());
+
+			if (Type.GEOMETRY == columnType) {
 				sb.append("ST_AsBinary(\"").append(columnName).append("\") AS \"").append(columnName).append("\"");
 			} else {
 				sb.append("\"").append(columnName).append("\"");
@@ -127,9 +132,9 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 			
 			separator = ", ";
 		}
-		
+		log.debug("Maken FROM deel");
 		sb.append(" FROM \"");
-		
+
 		String tableName = msg.getTableName();
 		int separatorIdx = tableName.indexOf(".");
 		if(separatorIdx == -1) {
@@ -141,7 +146,8 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 				.append(tableName.substring(separatorIdx + 1));
 		}
 		
-		sb.append("\" T");
+		sb.append("\" AS T");
+		log.debug("Maken WHERE deel");
 		
 		msg.getFilter().ifPresent(filter -> {
 			sb.append(" WHERE ");
@@ -150,7 +156,7 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 		
 		String query = sb.toString();
 		
-		log.debug("executing fetchtable query: {}", query);
+		log.debug("Executing fetchtable query: " + query);
 		
 		Statement stmt = connection.createStatement();
 		ResultSet rs = stmt.executeQuery(query);
