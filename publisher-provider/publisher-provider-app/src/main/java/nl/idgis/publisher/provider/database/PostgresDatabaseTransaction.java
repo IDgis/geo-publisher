@@ -168,27 +168,4 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 				PostgresDatabaseCursor.props(rs, msg, executorService),
 				nameGenerator.getName(PostgresDatabaseCursor.class));
 	}
-
-	private String getSchema(String schemaTable) {
-		schemaTable = schemaTable.toLowerCase();
-		String schema =  null;
-		int separatorIndex = schemaTable.indexOf(".");
-		if(separatorIndex != -1) {
-			schema = schemaTable.substring(0, separatorIndex);
-		}
-		return schema;
-	}
-
-	private String getTable(String schemaTable) {
-		schemaTable = schemaTable.toLowerCase();
-		String tableName;
-		int separatorIndex = schemaTable.indexOf(".");
-		if(separatorIndex == -1) {
-			tableName = schemaTable;
-		} else {
-			tableName = schemaTable.substring(separatorIndex + 1);
-
-		}
-		return tableName;
-	}
 }
