@@ -81,8 +81,8 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 	@Override
 	Object handlePerformCount(PerformCount query) throws SQLException {
 
-		String schema = getSchema(query.getTableName());
-		String tableName = getTable(query.getTableName());
+		String schema = query.getScheme();
+		String tableName = query.getTableName();
 
 		String sql;
 		if (schema==null) {
