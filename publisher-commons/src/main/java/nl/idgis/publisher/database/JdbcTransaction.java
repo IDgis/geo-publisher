@@ -132,7 +132,7 @@ public abstract class JdbcTransaction extends UntypedActor {
 
 	private void handleStreamingQuery(StreamingQuery msg) throws SQLException {
 		try {	
-			log.debug("executing streaming query");
+			log.debug("executing streaming query: {}", msg);
 			ActorRef cursor = executeQuery(msg);
 			if(cursor == null) {
 				getSender().tell(new NotFound(), getSelf());
