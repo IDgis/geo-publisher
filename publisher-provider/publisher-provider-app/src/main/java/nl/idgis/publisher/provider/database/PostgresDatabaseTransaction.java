@@ -31,68 +31,66 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 	@Override
 	Object handleDescribeTable(DescribeTable query) throws SQLException {
 		log.debug("Describing table");
-		String requestedTableName = query.getTableName();
-		
-		final String sql;
-		int separatorIndex = requestedTableName.indexOf(".");
-		if(separatorIndex == -1) {
 
-			// Er wordt geen gebruik gemaakt van schema.table notatie in metadata bestand
-			log.warning("Schema-table name not clear from database");
+		String schema = getSchema(query.getTableName());
+		String tableName = getTable(query.getTableName());
+
+		if (schema==null) {
+			log.warning("No scheme defined in metadata");
 			return new TableNotFound();
-
 		} else {
-			String schema = requestedTableName.substring(0, separatorIndex);
-			String tableName = requestedTableName.substring(separatorIndex + 1);
-
 			// https://stackoverflow.com/questions/20194806/how-to-get-a-list-column-names-and-datatype-of-a-table-in-postgresql
-			sql = "SELECT pg_attribute.attname AS column_name, pg_catalog.format_type(pg_attribute.atttypid, pg_attribute.atttypmod) AS data_type "
-				+ "FROM pg_catalog.pg_attribute "
-				+ "INNER JOIN pg_catalog.pg_class ON pg_class.oid = pg_attribute.attrelid "
-				+ "INNER JOIN pg_catalog.pg_namespace ON pg_namespace.oid = pg_class.relnamespace "
-				+ "WHERE pg_attribute.attnum > 0 AND NOT pg_attribute.attisdropped AND pg_namespace.nspname = '" + schema + "' AND pg_class.relname = '" + tableName + "' "
-				+ "ORDER BY attnum";
-		}
-		
-		log.debug("executing data dictionary query: {}", sql);
-		
-		ArrayList<AbstractDatabaseColumnInfo> columns = new ArrayList<>();
-		Statement stmt = connection.createStatement();
-		ResultSet rs = stmt.executeQuery(sql);
-		while(rs.next()) {
-			String name = rs.getString(1);
-			String typeName = rs.getString(2);
-			
-			AbstractDatabaseColumnInfo columnInfo = new PostgresDatabaseColumnInfo(name, typeName);
-			// not reporting columns with unsupported data types
-			if("CLOB".equals(typeName) || columnInfo.getType() == null) {
-				log.debug("unsupported data type: " + columnInfo.getTypeName() + " in column: " + name);
-			} else {
-				log.debug("Found column: " + name + " with data type: " + columnInfo.getTypeName() + ". Converted to: " + columnInfo.getType());
-				columns.add(columnInfo);
+			String sql = "SELECT pg_attribute.attname AS column_name, pg_catalog.format_type(pg_attribute.atttypid, pg_attribute.atttypmod) AS data_type "
+					+ "FROM pg_catalog.pg_attribute "
+					+ "INNER JOIN pg_catalog.pg_class ON pg_class.oid = pg_attribute.attrelid "
+					+ "INNER JOIN pg_catalog.pg_namespace ON pg_namespace.oid = pg_class.relnamespace "
+					+ "WHERE pg_attribute.attnum > 0 AND NOT pg_attribute.attisdropped AND pg_namespace.nspname = '" + schema + "' AND pg_class.relname = '" + tableName + "' "
+					+ "ORDER BY attnum";
+
+
+			log.debug("executing data dictionary query: {}", sql);
+
+			ArrayList<AbstractDatabaseColumnInfo> columns = new ArrayList<>();
+			Statement stmt = connection.createStatement();
+			ResultSet rs = stmt.executeQuery(sql);
+			while (rs.next()) {
+				String name = rs.getString(1);
+				String typeName = rs.getString(2);
+
+				AbstractDatabaseColumnInfo columnInfo = new PostgresDatabaseColumnInfo(name, typeName);
+				// not reporting columns with unsupported data types
+				if ("CLOB".equals(typeName) || columnInfo.getType() == null) {
+					log.debug("unsupported data type: " + columnInfo.getTypeName() + " in column: " + name);
+				} else {
+					log.debug("Found column: " + name + " with data type: " + columnInfo.getTypeName() + ". Converted to: " + columnInfo.getType());
+					columns.add(columnInfo);
+				}
 			}
-		}
-		
-		rs.close();		
-		stmt.close();
-		
-		if(columns.isEmpty()) {
-			return new TableNotFound();
-		} else {
-			return new DatabaseTableInfo(columns.toArray(new AbstractDatabaseColumnInfo[0]));
+
+			rs.close();
+			stmt.close();
+
+			if (columns.isEmpty()) {
+				return new TableNotFound();
+			} else {
+				return new DatabaseTableInfo(columns.toArray(new AbstractDatabaseColumnInfo[0]));
+			}
 		}
 	}
 
 	@Override
 	Object handlePerformCount(PerformCount query) throws SQLException {
 
+		String schema = getSchema(query.getTableName());
+		String tableName = getTable(query.getTableName());
 
-		String requestedTableName = query.getTableName();
-		int separatorIndex = requestedTableName.indexOf(".");
-		String schema = requestedTableName.substring(0, separatorIndex);
-		String tableName = requestedTableName.substring(separatorIndex + 1);
+		String sql;
+		if (schema==null) {
+			sql  = "SELECT count(*) FROM \"" + tableName + "\"";
+		} else {
+			sql  = "SELECT count(*) FROM \"" + schema + "\".\"" + tableName + "\"";
+		}
 
-		String sql = "SELECT count(*) FROM \"" + schema + "\".\"" + tableName + "\"";
 		log.debug(String.format("executing count query: %s", sql));
 		Statement stmt = connection.createStatement();
 		
@@ -138,15 +136,16 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 		log.debug("Maken FROM deel");
 		sb.append(" FROM \"");
 
-		String tableName = msg.getTableName();
-		int separatorIdx = tableName.indexOf(".");
-		if(separatorIdx == -1) {
+		String schema = getSchema(msg.getTableName());
+		String tableName = getTable(msg.getTableName());
+
+		if(schema==null) {
 			sb.append(tableName);
 		} else {
 			sb
-				.append(tableName, 0, separatorIdx)
+				.append(schema)
 				.append("\".\"")
-				.append(tableName.substring(separatorIdx + 1));
+				.append(tableName);
 		}
 		
 		sb.append("\" AS T");
@@ -167,5 +166,28 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 		return getContext().actorOf(
 				PostgresDatabaseCursor.props(rs, msg, executorService),
 				nameGenerator.getName(PostgresDatabaseCursor.class));
+	}
+
+	private String getSchema(String schemaTable) {
+		schemaTable = schemaTable.toLowerCase();
+		String schema =  null;
+		int separatorIndex = schemaTable.indexOf(".");
+		if(separatorIndex != -1) {
+			schema = schemaTable.substring(0, separatorIndex);
+		}
+		return schema;
+	}
+
+	private String getTable(String schemaTable) {
+		schemaTable = schemaTable.toLowerCase();
+		String tableName;
+		int separatorIndex = schemaTable.indexOf(".");
+		if(separatorIndex == -1) {
+			tableName = schemaTable;
+		} else {
+			tableName = schemaTable.substring(separatorIndex + 1);
+
+		}
+		return tableName;
 	}
 }
