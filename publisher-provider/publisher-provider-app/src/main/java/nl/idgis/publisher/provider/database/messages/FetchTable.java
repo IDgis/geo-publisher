@@ -29,7 +29,7 @@ public class FetchTable extends StreamingQuery {
 		this.messageSize = messageSize;
 		this.filter = filter;
 
-		String[] schemaTableParts = tableName.split(".");
+		String[] schemaTableParts = tableName.split("\\.");
 
 		switch (schemaTableParts.length) {
 			case 1: // only table

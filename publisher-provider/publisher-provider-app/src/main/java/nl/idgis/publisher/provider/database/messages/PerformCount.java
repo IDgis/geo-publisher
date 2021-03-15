@@ -12,7 +12,7 @@ public class PerformCount extends Query {
 	
 	public PerformCount(String tableName) {
 
-		String[] schemaTableParts = tableName.split(".");
+		String[] schemaTableParts = tableName.split("\\.");
 
 		switch (schemaTableParts.length) {
 			case 1: // only table
