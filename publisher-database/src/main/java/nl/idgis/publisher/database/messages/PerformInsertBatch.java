@@ -47,4 +47,10 @@ public class PerformInsertBatch implements Serializable {
 	public Optional<SubQueryExpression<?>> getSubQuery() {
 		return Optional.ofNullable(subQuery);
 	}
+	
+	@Override
+	public String toString() {
+		return "PerformInsertBatch [columns=" + columns + ", values=" + values
+				+ ", subQuery=" + subQuery + "]";
+	}
 }

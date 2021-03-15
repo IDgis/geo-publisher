@@ -234,6 +234,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 
 	private Object executePerformQuery(PerformQuery query) {
 		QueryMetadata metadata = query.getMetadata();
+		log.debug("executing perform query: {}", query(metadata));
 		
 		List<Expression<?>> projection = metadata.getProjection();
 		
@@ -251,6 +252,7 @@ public class PublisherTransaction extends QueryDSLTransaction {
 	
 	private Object executePerformUpdate(PerformUpdate query) {
 		SQLUpdateClause update = update(query.getEntity());
+		log.debug("executing perform update: {}", update);
 		
 		update.set(query.getColumns(), query.getValues());
 		
@@ -264,12 +266,14 @@ public class PublisherTransaction extends QueryDSLTransaction {
 	
 	private Object executePerformDelete(PerformDelete query) {
 		SQLDeleteClause delete = delete(query.getEntity());
+		log.debug("executing perform delete: {}", delete);
 		
 		return delete.where(query.getMetadata().getWhere()).execute();
 	}
 	
 	private Object executePerformInsert(PerformInsert query) {
 		SQLInsertClause insert = insert(query.getEntity());
+		log.debug("executing perform insert: {}", insert);
 		
 		Iterator<PerformInsertBatch> batchItr = query.getBatches().iterator();		
 		
