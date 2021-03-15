@@ -108,6 +108,7 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 	@Override
 	ActorRef handleFetchTable(FetchTable msg) throws SQLException {
 		log.debug("Fetch table: " + msg);
+		log.debug("Table scheme: " + msg.getScheme()==null ? "No scheme defined" : msg.getScheme());
 		log.debug("Table name: " + msg.getTableName());
 		
 		StringBuilder sb = new StringBuilder("SELECT ");
@@ -136,8 +137,8 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 		log.debug("Maken FROM deel");
 		sb.append(" FROM \"");
 
-		String schema = getSchema(msg.getTableName());
-		String tableName = getTable(msg.getTableName());
+		String schema = msg.getScheme();
+		String tableName = msg.getTableName();
 
 		if(schema==null) {
 			sb.append(tableName);

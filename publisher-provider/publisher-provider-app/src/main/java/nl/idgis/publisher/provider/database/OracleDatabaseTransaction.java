@@ -139,16 +139,17 @@ public class OracleDatabaseTransaction extends AbstractDatabaseTransaction {
 		}
 		
 		sb.append(" FROM \"");
-		
+
+		String owner = msg.getScheme();
 		String tableName = msg.getTableName();
-		int separatorIdx = tableName.indexOf(".");
-		if(separatorIdx == -1) {
+
+		if (owner == null) {
 			sb.append(tableName);
 		} else {
 			sb
-				.append(tableName.substring(0, separatorIdx))
+				.append(owner)
 				.append("\".\"")
-				.append(tableName.substring(separatorIdx + 1));
+				.append(tableName);
 		}
 		
 		sb.append("\" T");
