@@ -36,6 +36,6 @@ public class DescribeTable extends Query {
 
 	@Override
 	public String toString() {
-		return "DescribeTable [tableName=" + tableName + "]";
+		return "DescribeTable [schme=" + scheme + ", tableName=" + tableName + "]";
 	}
 }
