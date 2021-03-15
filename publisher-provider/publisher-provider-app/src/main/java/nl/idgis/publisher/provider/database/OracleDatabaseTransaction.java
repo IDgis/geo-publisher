@@ -28,18 +28,17 @@ public class OracleDatabaseTransaction extends AbstractDatabaseTransaction {
 	}
 	
 	Object handleDescribeTable(DescribeTable query) throws SQLException {
-		String requestedTableName = query.getTableName().toUpperCase();
-		
+
+		String owner = query.getScheme().toUpperCase();
+		String tableName = query.getTableName().toUpperCase();
+
 		final String sql;
-		int separatorIndex = requestedTableName.indexOf(".");
-		if(separatorIndex == -1) {
+
+		if(owner == null) {
 			sql = "select column_name, data_type from user_tab_columns "
-					+ "where table_name = '" + requestedTableName + "' "
+					+ "where table_name = '" + tableName + "' "
 					+ "order by column_id";
 		} else {
-			String owner = requestedTableName.substring(0, separatorIndex);
-			String tableName = requestedTableName.substring(separatorIndex + 1);
-			
 			sql = "select column_name, data_type from all_tab_columns "
 					+ "where owner = '" + owner + "' and table_name = '" + tableName
 					+ "' " + "order by column_id";

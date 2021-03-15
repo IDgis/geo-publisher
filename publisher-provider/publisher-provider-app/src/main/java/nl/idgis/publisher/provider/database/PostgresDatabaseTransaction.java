@@ -32,8 +32,8 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 	Object handleDescribeTable(DescribeTable query) throws SQLException {
 		log.debug("Describing table");
 
-		String schema = getSchema(query.getTableName());
-		String tableName = getTable(query.getTableName());
+		String schema = query.getScheme();
+		String tableName = query.getTableName();
 
 		if (schema==null) {
 			log.warning("No scheme defined in metadata");
