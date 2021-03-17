@@ -86,7 +86,9 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 	private Map<String, String> attributeAliases;
 
 	private Config rasterConfig;
-	
+
+	private final DatabaseType databaseVendor;
+
 	public SDEGatherDatasetInfo(ActorRef target, ActorRef transaction, ActorRef rasterFolder, Set<AttachmentType> attachmentTypes, Config databaseConfig, Config rasterConfig) {
 		this.target = target;
 		this.transaction = transaction;
@@ -102,7 +104,7 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 
 		if (databaseConfig.hasPath("vendor")) {
 			try {
-				DatabaseType databaseVendor = DatabaseType.valueOf(databaseConfig.getString("vendor").toUpperCase());
+				this.databaseVendor = DatabaseType.valueOf(databaseConfig.getString("vendor").toUpperCase());
 				if (databaseVendor == DatabaseType.POSTGRES) {
 					this.metadataTable = "gdb_items";
 				} else {
@@ -112,6 +114,7 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 				throw new ConfigException.BadValue("vendor", "Invalid vendor supplied in config");
 			}
 		} else {
+			this.databaseVendor = DatabaseType.ORACLE;
 			this.metadataTable = "GDB_ITEMS_VW";
 		}
 	}
@@ -195,7 +198,7 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 
 			SDEItemInfo itemInfo = (SDEItemInfo) msg;
 			identification = itemInfo.getUuid();
-			physicalname = itemInfo.getPhysicalname();
+			physicalname = databaseVendor == DatabaseType.POSTGRES ? itemInfo.getPhysicalname().toLowerCase() : itemInfo.getPhysicalname();
 			categoryId = ProviderUtils.getCategoryId(physicalname);
 			
 			title = physicalname;

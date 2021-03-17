@@ -12,6 +12,7 @@ import com.typesafe.config.ConfigException;
 import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.provider.database.DatabaseType;
 import nl.idgis.publisher.provider.database.messages.AbstractDatabaseColumnInfo;
 import nl.idgis.publisher.provider.database.messages.DatabaseTableInfo;
 import nl.idgis.publisher.provider.database.messages.DescribeTable;
@@ -190,8 +191,8 @@ public class SDEGetVectorDatasetHandler extends UntypedActor {
 					
 					SDEItemInfo itemInfo = (SDEItemInfo)msg;
 					SDEItemInfoType type = itemInfo.getType();
-					String tableName = itemInfo.getPhysicalname();
-					
+					String tableName = DatabaseType.valueOf(databaseConfig.getString("vendor").toUpperCase()) == DatabaseType.POSTGRES ? itemInfo.getPhysicalname().toLowerCase() : itemInfo.getPhysicalname();
+
 					if(SDEItemInfoType.FEATURE_CLASS == type ||
 						SDEItemInfoType.TABLE == type) {
 						log.debug("tableName: {}", tableName);
