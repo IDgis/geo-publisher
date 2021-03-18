@@ -236,7 +236,7 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 						alternateTitle = md.getDatasetAlternateTitle();
 					} catch(NotFound nf) {}
 				} catch(Exception e) {
-					log.error(e, "couldn't process documentation content");
+					log.error(e, "couldn't process documentation content for: " + physicalname);
 				}
 			});
 			
