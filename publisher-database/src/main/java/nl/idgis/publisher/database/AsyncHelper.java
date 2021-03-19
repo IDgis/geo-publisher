@@ -19,6 +19,8 @@ public interface AsyncHelper {
 	AsyncTransactionRef getTransactionRef();
 	
 	CompletableFuture<Object> ask(Object message);
+	
+	CompletableFuture<Object> ask(Object message, long timeout);
 
 	void tell(Object message, ActorRef sender);
 }
