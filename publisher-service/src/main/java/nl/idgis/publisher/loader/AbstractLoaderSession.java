@@ -248,7 +248,7 @@ public abstract class AbstractLoaderSession<T extends ImportJobInfo, U extends S
 				return new FinalizeSession(JobState.FAILED);
 			}
 		}).exceptionally(t -> {
-			log.error("couldn't properly finalize session: {}", t);
+			log.error(t, "couldn't properly finalize session");
 			
 			return new FinalizeSession(JobState.FAILED);
 		}).thenAccept(msg -> {
