@@ -9,10 +9,10 @@ import nl.idgis.publisher.database.messages.StreamingQuery;
 public class FetchTable extends StreamingQuery {
 
 	private static final long serialVersionUID = 8354005402803760927L;
-	
-	private final String tableName;
 
 	private final String scheme;
+
+	private final String tableName;
 	
 	private final List<AbstractDatabaseColumnInfo> columns;
 	
@@ -66,8 +66,13 @@ public class FetchTable extends StreamingQuery {
 
 	@Override
 	public String toString() {
-		return "FetchTable [scheme=" + scheme + ", tableName=" + tableName + ", columns=" + columns + ", messageSize=" + messageSize
-				+ ", filter=" + filter + "]";
+		return "FetchTable{" +
+				"scheme='" + scheme + '\'' +
+				", tableName='" + tableName + '\'' +
+				", columns=" + columns +
+				", messageSize=" + messageSize +
+				", filter=" + filter +
+				'}';
 	}
-	
+
 }

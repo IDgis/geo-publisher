@@ -5,10 +5,10 @@ import nl.idgis.publisher.database.messages.Query;
 public class PerformCount extends Query {
 
 	private static final long serialVersionUID = 1464334851511334051L;
-	
-	private final String tableName;
 
 	private final String scheme;
+	
+	private final String tableName;
 	
 	public PerformCount(String tableName) {
 
@@ -37,6 +37,9 @@ public class PerformCount extends Query {
 
 	@Override
 	public String toString() {
-		return "PerformCount [scheme=" + scheme + ", tableName=" + tableName + "]";
+		return "PerformCount{" +
+				"scheme='" + scheme + '\'' +
+				", tableName='" + tableName + '\'' +
+				'}';
 	}
 }

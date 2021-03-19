@@ -5,10 +5,10 @@ import nl.idgis.publisher.database.messages.Query;
 public class DescribeTable extends Query {
 
 	private static final long serialVersionUID = 4436618297183961160L;
-	
-	private final String tableName;
 
 	private final String scheme;
+
+	private final String tableName;
 	
 	public DescribeTable(String tableName) {
 		String[] schemaTableParts = tableName.split("\\.");
@@ -36,6 +36,9 @@ public class DescribeTable extends Query {
 
 	@Override
 	public String toString() {
-		return "DescribeTable [schme=" + scheme + ", tableName=" + tableName + "]";
+		return "DescribeTable{" +
+				"scheme='" + scheme + '\'' +
+				", tableName='" + tableName + '\'' +
+				'}';
 	}
 }
