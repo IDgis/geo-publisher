@@ -13,3 +13,7 @@ build/
 
 # Idea
 .idea
+
+# build
+*/out/*
+*/*/out/*
