@@ -25,6 +25,7 @@ public class PostgresDatabaseCursor extends AbstractDatabaseCursor {
 		return Props.create(PostgresDatabaseCursor.class, t, fetchTable, executorService);
 	}
 
+	@Override
 	Object convert(AbstractDatabaseColumnInfo columnInfo, Object value) throws Exception {
 		if (value == null) {
 			return null;
