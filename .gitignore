@@ -10,3 +10,6 @@ build/
 
 # Vagrant
 /.vagrant/
+
+# Idea
+.idea
