@@ -46,8 +46,7 @@ public class Database extends JdbcDatabase {
             case POSTGRES:
                 return PostgresDatabaseTransaction.props(config, connection);
             default:
-                log.error("Vendor is not supported");
-                throw new ConfigException.BadValue("database {vendor}", "Invalid vendor supplied in config");
+                throw new IllegalArgumentException("Unsupported vendor supplied in config");
         }
 	}	
 }
