@@ -27,16 +27,17 @@ public class Database extends JdbcDatabase {
 	protected Props createTransaction(Connection connection) throws ConfigException {
         DatabaseType databaseVendor;
 
-		// Value should come from config
-		String vendor = config.getString("vendor");
-		log.debug(String.format("Using database: %s", vendor));
-
-        try {
-            databaseVendor = DatabaseType.valueOf(config.getString("vendor").toUpperCase());
-        } catch(IllegalArgumentException iae) {
-            throw new ConfigException.BadValue("database {vendor}", "Invalid vendor supplied in config");
+        if (config.hasPath("vendor")) {
+            try {
+                databaseVendor = DatabaseType.valueOf(config.getString("vendor").toUpperCase());
+            } catch(IllegalArgumentException iae) {
+                throw new ConfigException.BadValue("vendor", "Invalid vendor supplied in config");
+            }
+        } else {
+            databaseVendor = DatabaseType.ORACLE;
         }
 
+        log.debug(String.format("Using database: %s", databaseVendor.toString()));
 
 		/* Return props from Oracle or postgres */
         switch(databaseVendor) {
@@ -45,8 +46,7 @@ public class Database extends JdbcDatabase {
             case POSTGRES:
                 return PostgresDatabaseTransaction.props(config, connection);
             default:
-                log.error("Vendor is not supported");
-                throw new ConfigException.BadValue("database {vendor}", "Invalid vendor supplied in config");
+                throw new IllegalArgumentException("Unsupported vendor supplied in config");
         }
 	}	
 }

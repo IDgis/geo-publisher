@@ -10,3 +10,10 @@ build/
 
 # Vagrant
 /.vagrant/
+
+# Idea
+.idea
+
+# build
+*/out/*
+*/*/out/*

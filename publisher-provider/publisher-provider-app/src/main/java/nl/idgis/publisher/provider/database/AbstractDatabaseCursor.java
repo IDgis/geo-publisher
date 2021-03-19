@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
-public class AbstractDatabaseCursor extends StreamCursor<ResultSet, Records> {
+public abstract class AbstractDatabaseCursor extends StreamCursor<ResultSet, Records> {
 
 	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
@@ -37,9 +37,7 @@ public class AbstractDatabaseCursor extends StreamCursor<ResultSet, Records> {
 		return Props.create(AbstractDatabaseCursor.class, t, fetchTable, executorService);
 	}
 
-	Object convert(AbstractDatabaseColumnInfo columnInfo, Object value) throws Exception {
-		return value;
-	}
+	abstract Object convert(AbstractDatabaseColumnInfo columnInfo, Object value) throws Exception;
 
 	private Record toRecord() throws Exception {
 		currentHasNext = null;

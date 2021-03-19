@@ -12,7 +12,7 @@ public class FactoryDatabaseColumnInfo {
             case POSTGRES:
                 return new PostgresDatabaseColumnInfo(name, typeName);
             default:
-                throw new ConfigException.BadValue("database {vendor}", "Invalid vendor supplied in config");
+                throw new ConfigException.BadValue("database {vendor}", "Unsupported vendor supplied in config");
         }
     }
 }
