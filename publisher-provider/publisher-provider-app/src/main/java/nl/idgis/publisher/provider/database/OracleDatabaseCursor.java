@@ -5,10 +5,10 @@ import java.sql.Clob;
 import java.sql.ResultSet;
 import java.util.concurrent.ExecutorService;
 
-import nl.idgis.publisher.provider.database.messages.AbstractDatabaseColumnInfo;
 import org.apache.commons.io.IOUtils;
 
 import nl.idgis.publisher.domain.service.Type;
+import nl.idgis.publisher.provider.database.messages.AbstractDatabaseColumnInfo;
 import nl.idgis.publisher.provider.database.messages.FetchTable;
 import nl.idgis.publisher.provider.protocol.WKBGeometry;
 
