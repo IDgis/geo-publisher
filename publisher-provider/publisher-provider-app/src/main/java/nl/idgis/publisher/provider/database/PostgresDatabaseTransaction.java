@@ -124,7 +124,7 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 			log.debug("typeName: " + typeName);
 			log.debug("type: " + type.toString());
 
-			if ("GEOMETRY".equals(typeName)) {
+			if (Type.GEOMETRY.equals(type)) { // Alle geometry types
 				sb.append("ST_AsBinary(\"").append(columnName).append("\") AS \"").append(columnName).append("\"");
 			} else if ("xml".equals(typeName)) { // xml is an object. Convert to string. https://www.postgresql.org/docs/9.6/datatype-xml.html
 				sb.append("xmlserialize(DOCUMENT \"").append(columnName).append("\" as text) AS \"").append(columnName).append("\"");
