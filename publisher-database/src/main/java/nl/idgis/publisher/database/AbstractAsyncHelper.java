@@ -52,6 +52,11 @@ public abstract class AbstractAsyncHelper implements AsyncHelper {
 	}
 	
 	@Override
+	public final CompletableFuture<Object> ask(Object message, long timeout) {
+		return f.ask(actorRef, message, timeout);
+	}
+	
+	@Override
 	public final void tell(Object message, ActorRef sender) {
 		actorRef.tell(message, sender);
 	}
