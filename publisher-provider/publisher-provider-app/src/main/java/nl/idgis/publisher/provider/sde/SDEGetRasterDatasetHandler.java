@@ -17,6 +17,7 @@ import akka.japi.Procedure;
 import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.folder.messages.FetchFile;
+import nl.idgis.publisher.provider.database.DatabaseType;
 import nl.idgis.publisher.provider.protocol.DatasetNotAvailable;
 import nl.idgis.publisher.provider.protocol.GetRasterDataset;
 import nl.idgis.publisher.utils.FutureUtils;
@@ -84,7 +85,12 @@ public class SDEGetRasterDatasetHandler extends UntypedActor {
 					SDEItemInfo itemInfo = (SDEItemInfo)msg;
 					SDEItemInfoType type = itemInfo.getType();
 					if(SDEItemInfoType.RASTER_DATASET == type) {
-						Path file = Paths.get(itemInfo.getPhysicalname() + ".tif");
+
+						DatabaseType databaseVendor = DatabaseType.valueOf(databaseConfig.getString("vendor").toUpperCase());
+						String physicalname = itemInfo.getPhysicalname();
+						String filename = DatabaseType.POSTGRES == databaseVendor ? physicalname.toLowerCase() : physicalname;
+
+						Path file = Paths.get(filename + ".tif");
 						
 						log.debug("fetching file: {}", file);
 						rasterFolder.tell(new FetchFile(file), originalSender);
