@@ -1101,10 +1101,17 @@ public class MetadataDocument {
 	}
 	
 	protected String getDatasetIdentifierPath() {
-		return 
-			getDatasetIdentifierCodePath() +
-			"/gco:CharacterString"
-			;
+		String datasetIdentifierPath;
+
+		try {
+			String path = getDatasetIdentifierCodePath() + "/gco:CharacterString";
+			isoMetadata.getString(namespaces, path); // Trigger not found
+			datasetIdentifierPath = path;
+		} catch (NotFound nf) {
+			datasetIdentifierPath = getDatasetIdentifierCodePath() + "/gmx:Anchor";
+		}
+
+		return datasetIdentifierPath;
 	}
 	
 	public void setDatasetIdentifier(String datasetIdentifier) throws QueryFailure {
