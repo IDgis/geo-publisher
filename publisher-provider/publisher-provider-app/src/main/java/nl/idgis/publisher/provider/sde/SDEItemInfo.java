@@ -32,7 +32,18 @@ public class SDEItemInfo implements Serializable {
 	}
 
 	public String getPhysicalname() {
-		return physicalname;
+
+		String result;
+
+		String[] schemaTableParts = physicalname.split("\\.");
+
+		if (schemaTableParts.length > 2) { // includes db, don't return it.
+			result = schemaTableParts[1] + "." + schemaTableParts[2];
+		} else {
+			result = physicalname;
+		}
+
+		return result;
 	}
 	
 	public Optional<String> getDocumentation() {

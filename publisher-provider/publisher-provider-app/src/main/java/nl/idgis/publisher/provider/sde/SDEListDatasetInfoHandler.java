@@ -41,12 +41,12 @@ public class SDEListDatasetInfoHandler extends UntypedActor {
 	private final ActorRef rasterFolder;
 	
 	private ActorRef transaction;
-	
-	private String databaseScheme;
-	
+
 	private Config databaseConfig;
 	
 	private Config rasterConfig;
+
+	private SDEUtils sdeUtils;
 	
 	public SDEListDatasetInfoHandler(ActorRef originalSender, ListDatasetInfo originalMsg, ActorRef rasterFolder, Config databaseConfig, Config rasterConfig) {
 		this.originalSender = originalSender;
@@ -54,6 +54,7 @@ public class SDEListDatasetInfoHandler extends UntypedActor {
 		this.rasterFolder = rasterFolder;
 		this.databaseConfig = databaseConfig;
 		this.rasterConfig = rasterConfig;
+		this.sdeUtils = new SDEUtils(databaseConfig);
 	}
 	
 	public static Props props(ActorRef originalSender, ListDatasetInfo originalMsg, ActorRef rasterFolder, Config databaseConfig, Config rasterConfig) {
@@ -69,7 +70,8 @@ public class SDEListDatasetInfoHandler extends UntypedActor {
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof TransactionCreated) {
 			log.debug("transaction created");
-			
+
+			String databaseScheme;
 			try {
 				databaseScheme = databaseConfig.getString("scheme");
 			} catch(ConfigException.Missing cem) {
@@ -77,9 +79,13 @@ public class SDEListDatasetInfoHandler extends UntypedActor {
 			}
 			
 			log.debug("database scheme before calling get fetch table: " + databaseScheme);
+
+			String databaseVendor = databaseConfig.getString("vendor");
+			log.debug("database vendor before calling get fetch table: " + databaseVendor);
 			
 			transaction = ((TransactionCreated)msg).getActor();
-			transaction.tell(SDEUtils.getFetchTable(SDEUtils.getItemsFilter(), databaseScheme), getSelf());
+
+			transaction.tell(sdeUtils.getFetchTable(sdeUtils.getItemsFilter(), databaseScheme), getSelf());
 			
 			getContext().become(onReceiveStreaming());
 		} else if(msg instanceof ReceiveTimeout) {

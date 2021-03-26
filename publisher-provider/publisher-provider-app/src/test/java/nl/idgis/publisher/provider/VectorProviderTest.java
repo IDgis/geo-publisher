@@ -13,6 +13,8 @@ import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import nl.idgis.publisher.provider.database.DatabaseType;
+import nl.idgis.publisher.provider.database.messages.*;
 import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -26,10 +28,6 @@ import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.protocol.messages.Ack;
-import nl.idgis.publisher.provider.database.messages.DatabaseColumnInfo;
-import nl.idgis.publisher.provider.database.messages.DatabaseTableInfo;
-import nl.idgis.publisher.provider.database.messages.DescribeTable;
-import nl.idgis.publisher.provider.database.messages.PerformCount;
 import nl.idgis.publisher.provider.metadata.messages.GetAllMetadata;
 import nl.idgis.publisher.provider.metadata.messages.GetMetadata;
 import nl.idgis.publisher.provider.mock.DatabaseMock;
@@ -86,7 +84,7 @@ public class VectorProviderTest {
 	
 	@BeforeClass
 	public static void initStatics() {
-		DatabaseColumnInfo[] columns = new DatabaseColumnInfo[]{new DatabaseColumnInfo("id", "NUMBER"), new DatabaseColumnInfo("title", "CHAR")};
+		AbstractDatabaseColumnInfo[] columns = new AbstractDatabaseColumnInfo[]{FactoryDatabaseColumnInfo.getDatabaseColumnInfo("id", "NUMBER", DatabaseType.ORACLE), FactoryDatabaseColumnInfo.getDatabaseColumnInfo("title", "CHAR", DatabaseType.ORACLE)};
 		databaseTableInfo = new DatabaseTableInfo(columns);
 		
 		tableContent = new ArrayList<>();

@@ -12,7 +12,8 @@ import com.typesafe.config.ConfigException;
 import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.protocol.messages.Ack;
-import nl.idgis.publisher.provider.database.messages.DatabaseColumnInfo;
+import nl.idgis.publisher.provider.database.DatabaseType;
+import nl.idgis.publisher.provider.database.messages.AbstractDatabaseColumnInfo;
 import nl.idgis.publisher.provider.database.messages.DatabaseTableInfo;
 import nl.idgis.publisher.provider.database.messages.DescribeTable;
 import nl.idgis.publisher.provider.database.messages.FetchTable;
@@ -44,12 +45,12 @@ public class SDEGetVectorDatasetHandler extends UntypedActor {
 	private final GetVectorDataset originalMsg;
 	
 	private ActorRef transaction;
-	
-	private String databaseScheme;
-	
+
 	private String tableName;
 
 	private FutureUtils f;
+
+	private SDEUtils sdeUtils;
 
 	private Config databaseConfig;
 	
@@ -57,6 +58,7 @@ public class SDEGetVectorDatasetHandler extends UntypedActor {
 		this.originalSender = originalSender;
 		this.originalMsg = originalMsg;
 		this.databaseConfig = databaseConfig;
+		this.sdeUtils = new SDEUtils(databaseConfig);
 	}
 	
 	@Override
@@ -144,7 +146,7 @@ public class SDEGetVectorDatasetHandler extends UntypedActor {
 			@Override
 			public void apply(Object msg) throws Exception {
 				if(msg instanceof DatabaseTableInfo) {
-					Map<String, DatabaseColumnInfo> columnInfos = 
+					Map<String, AbstractDatabaseColumnInfo> columnInfos =
 						Stream.of(((DatabaseTableInfo) msg).getColumns())
 							.collect(Collectors.toMap(
 								columnInfo -> columnInfo.getName(),
@@ -189,8 +191,8 @@ public class SDEGetVectorDatasetHandler extends UntypedActor {
 					
 					SDEItemInfo itemInfo = (SDEItemInfo)msg;
 					SDEItemInfoType type = itemInfo.getType();
-					String tableName = itemInfo.getPhysicalname();
-					
+					String tableName = DatabaseType.valueOf(databaseConfig.getString("vendor").toUpperCase()) == DatabaseType.POSTGRES ? itemInfo.getPhysicalname().toLowerCase() : itemInfo.getPhysicalname();
+
 					if(SDEItemInfoType.FEATURE_CLASS == type ||
 						SDEItemInfoType.TABLE == type) {
 						log.debug("tableName: {}", tableName);
@@ -221,7 +223,8 @@ public class SDEGetVectorDatasetHandler extends UntypedActor {
 			ActorRef recordsReceiver = getContext().actorOf(
 				SDEReceiveSingleItemInfo.props(getSelf()), 
 				"item-records-receiver");
-			
+
+			String databaseScheme;
 			try {
 				databaseScheme = databaseConfig.getString("scheme");
 			} catch(ConfigException.Missing cem) {
@@ -231,7 +234,7 @@ public class SDEGetVectorDatasetHandler extends UntypedActor {
 			log.debug("database scheme before calling get fetch table: " + databaseScheme);
 			
 			transaction.tell(
-				SDEUtils.getFetchTable(SDEUtils.getItemsFilter(originalMsg.getIdentification()), databaseScheme),
+				sdeUtils.getFetchTable(sdeUtils.getItemsFilter(originalMsg.getIdentification()), databaseScheme),
 				recordsReceiver);
 			getContext().become(onReceiveItemRecords());
 		} else if(msg instanceof ReceiveTimeout) {

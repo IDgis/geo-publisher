@@ -2,6 +2,9 @@ package nl.idgis.publisher.provider.database;
 
 import java.sql.Connection;
 
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
+import com.typesafe.config.ConfigException;
 import nl.idgis.publisher.database.JdbcDatabase;
 
 import akka.actor.Props;
@@ -9,7 +12,9 @@ import akka.actor.Props;
 import com.typesafe.config.Config;
 
 public class Database extends JdbcDatabase {
-	
+
+	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+
 	public Database(Config config, String name) {
 		super(config, name + "-database");
 	}
@@ -19,7 +24,29 @@ public class Database extends JdbcDatabase {
 	}
 	
 	@Override
-	protected Props createTransaction(Connection connection) {
-		return DatabaseTransaction.props(config, connection);
+	protected Props createTransaction(Connection connection) throws ConfigException {
+        DatabaseType databaseVendor;
+
+        if (config.hasPath("vendor")) {
+            try {
+                databaseVendor = DatabaseType.valueOf(config.getString("vendor").toUpperCase());
+            } catch(IllegalArgumentException iae) {
+                throw new ConfigException.BadValue("vendor", "Invalid vendor supplied in config");
+            }
+        } else {
+            databaseVendor = DatabaseType.ORACLE;
+        }
+
+        log.debug(String.format("Using database: %s", databaseVendor.toString()));
+
+		/* Return props from Oracle or postgres */
+        switch(databaseVendor) {
+            case ORACLE:
+                return OracleDatabaseTransaction.props(config, connection);
+            case POSTGRES:
+                return PostgresDatabaseTransaction.props(config, connection);
+            default:
+                throw new IllegalArgumentException("Unsupported vendor supplied in config");
+        }
 	}	
 }

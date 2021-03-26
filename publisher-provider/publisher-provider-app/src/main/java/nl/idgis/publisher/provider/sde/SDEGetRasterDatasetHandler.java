@@ -17,6 +17,7 @@ import akka.japi.Procedure;
 import nl.idgis.publisher.database.messages.Commit;
 import nl.idgis.publisher.database.messages.TransactionCreated;
 import nl.idgis.publisher.folder.messages.FetchFile;
+import nl.idgis.publisher.provider.database.DatabaseType;
 import nl.idgis.publisher.provider.protocol.DatasetNotAvailable;
 import nl.idgis.publisher.provider.protocol.GetRasterDataset;
 import nl.idgis.publisher.utils.FutureUtils;
@@ -33,18 +34,19 @@ public class SDEGetRasterDatasetHandler extends UntypedActor {
 	private final ActorRef rasterFolder;
 	
 	private ActorRef transaction;
-	
-	private String databaseScheme;
 
 	private FutureUtils f;
 
 	private Config databaseConfig;
+
+	private SDEUtils sdeUtils;
 	
 	public SDEGetRasterDatasetHandler(ActorRef originalSender, GetRasterDataset originalMsg, ActorRef rasterFolder, Config databaseConfig) {
 		this.originalSender = originalSender;
 		this.originalMsg = originalMsg;
 		this.rasterFolder = rasterFolder;
 		this.databaseConfig = databaseConfig;
+		this.sdeUtils = new SDEUtils(databaseConfig);
 	}
 	
 	public static Props props(ActorRef originalSender, GetRasterDataset originalMsg, ActorRef rasterFolder, Config databaseConfig) {
@@ -83,7 +85,12 @@ public class SDEGetRasterDatasetHandler extends UntypedActor {
 					SDEItemInfo itemInfo = (SDEItemInfo)msg;
 					SDEItemInfoType type = itemInfo.getType();
 					if(SDEItemInfoType.RASTER_DATASET == type) {
-						Path file = Paths.get(itemInfo.getPhysicalname() + ".tif");
+
+						DatabaseType databaseVendor = DatabaseType.valueOf(databaseConfig.getString("vendor").toUpperCase());
+						String physicalname = itemInfo.getPhysicalname();
+						String filename = DatabaseType.POSTGRES == databaseVendor ? physicalname.toLowerCase() : physicalname;
+
+						Path file = Paths.get(filename + ".tif");
 						
 						log.debug("fetching file: {}", file);
 						rasterFolder.tell(new FetchFile(file), originalSender);
@@ -107,7 +114,8 @@ public class SDEGetRasterDatasetHandler extends UntypedActor {
 			ActorRef recordsReceiver = getContext().actorOf(
 				SDEReceiveSingleItemInfo.props(getSelf()), 
 				"item-records-receiver");
-			
+
+			String databaseScheme;
 			try {
 				databaseScheme = databaseConfig.getString("scheme");
 			} catch(ConfigException.Missing cem) {
@@ -115,9 +123,12 @@ public class SDEGetRasterDatasetHandler extends UntypedActor {
 			}
 			
 			log.debug("database scheme before calling get fetch table: " + databaseScheme);
+
+			String databaseVendor = databaseConfig.getString("vendor");
+			log.debug("database vendor before calling get fetch table: " + databaseVendor);
 			
 			transaction.tell(
-				SDEUtils.getFetchTable(SDEUtils.getItemsFilter(originalMsg.getIdentification()), databaseScheme),
+				sdeUtils.getFetchTable(sdeUtils.getItemsFilter(originalMsg.getIdentification()), databaseScheme),
 				recordsReceiver);
 			getContext().become(onReceiveItemRecords());
 		} else if(msg instanceof ReceiveTimeout) {

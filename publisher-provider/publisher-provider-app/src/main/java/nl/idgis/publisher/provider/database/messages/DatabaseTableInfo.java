@@ -5,15 +5,15 @@ import java.util.Arrays;
 
 public class DatabaseTableInfo implements Serializable {
 
-	private static final long serialVersionUID = -4627181111870670639L;
+	private static final long serialVersionUID = -4627181111870670640L;
 	
-	private final DatabaseColumnInfo[] columns;
+	private final AbstractDatabaseColumnInfo[] columns;
 	
-	public DatabaseTableInfo(DatabaseColumnInfo[] columns) {
+	public DatabaseTableInfo(AbstractDatabaseColumnInfo[] columns) {
 		this.columns = columns;
 	}
 
-	public DatabaseColumnInfo[] getColumns() {
+	public AbstractDatabaseColumnInfo[] getColumns() {
 		return columns;
 	}
 
