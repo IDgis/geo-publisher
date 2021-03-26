@@ -860,8 +860,22 @@ public class MetadataDocument {
 	}
 	
 	protected String getOtherConstraintsPath() {
-		return getDatasetIdentificationPath() + "/gmd:resourceConstraints/"
-				+ "gmd:MD_LegalConstraints/gmd:otherConstraints/gco:CharacterString";
+
+		String otherConstraintsPath = getDatasetIdentificationPath() +
+				"/gmd:resourceConstraints" +
+				"/gmd:MD_LegalConstraints" +
+				"/gmd:otherConstraints";
+		String path = otherConstraintsPath + "/gco:CharacterString";
+		List<String> otherContraints = isoMetadata
+				.xpath(Optional.of(namespaces))
+				.strings(path);
+
+		if (otherContraints.size() > 0 )  {
+			return path;
+		} else {
+			return otherConstraintsPath + "/gmx:Anchor";
+
+		}
 	}
 	
 	public List<String> getOtherConstraints() throws NotFound {
@@ -1119,7 +1133,7 @@ public class MetadataDocument {
 	}
 	
 	public String getDatasetIdentifier() throws QueryFailure {
-		return isoMetadata.getString(namespaces, getDatasetIdentifierPath());
+			return isoMetadata.getString(namespaces, getDatasetIdentifierPath());
 	}
 	
 	
