@@ -191,7 +191,20 @@ public class SDEGetVectorDatasetHandler extends UntypedActor {
 					
 					SDEItemInfo itemInfo = (SDEItemInfo)msg;
 					SDEItemInfoType type = itemInfo.getType();
-					String tableName = DatabaseType.valueOf(databaseConfig.getString("vendor").toUpperCase()) == DatabaseType.POSTGRES ? itemInfo.getPhysicalname().toLowerCase() : itemInfo.getPhysicalname();
+
+					DatabaseType databaseVendor;
+
+					if (databaseConfig.hasPath("vendor")) {
+						try {
+							databaseVendor = DatabaseType.valueOf(databaseConfig.getString("vendor").toUpperCase());
+						} catch(IllegalArgumentException iae) {
+							throw new ConfigException.BadValue("vendor", "Invalid vendor supplied in config");
+						}
+					} else {
+						databaseVendor = DatabaseType.ORACLE;
+					}
+
+					String tableName = databaseVendor == DatabaseType.POSTGRES ? itemInfo.getPhysicalname().toLowerCase() : itemInfo.getPhysicalname();
 
 					if(SDEItemInfoType.FEATURE_CLASS == type ||
 						SDEItemInfoType.TABLE == type) {

@@ -86,7 +86,17 @@ public class SDEGetRasterDatasetHandler extends UntypedActor {
 					SDEItemInfoType type = itemInfo.getType();
 					if(SDEItemInfoType.RASTER_DATASET == type) {
 
-						DatabaseType databaseVendor = DatabaseType.valueOf(databaseConfig.getString("vendor").toUpperCase());
+						DatabaseType databaseVendor;
+						if (databaseConfig.hasPath("vendor")) {
+							try {
+								databaseVendor = DatabaseType.valueOf(databaseConfig.getString("vendor").toUpperCase());
+							} catch(IllegalArgumentException iae) {
+								throw new ConfigException.BadValue("vendor", "Invalid vendor supplied in config");
+							}
+						} else {
+							databaseVendor = DatabaseType.ORACLE;
+						}
+
 						String physicalname = itemInfo.getPhysicalname();
 						String filename = DatabaseType.POSTGRES == databaseVendor ? physicalname.toLowerCase() : physicalname;
 
