@@ -604,6 +604,11 @@ public class MetadataDocument {
 				"/gmd:MD_Metadata/gmd:metadataStandardName/gco:CharacterString");
 	}
 	
+	public String getMetadataStandardVersion() throws NotFound {
+		return isoMetadata.getString(namespaces, 
+				"/gmd:MD_Metadata/gmd:metadataStandardVersion/gco:CharacterString");
+	}
+	
 	public String getMetaDataIdentifier() throws Exception{
 		return isoMetadata.getString(namespaces, getMetaDataIdentifierPath());
 	}
