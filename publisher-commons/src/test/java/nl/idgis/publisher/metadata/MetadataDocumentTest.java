@@ -143,7 +143,15 @@ public class MetadataDocumentTest {
 		
 		// check the new dataset id is correct 
 		result = document.getDatasetIdentifier();	
-		assertEquals("Wrong dataset id found", "aaaa-bbbb-cccc-dddd-eeee", result.trim());		
+		assertEquals("Wrong dataset id found", "aaaa-bbbb-cccc-dddd-eeee", result.trim());
+
+		// With anchor
+		document = getDocument("dataset_metadata_anchor.xml");
+		result = document.getDatasetIdentifier();
+		assertEquals("Wrong dataset id found with anchor", "bc509f92-5d8c-4169-818b-49ff6a7576c3", result.trim());
+		document.setDatasetIdentifier("aaaa-bbbb-cccc-dddd-eeee");
+		result = document.getDatasetIdentifier();
+		assertEquals("Wrong dataset id found", "aaaa-bbbb-cccc-dddd-eeee", result.trim());
 	}
 	
 	/**
@@ -266,7 +274,7 @@ public class MetadataDocumentTest {
 		result = document.getDatasetResponsiblePartyEmail("owner");
 		assertEquals("wrong email", email, result);
 	}
-	
+
 	
 	
 	
@@ -317,7 +325,7 @@ public class MetadataDocumentTest {
 		assertEquals("wrong email", email, result);
 	}
 	
-	
+
 	
 	/**
 	 * Service metadata: read several items
