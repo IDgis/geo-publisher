@@ -325,6 +325,29 @@ public class MetadataDocumentTest {
 		assertEquals("wrong email", email, result);
 	}
 	
+	@Test
+	public void testOtherConstraints() throws  Exception{
+		String legalConstraint = "Geen beperkingen";
+
+		MetadataDocument document = getDocument("service_metadata.xml");
+
+		String path = document.getOtherConstraintsPath();
+		System.out.println(path);
+
+		List<String> result = document.getOtherConstraints();
+		System.out.println(result.size());
+		//assertTrue(result.contains(legalConstraint));
+
+		// Same test with anchor
+		//document = getDocument("service_metadata_anchor.xml");
+		path = document.getOtherConstraintsPath();
+		result = document.getOtherConstraints();
+		System.out.println(path);
+		System.out.println(result.size());
+	}
+
+
+
 
 	
 	/**
