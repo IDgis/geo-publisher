@@ -124,6 +124,10 @@ public class MetadataDocument {
 	 * shared methods for DATASET, SERVICE	
 	 */
 
+	final static String DATASETIDENTIFICATIONPATH = "/gmd:MD_Metadata/gmd:identificationInfo/gmd:MD_DataIdentification";
+	final static String SERVICEIDENTIFICATIONPATH = "/gmd:MD_Metadata/gmd:identificationInfo/srv:SV_ServiceIdentification";
+	final static String SCHEMALOCATIONPATH = "/gmd:MD_Metadata/@xsi:schemaLocation";
+
 	protected String getDatasetIdentificationPath(){
 		return "/gmd:MD_Metadata/gmd:identificationInfo/gmd:MD_DataIdentification";
 	}
@@ -133,7 +137,8 @@ public class MetadataDocument {
 	}
 	
 	protected String getIdentificationPath(Topic topic){
-		return (topic==Topic.DATASET?getDatasetIdentificationPath():getServiceIdentificationPath());
+		// return (topic==Topic.DATASET?getDatasetIdentificationPath():getServiceIdentificationPath());
+		return topic == Topic.DATASET ? DATASETIDENTIFICATIONPATH : SERVICEIDENTIFICATIONPATH;
 	}
 	
 	/*
