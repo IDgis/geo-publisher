@@ -320,7 +320,15 @@ Deze wijziging is vastgesteld bij besluit van Gedeputeerde staten van Overijssel
             <MD_RestrictionCode codeList="./resources/codeList.xml#MD_RestrictionCode" codeListValue="otherRestrictions" />
           </accessConstraints>
           <otherConstraints>
-            <gco:CharacterString>geen</gco:CharacterString>
+            <gco:CharacterString>
+              https://creativecommons.org/
+              publicdomain/mark/1.0/deed.nl
+            </gco:CharacterString>
+          </otherConstraints>
+          <otherConstraints>
+            <gco:CharacterString>
+              Geen beperkingen
+            </gco:CharacterString>
           </otherConstraints>
         </MD_LegalConstraints>
       </resourceConstraints>

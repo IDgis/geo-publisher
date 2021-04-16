@@ -50,7 +50,9 @@ public class MetadataDocument {
 	protected static final String CREATION = "creation";
 	protected static final String REVISION = "revision";
 	protected static final String PUBLICATION = "publication";
-	
+
+	private final String ROOTNODEPATH = "/gmd:MD_Metadata";
+
 	public static enum Topic {DATASET, SERVICE};
 	
 	protected static final String [] ROLE_CODES = {"owner","pointOfContact"}; 
@@ -70,14 +72,13 @@ public class MetadataDocument {
 		namespaces.put("xlink", "http://www.w3.org/1999/xlink");
 		namespaces.put("gml", "http://www.opengis.net/gml");
 		namespaces.put("xsi", "http://www.w3.org/2001/XMLSchema-instance");
-		
-		String rootNode = "/gmd:MD_Metadata";
-		if(xmlDocument.xpath(Optional.of(namespaces)).node(rootNode).isPresent()) {
+
+		if(xmlDocument.xpath(Optional.of(namespaces)).node(ROOTNODEPATH).isPresent()) {
 			this.isoMetadata = xmlDocument;
 		} else {
-			this.isoMetadata = xmlDocument.clone(namespaces, "/" + rootNode);
+			this.isoMetadata = xmlDocument.clone(namespaces, "/" + ROOTNODEPATH);
 		}
-		
+
 		String featureCataloguePath = "//FC_FeatureCatalogue";
 		if(xmlDocument.xpath(Optional.empty()).node(featureCataloguePath).isPresent()) {
 			this.featureCatalogue = xmlDocument.clone(null, featureCataloguePath); 
@@ -124,10 +125,6 @@ public class MetadataDocument {
 	 * shared methods for DATASET, SERVICE	
 	 */
 
-	final static String DATASETIDENTIFICATIONPATH = "/gmd:MD_Metadata/gmd:identificationInfo/gmd:MD_DataIdentification";
-	final static String SERVICEIDENTIFICATIONPATH = "/gmd:MD_Metadata/gmd:identificationInfo/srv:SV_ServiceIdentification";
-	final static String SCHEMALOCATIONPATH = "/gmd:MD_Metadata/@xsi:schemaLocation";
-
 	protected String getDatasetIdentificationPath(){
 		return "/gmd:MD_Metadata/gmd:identificationInfo/gmd:MD_DataIdentification";
 	}
@@ -135,9 +132,9 @@ public class MetadataDocument {
 	protected String getServiceIdentificationPath(){
 		return "/gmd:MD_Metadata/gmd:identificationInfo/srv:SV_ServiceIdentification";
 	}
-	
 	protected String getIdentificationPath(Topic topic){
-		// return (topic==Topic.DATASET?getDatasetIdentificationPath():getServiceIdentificationPath());
+		String DATASETIDENTIFICATIONPATH = "/gmd:MD_Metadata/gmd:identificationInfo/gmd:MD_DataIdentification";
+		String SERVICEIDENTIFICATIONPATH = "/gmd:MD_Metadata/gmd:identificationInfo/srv:SV_ServiceIdentification";
 		return topic == Topic.DATASET ? DATASETIDENTIFICATIONPATH : SERVICEIDENTIFICATIONPATH;
 	}
 	
@@ -145,13 +142,10 @@ public class MetadataDocument {
 	 * Schemas
 	 * 
 	 */
-	
-	protected String getSchemaLocationPath() {
-		return "/gmd:MD_Metadata/@xsi:schemaLocation";
-	}
-	
+
 	public void updateSchemas() throws QueryFailure {
-		String currentSchemaLocation = isoMetadata.getString(namespaces, getSchemaLocationPath());
+		String SchemaLoactionPath = "/gmd:MD_Metadata/@xsi:schemaLocation";
+		String currentSchemaLocation = isoMetadata.getString(namespaces, SchemaLoactionPath);
 		
 		String[] newSchemaLocations = new String[] {
 			"http://www.isotc211.org/2005/gmx",
@@ -164,19 +158,22 @@ public class MetadataDocument {
 			if(!currentSchemaLocation.contains(newSchemaLocation)) builder.append(" " + newSchemaLocation);
 		}
 		
-		isoMetadata.updateString(namespaces, getSchemaLocationPath(), builder.toString());
+		isoMetadata.updateString(namespaces, SchemaLoactionPath, builder.toString());
 		
-		Element root = (Element) isoMetadata.getNode(namespaces, "/gmd:MD_Metadata");
+		Element root = (Element) isoMetadata.getNode(namespaces, ROOTNODEPATH);
 		root.setAttribute("xmlns:gmx", "http://www.isotc211.org/2005/gmx");
 	}
 	
 	/*
 	 * metadata standard version
 	 */
+
 	public void setMetadataStandardVersion(String version) throws QueryFailure {
+
+		String METADATASTANDARDVERSIONPATH = "/gmd:MD_Metadata/gmd:metadataStandardVersion";
 		isoMetadata.updateString(
 				namespaces, 
-				"/gmd:MD_Metadata/gmd:metadataStandardVersion/gco:CharacterString", 
+				METADATASTANDARDVERSIONPATH + "/gco:CharacterString",
 				version);
 	}
 	
@@ -184,16 +181,10 @@ public class MetadataDocument {
 	 * reference system identifier
 	 * 
 	 */
-	
+
 	protected String getReferenceSystemIdentifierCodePath() {
-		return 
-			"/gmd:MD_Metadata" +
-			"/gmd:referenceSystemInfo" +
-			"/gmd:MD_ReferenceSystem" +
-			"/gmd:referenceSystemIdentifier" +
-			"/gmd:RS_Identifier" +
-			"/gmd:code" +
-			"/gco:CharacterString";
+		String referenceSystemIdentifierCode = "/gmd:MD_Metadata/gmd:referenceSystemInfo/gmd:MD_ReferenceSystem/gmd:referenceSystemIdentifier/gmd:RS_Identifier/gmd:code";
+		return referenceSystemIdentifierCode + "/gco:CharacterString";
 	}
 	
 	public void addPrefixToReferenceSystemIdentifiers(String prefix) {
@@ -212,7 +203,7 @@ public class MetadataDocument {
 	 * date
 	 * 
 	 */
-	
+
 	protected String getDatePath(Topic topic, String codeListValue) {
 		return getIdentificationPath(topic) +
 			"/gmd:citation" +
@@ -370,8 +361,7 @@ public class MetadataDocument {
 	
 	protected String getKeywordPath(Topic topic) {
 		return getIdentificationPath(topic) +
-				"/gmd:descriptiveKeywords"
-				;
+				"/gmd:descriptiveKeywords";
 	}
 
 	protected int removeKeywords(Topic topic) throws NotFound {
@@ -503,15 +493,12 @@ public class MetadataDocument {
 	/*
 	 * Topic
 	 */
-	
+
 	public List<String> getTopicCategories() throws NotFound {
+		String TOPICCATEGORIESPATH = "/gmd:MD_Metadata/gmd:identificationInfo/gmd:MD_DataIdentification/gmd:topicCategory/gmd:MD_TopicCategoryCode";
 		return isoMetadata
 			.xpath(Optional.of(namespaces))
-			.strings("/gmd:MD_Metadata" +
-					"/gmd:identificationInfo" +	
-					"/gmd:MD_DataIdentification" +
-					"/gmd:topicCategory" +
-					"/gmd:MD_TopicCategoryCode");
+			.strings(TOPICCATEGORIESPATH);
 	}
 	
 	/*
@@ -524,8 +511,7 @@ public class MetadataDocument {
 	protected String getResponsiblePartyPath(Topic topic, String role) {
 		return getIdentificationPath(topic) +
 			"/gmd:pointOfContact" +
-			"/gmd:CI_ResponsibleParty" + 
-
+			"/gmd:CI_ResponsibleParty" +
 			"[gmd:role" +
 			"/gmd:CI_RoleCode" +
 			"/@codeListValue" +
@@ -580,8 +566,7 @@ public class MetadataDocument {
 	public void setDatasetResponsiblePartyEmail(String role, String email) throws Exception{
 		isoMetadata.updateString(namespaces, getResponsiblePartyEmailPath(Topic.DATASET, role), email);
 	}
-	
-	
+
 	/*
 	 * Metadata
 	 * 
@@ -592,21 +577,18 @@ public class MetadataDocument {
 	 */
 
 	protected String getMetaDataIdentifierPath() {
-		return 
-				"/gmd:MD_Metadata" +
-				"/gmd:fileIdentifier" +
-				"/gco:CharacterString"
-				;
+		String metadataIdentifierPath = "/gmd:MD_Metadata/gmd:fileIdentifier";
+		return metadataIdentifierPath + "/gco:CharacterString";
 	}
 	
 	public String getMetadataStandardName() throws NotFound {
-		return isoMetadata.getString(namespaces, 
-				"/gmd:MD_Metadata/gmd:metadataStandardName/gco:CharacterString");
+		String metadataStandardNamePath = "/gmd:MD_Metadata/gmd:metadataStandardName";
+		return isoMetadata.getString(namespaces, metadataStandardNamePath + "/gco:CharacterString");
 	}
 	
 	public String getMetadataStandardVersion() throws NotFound {
-		return isoMetadata.getString(namespaces, 
-				"/gmd:MD_Metadata/gmd:metadataStandardVersion/gco:CharacterString");
+		String metadataStandardVersionPath = "/gmd:MD_Metadata/gmd:metadataStandardVersion";
+		return isoMetadata.getString(namespaces, metadataStandardVersionPath + "/gco:CharacterString");
 	}
 	
 	public String getMetaDataIdentifier() throws Exception{
@@ -646,13 +628,13 @@ public class MetadataDocument {
 	}
 	
 	protected String getMetaDataPointOfContactNamePath(String role) {
-		return getMetaDataPointOfContactPath(role) + 
+		return getMetaDataPointOfContactPath(role) +
 			"/gmd:organisationName" +
 			"/gco:CharacterString";
 	}
 	
 	protected String getMetaDataPointOfContactEmailPath(String role) {
-		return getMetaDataPointOfContactPath(role) + 
+		return getMetaDataPointOfContactPath(role) +
 			"/gmd:contactInfo" +
 			"/gmd:CI_Contact" +
 			"/gmd:address" +
@@ -876,11 +858,11 @@ public class MetadataDocument {
 				"/gmd:MD_LegalConstraints" +
 				"/gmd:otherConstraints";
 		String path = otherConstraintsPath + "/gco:CharacterString";
-		List<String> otherContraints = isoMetadata
+		List<String> otherConstraints = isoMetadata
 				.xpath(Optional.of(namespaces))
 				.strings(path);
 
-		if (otherContraints.size() > 0 )  {
+		if (otherConstraints.size() > 0 )  {
 			return path;
 		} else {
 			return otherConstraintsPath + "/gmx:Anchor";
