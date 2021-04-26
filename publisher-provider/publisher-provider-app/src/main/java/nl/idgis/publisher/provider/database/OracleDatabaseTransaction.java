@@ -29,7 +29,7 @@ public class OracleDatabaseTransaction extends AbstractDatabaseTransaction {
 	
 	Object handleDescribeTable(DescribeTable query) throws SQLException {
 
-		String owner = query.getScheme().toUpperCase();
+		String owner = query.getScheme();
 		String tableName = query.getTableName().toUpperCase();
 
 		final String sql;
@@ -40,7 +40,7 @@ public class OracleDatabaseTransaction extends AbstractDatabaseTransaction {
 					+ "order by column_id";
 		} else {
 			sql = "select column_name, data_type from all_tab_columns "
-					+ "where owner = '" + owner + "' and table_name = '" + tableName
+					+ "where owner = '" + owner.toUpperCase() + "' and table_name = '" + tableName
 					+ "' " + "order by column_id";
 		}
 		
