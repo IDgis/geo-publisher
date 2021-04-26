@@ -54,7 +54,7 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 			Statement stmt = connection.createStatement();
 			ResultSet rs = stmt.executeQuery(sql);
 			while (rs.next()) {
-				String name = rs.getString(1);
+				String name = rs.getString(1).toUpperCase(); // geo-publisher only knows about uppercase column names
 				String typeName = rs.getString(2);
 
 				AbstractDatabaseColumnInfo columnInfo = new PostgresDatabaseColumnInfo(name, typeName);
@@ -116,7 +116,7 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 			sb.append(separator);
 
 			String typeName = columnInfo.getTypeName();
-			String columnName = columnInfo.getName();
+			String columnName = columnInfo.getName().toLowerCase(); // Postgres is all lowercase
 			Type type = columnInfo.getType();
 
 			log.debug("Column Info: ");
@@ -154,7 +154,7 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 		
 		msg.getFilter().ifPresent(filter -> {
 			sb.append(" WHERE ");
-			writeFilter(filter, sb);
+			writeFilter(filter, sb, DatabaseType.POSTGRES);
 		});
 		
 		String query = sb.toString();

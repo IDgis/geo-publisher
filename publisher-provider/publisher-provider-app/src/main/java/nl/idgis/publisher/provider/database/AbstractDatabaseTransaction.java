@@ -46,7 +46,7 @@ public abstract class AbstractDatabaseTransaction extends JdbcTransaction {
 
 	abstract Object handlePerformCount(PerformCount query) throws SQLException;
 	
-	static void writeFilter(Filter filter, StringBuilder sb) {
+	static void writeFilter(Filter filter, StringBuilder sb, DatabaseType vendor) {
 		if(filter instanceof CompoundFilter) {
 			CompoundFilter compoundFilter = (CompoundFilter)filter;
 			String filterSeparator = " " + compoundFilter.getOperator() + " ";
@@ -56,7 +56,7 @@ public abstract class AbstractDatabaseTransaction extends JdbcTransaction {
 				sb
 					.append(separator)
 					.append("(");
-				writeFilter(compoundFilterItem, sb);
+				writeFilter(compoundFilterItem, sb, vendor);
 				sb.append(")");
 				
 				separator = filterSeparator;
@@ -64,10 +64,15 @@ public abstract class AbstractDatabaseTransaction extends JdbcTransaction {
 		} else if(filter instanceof ColumnFilter) {
 			ColumnFilter columnFilter = (ColumnFilter)filter;
 			AbstractDatabaseColumnInfo column = columnFilter.getColumn();
-			
+
+			String columnName = column.getName();
+			if (column.getVendor() == DatabaseType.POSTGRES) {
+				columnName = columnName.toLowerCase();
+			}
+
 			sb
 				.append("\"")
-				.append(column.getName())
+				.append(columnName)
 				.append("\" ")
 				.append(columnFilter.getOperator())
 				.append(" ");

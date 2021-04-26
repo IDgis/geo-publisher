@@ -156,7 +156,7 @@ public class OracleDatabaseTransaction extends AbstractDatabaseTransaction {
 		
 		msg.getFilter().ifPresent(filter -> {
 			sb.append(" WHERE ");
-			writeFilter(filter, sb);
+			writeFilter(filter, sb, DatabaseType.ORACLE);
 		});
 		
 		String query = sb.toString();
