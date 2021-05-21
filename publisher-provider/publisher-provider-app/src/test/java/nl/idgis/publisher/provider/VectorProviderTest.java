@@ -237,7 +237,7 @@ public class VectorProviderTest {
 			.assertNext(GetAllMetadata.class)			
 			.assertNotHasNext();
 		
-		final String firstTableName = getTable();
+		final String tableName = getTable();
 		f.ask(metadata, new PutMetadata("first", metadataDocument.getContent()), Ack.class).get();
 		
 		clearRecording();
@@ -252,17 +252,21 @@ public class VectorProviderTest {
 		
 		replayRecording(3)			
 			.assertNext(GetAllMetadata.class)				
-			.assertDatabaseInteraction(firstTableName)			
+			.assertDatabaseInteraction(tableName)
 			.assertNotHasNext();
 		
-		f.ask(database, new PutTable(firstTableName, databaseTableInfo, tableContent), Ack.class).get();
+		f.ask(database, new PutTable(tableName, databaseTableInfo, tableContent), Ack.class).get();
 		
 		clearRecording();
 		
 		AskResponse<Item> vectorDatasetInfoWithSender = f.askWithSender(provider, new ListDatasetInfo(metadataType), Item.class).get();
 		
 		Item<VectorDatasetInfo> vectorDatasetInfoItem = vectorDatasetInfoWithSender.getMessage();
+		System.out.println("vectorDatasetInfoItem");
+		System.out.println(vectorDatasetInfoItem);
 		VectorDatasetInfo vectorDatasetInfo = vectorDatasetInfoItem.getContent();
+		System.out.println("vectorDatasetInfo");
+		System.out.println(vectorDatasetInfo);
 		assertEquals(metadataDocument.getDatasetIdentifier(), vectorDatasetInfo.getIdentification());
 		assertTableInfo(vectorDatasetInfo.getTableInfo());
 		
@@ -272,14 +276,9 @@ public class VectorProviderTest {
 		
 		replayRecording(3)			
 			.assertNext(GetAllMetadata.class)			
-			.assertDatabaseInteraction(firstTableName)			
+			.assertDatabaseInteraction(tableName)
 			.assertNotHasNext();
-		
-		metadataDocument.setDatasetAlternateTitle("Test_schema.Test_table");
-		final String secondTableName = getTable();
-		
-		assertEquals("TEST_SCHEMA.TEST_TABLE", secondTableName);
-		
+
 		MetadataDocument secondMetadataDocument = metadataDocument.clone();
 		secondMetadataDocument.setDatasetIdentifier(UUID.randomUUID().toString());
 		f.ask(metadata, new PutMetadata("second", secondMetadataDocument.getContent()), Ack.class).get();
@@ -301,7 +300,7 @@ public class VectorProviderTest {
 		
 		replayRecording(5)
 			.assertNext(GetAllMetadata.class)
-			.assertDatabaseInteraction(firstTableName, secondTableName)
+			.assertDatabaseInteraction(tableName, tableName)
 			.assertNotHasNext();
 	}
 
@@ -343,9 +342,9 @@ public class VectorProviderTest {
 			})				
 			.assertDatabaseInteraction(getTable())
 			.assertNotHasNext();
-		
+
 		f.ask(database, new PutTable(getTable(), databaseTableInfo, tableContent), Ack.class).get();
-		
+
 		VectorDatasetInfo vectorDatasetInfo = f.ask(provider, new GetDatasetInfo(metadataType, "test"), VectorDatasetInfo.class).get();
 		assertEquals(metadataDocument.getDatasetIdentifier(), vectorDatasetInfo.getIdentification());
 		assertEquals(42, vectorDatasetInfo.getNumberOfRecords());
