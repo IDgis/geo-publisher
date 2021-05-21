@@ -8,23 +8,23 @@ public class ColumnFilter implements Filter, Serializable {
 
 	private static final long serialVersionUID = 8774684539028786369L;
 
-	private final DatabaseColumnInfo column;
+	private final AbstractDatabaseColumnInfo column;
 	
 	private final String operator;
 	
 	private final Object operand;
 	
-	public ColumnFilter(DatabaseColumnInfo column, String operator) {
+	public ColumnFilter(AbstractDatabaseColumnInfo column, String operator) {
 		this(column, operator, null);
 	}
 	
-	public ColumnFilter(DatabaseColumnInfo column, String operator, Object operand) {
+	public ColumnFilter(AbstractDatabaseColumnInfo column, String operator, Object operand) {
 		this.column = Objects.requireNonNull(column, "column should not be null");
 		this.operator = Objects.requireNonNull(operator, "operator should not be null");
 		this.operand = operand;
 	}
 
-	public DatabaseColumnInfo getColumn() {
+	public AbstractDatabaseColumnInfo getColumn() {
 		return column;
 	}	
 	

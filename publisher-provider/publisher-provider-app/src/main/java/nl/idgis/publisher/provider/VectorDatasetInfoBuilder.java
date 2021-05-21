@@ -8,11 +8,11 @@ import nl.idgis.publisher.domain.job.LogLevel;
 import nl.idgis.publisher.domain.service.DatabaseLog;
 import nl.idgis.publisher.domain.service.DatasetLogType;
 import nl.idgis.publisher.domain.service.Type;
-import nl.idgis.publisher.provider.database.messages.DatabaseColumnInfo;
 import nl.idgis.publisher.provider.database.messages.DatabaseTableInfo;
 import nl.idgis.publisher.provider.database.messages.DescribeTable;
 import nl.idgis.publisher.provider.database.messages.PerformCount;
 import nl.idgis.publisher.provider.database.messages.TableNotFound;
+import nl.idgis.publisher.provider.database.messages.AbstractDatabaseColumnInfo;
 import nl.idgis.publisher.provider.messages.SkipDataset;
 import nl.idgis.publisher.provider.protocol.Attachment;
 import nl.idgis.publisher.provider.protocol.AttachmentType;
@@ -54,7 +54,7 @@ public class VectorDatasetInfoBuilder extends AbstractDatasetInfoBuilder {
 			log.debug("table info");
 			
 			ArrayList<ColumnInfo> columns = new ArrayList<>();
-			for(DatabaseColumnInfo columnInfo : ((DatabaseTableInfo)msg).getColumns()) {
+			for(AbstractDatabaseColumnInfo columnInfo : ((DatabaseTableInfo)msg).getColumns()) {
 				String columnName = columnInfo.getName();
 				Type columnType = columnInfo.getType();
 				String columnAlias = attributeAliases.get(columnName);
@@ -65,9 +65,9 @@ public class VectorDatasetInfoBuilder extends AbstractDatasetInfoBuilder {
 			tableInfo = new TableInfo(columns.toArray(new ColumnInfo[columns.size()]));
 			sendResponse();
 		} else if(msg instanceof Long) {
-			log.debug("number of records");
 			
 			numberOfRecords = (Long)msg;
+			log.debug(String.format("number of records: %s", numberOfRecords));
 			sendResponse();
 		} else {
 			unhandled(msg);
@@ -75,6 +75,7 @@ public class VectorDatasetInfoBuilder extends AbstractDatasetInfoBuilder {
 	}
 
 	protected void processMetadata() {
+		log.debug("Processing metadata");
 		if(!"vector".equals(spatialRepresentationType) && !"textTable".equals(spatialRepresentationType)) {
 			tellTarget(new SkipDataset(identification));
 			return;
