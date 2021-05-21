@@ -134,10 +134,10 @@ public class VectorProviderTest {
 		public DatabaseRecording assertDatabaseInteraction(String... tableNames) throws Exception {
 			for(final String tableName : tableNames) {
 				assertNext("describe table for: " + tableName, DescribeTable.class, describeTable -> {
-					assertEquals(tableName, describeTable.getTableName());						
+					assertEquals(tableName, describeTable.getScheme() + "." + describeTable.getTableName());
 				})				
 				.assertNext("perform count for: " + tableName, PerformCount.class, performCount -> {
-					assertEquals(tableName, performCount.getTableName());
+					assertEquals(tableName, performCount.getScheme() + "." + performCount.getTableName());
 				});
 			}
 			

@@ -54,7 +54,9 @@ public class DatabaseMock extends UntypedActor {
 		if(msg instanceof DescribeTable) {
 			log.debug("describe table");
 			
-			String tableName = ((DescribeTable)msg).getTableName();
+			String tableName = ((DescribeTable)msg).getScheme() + "." + ((DescribeTable)msg).getTableName();
+
+			log.debug("describe table on: {}", tableName);
 			
 			if(tables.containsKey(tableName)) {
 				getSender().tell(tables.get(tableName).getTableInfo(), getSelf());
@@ -64,8 +66,10 @@ public class DatabaseMock extends UntypedActor {
 		} else if(msg instanceof PerformCount) {
 			log.debug("perform count");
 			
-			String tableName = ((PerformCount)msg).getTableName();
-			
+			String tableName = ((PerformCount)msg).getScheme() + "." + ((PerformCount)msg).getTableName();
+
+			log.debug("perform count on table: {}", tableName);
+
 			if(tables.containsKey(tableName)) {
 				getSender().tell((long)tables.get(tableName).getRecords().size(), getSelf());
 			} else {
@@ -80,8 +84,8 @@ public class DatabaseMock extends UntypedActor {
 			tables.put(putTable.getTableName(), new Table(putTable.getTableInfo(), putTable.getRecords()));
 			getSender().tell(new Ack(), getSelf());
 		} else if(msg instanceof FetchTable) {
-			String tableName = ((FetchTable)msg).getTableName();
-			
+			String tableName = ((FetchTable)msg).getScheme() + "." + ((FetchTable)msg).getTableName();
+
 			log.debug("fetch table: {}", tableName);
 			
 			if(tables.containsKey(tableName)) {
