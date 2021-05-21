@@ -76,7 +76,7 @@ public class Loader extends UntypedActor {
 	public void onReceive(Object msg) throws Exception {
 		if(msg instanceof ImportJobInfo) {
 			handleImportJob((ImportJobInfo)msg);
-		} if(msg instanceof RemoveJobInfo) {
+		} else if(msg instanceof RemoveJobInfo) {
 			handleRemoveJob((RemoveJobInfo)msg);
 		} else if(msg instanceof SessionStarted) {
 			handleSessionStarted((SessionStarted)msg);

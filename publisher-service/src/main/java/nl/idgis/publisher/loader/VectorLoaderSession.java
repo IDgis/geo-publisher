@@ -78,7 +78,10 @@ public class VectorLoaderSession extends AbstractLoaderSession<VectorImportJobIn
 			.filter(column -> column.getDataType().equals(Type.GEOMETRY))
 			.collect(Collectors.toList());
 		
-		return tx.ask(new CreateIndices("staging_data", tmpTable, geometryColumns)).thenCompose(createIndicesMsg -> {
+		long timeout = insertCount * 3 + 15000;
+		log.debug("Creating indices on table {} with a timeout of: {} ms", tmpTable, timeout);
+		
+		return tx.ask(new CreateIndices("staging_data", tmpTable, geometryColumns), timeout).thenCompose(createIndicesMsg -> {
 			log.debug("indices created");
 			
 			if(createIndicesMsg instanceof Ack) {
