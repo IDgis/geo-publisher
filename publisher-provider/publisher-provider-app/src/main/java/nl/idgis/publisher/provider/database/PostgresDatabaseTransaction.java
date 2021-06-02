@@ -119,11 +119,6 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 			String columnName = columnInfo.getName().toLowerCase(); // Postgres is all lowercase
 			Type type = columnInfo.getType();
 
-			log.debug("Column Info: ");
-			log.debug("name: " + columnName);
-			log.debug("typeName: " + typeName);
-			log.debug("type: " + type.toString());
-
 			if (Type.GEOMETRY.equals(type)) { // Alle geometry types
 				sb.append("ST_AsBinary(\"").append(columnName).append("\") AS \"").append(columnName).append("\"");
 			} else if ("xml".equals(typeName)) { // xml is an object. Convert to string. https://www.postgresql.org/docs/9.6/datatype-xml.html
