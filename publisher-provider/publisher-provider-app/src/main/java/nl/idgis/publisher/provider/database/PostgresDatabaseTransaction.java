@@ -64,7 +64,6 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 				if ("CLOB".equals(typeName) || columnInfo.getType() == null) {
 					log.debug("unsupported data type: " + columnInfo.getTypeName() + " in column: " + name);
 				} else {
-					log.debug("Found column: " + name + " with data type: " + columnInfo.getTypeName() + ". Converted to: " + columnInfo.getType());
 					columns.add(columnInfo);
 				}
 			}
