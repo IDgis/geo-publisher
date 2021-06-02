@@ -40,11 +40,13 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 			return new TableNotFound();
 		} else {
 			// https://stackoverflow.com/questions/20194806/how-to-get-a-list-column-names-and-datatype-of-a-table-in-postgresql
+			// https://dba.stackexchange.com/questions/4286/list-the-database-privileges-using-psql
 			String sql = "SELECT pg_attribute.attname AS column_name, pg_catalog.format_type(pg_attribute.atttypid, pg_attribute.atttypmod) AS data_type "
 					+ "FROM pg_catalog.pg_attribute "
 					+ "INNER JOIN pg_catalog.pg_class ON pg_class.oid = pg_attribute.attrelid "
 					+ "INNER JOIN pg_catalog.pg_namespace ON pg_namespace.oid = pg_class.relnamespace "
-					+ "WHERE pg_attribute.attnum > 0 AND NOT pg_attribute.attisdropped AND pg_namespace.nspname = '" + schema + "' AND pg_class.relname = '" + tableName + "' "
+					+ "INNER JOIN information_schema.role_table_grants ON role_table_grants.table_schema = pg_namespace.nspname AND role_table_grants.table_name = pg_class.relname "
+					+ "WHERE pg_attribute.attnum > 0 AND NOT pg_attribute.attisdropped AND information_schema.role_table_grants.privilege_type = 'SELECT' AND pg_namespace.nspname = '" + schema + "' AND pg_class.relname = '" + tableName + "' "
 					+ "ORDER BY attnum";
 
 
@@ -62,7 +64,6 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 				if ("CLOB".equals(typeName) || columnInfo.getType() == null) {
 					log.debug("unsupported data type: " + columnInfo.getTypeName() + " in column: " + name);
 				} else {
-					log.debug("Found column: " + name + " with data type: " + columnInfo.getTypeName() + ". Converted to: " + columnInfo.getType());
 					columns.add(columnInfo);
 				}
 			}
@@ -118,11 +119,6 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 			String typeName = columnInfo.getTypeName();
 			String columnName = columnInfo.getName().toLowerCase(); // Postgres is all lowercase
 			Type type = columnInfo.getType();
-
-			log.debug("Column Info: ");
-			log.debug("name: " + columnName);
-			log.debug("typeName: " + typeName);
-			log.debug("type: " + type.toString());
 
 			if (Type.GEOMETRY.equals(type)) { // Alle geometry types
 				sb.append("ST_AsBinary(\"").append(columnName).append("\") AS \"").append(columnName).append("\"");
