@@ -13,6 +13,8 @@ import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import nl.idgis.publisher.provider.database.DatabaseType;
+import nl.idgis.publisher.provider.database.messages.*;
 import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -26,10 +28,6 @@ import nl.idgis.publisher.domain.service.Type;
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.protocol.messages.Ack;
-import nl.idgis.publisher.provider.database.messages.DatabaseColumnInfo;
-import nl.idgis.publisher.provider.database.messages.DatabaseTableInfo;
-import nl.idgis.publisher.provider.database.messages.DescribeTable;
-import nl.idgis.publisher.provider.database.messages.PerformCount;
 import nl.idgis.publisher.provider.metadata.messages.GetAllMetadata;
 import nl.idgis.publisher.provider.metadata.messages.GetMetadata;
 import nl.idgis.publisher.provider.mock.DatabaseMock;
@@ -86,7 +84,7 @@ public class VectorProviderTest {
 	
 	@BeforeClass
 	public static void initStatics() {
-		DatabaseColumnInfo[] columns = new DatabaseColumnInfo[]{new DatabaseColumnInfo("id", "NUMBER"), new DatabaseColumnInfo("title", "CHAR")};
+		AbstractDatabaseColumnInfo[] columns = new AbstractDatabaseColumnInfo[]{FactoryDatabaseColumnInfo.getDatabaseColumnInfo("id", "NUMBER", DatabaseType.ORACLE), FactoryDatabaseColumnInfo.getDatabaseColumnInfo("title", "CHAR", DatabaseType.ORACLE)};
 		databaseTableInfo = new DatabaseTableInfo(columns);
 		
 		tableContent = new ArrayList<>();
@@ -136,10 +134,10 @@ public class VectorProviderTest {
 		public DatabaseRecording assertDatabaseInteraction(String... tableNames) throws Exception {
 			for(final String tableName : tableNames) {
 				assertNext("describe table for: " + tableName, DescribeTable.class, describeTable -> {
-					assertEquals(tableName, describeTable.getTableName());						
+					assertEquals(tableName, describeTable.getScheme() + "." + describeTable.getTableName());
 				})				
 				.assertNext("perform count for: " + tableName, PerformCount.class, performCount -> {
-					assertEquals(tableName, performCount.getTableName());
+					assertEquals(tableName, performCount.getScheme() + "." + performCount.getTableName());
 				});
 			}
 			
@@ -239,7 +237,7 @@ public class VectorProviderTest {
 			.assertNext(GetAllMetadata.class)			
 			.assertNotHasNext();
 		
-		final String firstTableName = getTable();
+		final String tableName = getTable();
 		f.ask(metadata, new PutMetadata("first", metadataDocument.getContent()), Ack.class).get();
 		
 		clearRecording();
@@ -254,17 +252,21 @@ public class VectorProviderTest {
 		
 		replayRecording(3)			
 			.assertNext(GetAllMetadata.class)				
-			.assertDatabaseInteraction(firstTableName)			
+			.assertDatabaseInteraction(tableName)
 			.assertNotHasNext();
 		
-		f.ask(database, new PutTable(firstTableName, databaseTableInfo, tableContent), Ack.class).get();
+		f.ask(database, new PutTable(tableName, databaseTableInfo, tableContent), Ack.class).get();
 		
 		clearRecording();
 		
 		AskResponse<Item> vectorDatasetInfoWithSender = f.askWithSender(provider, new ListDatasetInfo(metadataType), Item.class).get();
 		
 		Item<VectorDatasetInfo> vectorDatasetInfoItem = vectorDatasetInfoWithSender.getMessage();
+		System.out.println("vectorDatasetInfoItem");
+		System.out.println(vectorDatasetInfoItem);
 		VectorDatasetInfo vectorDatasetInfo = vectorDatasetInfoItem.getContent();
+		System.out.println("vectorDatasetInfo");
+		System.out.println(vectorDatasetInfo);
 		assertEquals(metadataDocument.getDatasetIdentifier(), vectorDatasetInfo.getIdentification());
 		assertTableInfo(vectorDatasetInfo.getTableInfo());
 		
@@ -274,14 +276,9 @@ public class VectorProviderTest {
 		
 		replayRecording(3)			
 			.assertNext(GetAllMetadata.class)			
-			.assertDatabaseInteraction(firstTableName)			
+			.assertDatabaseInteraction(tableName)
 			.assertNotHasNext();
-		
-		metadataDocument.setDatasetAlternateTitle("Test_schema.Test_table");
-		final String secondTableName = getTable();
-		
-		assertEquals("TEST_SCHEMA.TEST_TABLE", secondTableName);
-		
+
 		MetadataDocument secondMetadataDocument = metadataDocument.clone();
 		secondMetadataDocument.setDatasetIdentifier(UUID.randomUUID().toString());
 		f.ask(metadata, new PutMetadata("second", secondMetadataDocument.getContent()), Ack.class).get();
@@ -303,7 +300,7 @@ public class VectorProviderTest {
 		
 		replayRecording(5)
 			.assertNext(GetAllMetadata.class)
-			.assertDatabaseInteraction(firstTableName, secondTableName)
+			.assertDatabaseInteraction(tableName, tableName)
 			.assertNotHasNext();
 	}
 
@@ -345,9 +342,9 @@ public class VectorProviderTest {
 			})				
 			.assertDatabaseInteraction(getTable())
 			.assertNotHasNext();
-		
+
 		f.ask(database, new PutTable(getTable(), databaseTableInfo, tableContent), Ack.class).get();
-		
+
 		VectorDatasetInfo vectorDatasetInfo = f.ask(provider, new GetDatasetInfo(metadataType, "test"), VectorDatasetInfo.class).get();
 		assertEquals(metadataDocument.getDatasetIdentifier(), vectorDatasetInfo.getIdentification());
 		assertEquals(42, vectorDatasetInfo.getNumberOfRecords());

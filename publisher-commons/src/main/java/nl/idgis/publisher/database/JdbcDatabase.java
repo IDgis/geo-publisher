@@ -53,7 +53,7 @@ public abstract class JdbcDatabase extends UntypedActor {
 		
 		private final Connection connection;
 		
-		public CreateTransaction(ActorRef sender, Connection connection) {
+		public CreateTransaction(ActorRef sender, Connection connection) throws Exception {
 			this.sender = sender;
 			this.connection = connection;
 		}
@@ -107,7 +107,7 @@ public abstract class JdbcDatabase extends UntypedActor {
 		connectionPool.close();		
 	}
 	
-	protected abstract Props createTransaction(Connection connection);
+	protected abstract Props createTransaction(Connection connection) throws Exception;
 	
 	@Override
 	public final void onReceive(final Object msg) throws Exception {
@@ -122,7 +122,7 @@ public abstract class JdbcDatabase extends UntypedActor {
 		}
 	}
 
-	private void handleCreateTransaction(CreateTransaction msg) {
+	private void handleCreateTransaction(CreateTransaction msg) throws Exception {
 		log.debug("creating transaction");
 		
 		Props transactionProps = createTransaction(msg.getConnection());

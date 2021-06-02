@@ -6,7 +6,6 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -36,11 +35,12 @@ import nl.idgis.publisher.folder.messages.GetFileSize;
 import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.provider.ProviderUtils;
-import nl.idgis.publisher.provider.database.messages.DatabaseColumnInfo;
+import nl.idgis.publisher.provider.database.DatabaseType;
 import nl.idgis.publisher.provider.database.messages.DatabaseTableInfo;
 import nl.idgis.publisher.provider.database.messages.DescribeTable;
 import nl.idgis.publisher.provider.database.messages.PerformCount;
 import nl.idgis.publisher.provider.database.messages.TableNotFound;
+import nl.idgis.publisher.provider.database.messages.AbstractDatabaseColumnInfo;
 import nl.idgis.publisher.provider.protocol.Attachment;
 import nl.idgis.publisher.provider.protocol.AttachmentType;
 import nl.idgis.publisher.provider.protocol.ColumnInfo;
@@ -62,9 +62,7 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 	private final ActorRef rasterFolder;
 	
 	private final Set<AttachmentType> attachmentTypes;
-	
-	private SDEItemInfo itemInfo;
-	
+
 	private String identification;
 	
 	private String title;
@@ -76,28 +74,49 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 	private String categoryId;
 	
 	private String databaseScheme;
-	
+
+	private String metadataTable;
+
 	private DatabaseTableInfo databaseTableInfo;
 
-	private Path rasterFile;
-	
 	private Set<Attachment> attachments;
 	
 	private ZonedDateTime revisionDate;
 	
 	private Map<String, String> attributeAliases;
 
-	private Config databaseConfig;
-
 	private Config rasterConfig;
-	
+
+	private final DatabaseType databaseVendor;
+
 	public SDEGatherDatasetInfo(ActorRef target, ActorRef transaction, ActorRef rasterFolder, Set<AttachmentType> attachmentTypes, Config databaseConfig, Config rasterConfig) {
 		this.target = target;
 		this.transaction = transaction;
 		this.rasterFolder = rasterFolder;
 		this.attachmentTypes = attachmentTypes;
-		this.databaseConfig = databaseConfig;
 		this.rasterConfig = rasterConfig;
+
+		try {
+			this.databaseScheme = databaseConfig.getString("scheme");
+		} catch(ConfigException.Missing cem) {
+			this.databaseScheme = "SDE";
+		}
+
+		if (databaseConfig.hasPath("vendor")) {
+			try {
+				this.databaseVendor = DatabaseType.valueOf(databaseConfig.getString("vendor").toUpperCase());
+				if (databaseVendor == DatabaseType.POSTGRES) {
+					this.metadataTable = "gdb_items";
+				} else {
+					this.metadataTable = "GDB_ITEMS_VW";
+				}
+			} catch(IllegalArgumentException iae) {
+				throw new ConfigException.BadValue("vendor", "Invalid vendor supplied in config");
+			}
+		} else {
+			this.databaseVendor = DatabaseType.ORACLE;
+			this.metadataTable = "GDB_ITEMS_VW";
+		}
 	}
 	
 	public static Props props(ActorRef target, ActorRef transaction, ActorRef rasterFolder, Set<AttachmentType> attachmentTypes, Config databaseConfig, Config rasterConfig) {
@@ -176,22 +195,16 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 			getContext().stop(getSelf());
 		} else if(msg instanceof SDEItemInfo) {
 			log.debug("item info received: {}", msg);
-			
-			itemInfo = (SDEItemInfo)msg;
+
+			SDEItemInfo itemInfo = (SDEItemInfo) msg;
 			identification = itemInfo.getUuid();
-			physicalname = itemInfo.getPhysicalname();
+			physicalname = databaseVendor == DatabaseType.POSTGRES ? itemInfo.getPhysicalname().toLowerCase() : itemInfo.getPhysicalname();
 			categoryId = ProviderUtils.getCategoryId(physicalname);
 			
 			title = physicalname;
-			
-			try {
-				databaseScheme = databaseConfig.getString("scheme");
-			} catch(ConfigException.Missing cem) {
-				databaseScheme = "SDE";
-			}
-			
-			log.debug("database scheme in sde gather dataset info: " + databaseScheme);
-			
+
+			log.debug("database scheme in sde gather dataset info: " + databaseScheme + "." + metadataTable);
+
 			itemInfo.getDocumentation().ifPresent(documentation -> {
 				try {
 					MetadataDocumentFactory mdf = new MetadataDocumentFactory();
@@ -204,14 +217,14 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 					
 					if(attachmentTypes.contains(AttachmentType.METADATA)) {
 						attachments.add(new Attachment(
-							databaseScheme + ".gdb_items_vw.documentation", 
+							databaseScheme + "." + metadataTable + ".documentation",
 							AttachmentType.METADATA,
 							md.getContent()));
 					}
 					
 					if(attachmentTypes.contains(AttachmentType.PHYSICAL_NAME)) {
 						attachments.add(new Attachment(
-							databaseScheme + ".gdb_items_vw.physicalname", 
+							databaseScheme + "." +metadataTable + ".physicalname",
 							AttachmentType.PHYSICAL_NAME,
 							physicalname));
 					}
@@ -223,14 +236,14 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 						alternateTitle = md.getDatasetAlternateTitle();
 					} catch(NotFound nf) {}
 				} catch(Exception e) {
-					log.error(e, "couldn't process documentation content");
+					log.error(e, "couldn't process documentation content for: " + physicalname);
 				}
 			});
 			
 			SDEItemInfoType type = itemInfo.getType();
 			switch(type) {
 				case RASTER_DATASET:
-					rasterFile = Paths.get(physicalname + ".tif");
+					Path rasterFile = Paths.get(physicalname + ".tif");
 					rasterFolder.tell(new GetFileSize(rasterFile), getSelf());
 					break;
 				case TABLE:
@@ -246,7 +259,7 @@ public class SDEGatherDatasetInfo extends UntypedActor {
 			log.debug("count received: {}", numberOfRecords);
 			
 			ArrayList<ColumnInfo> columns = new ArrayList<>();
-			for(DatabaseColumnInfo columnInfo : databaseTableInfo.getColumns()) {
+			for(AbstractDatabaseColumnInfo columnInfo : databaseTableInfo.getColumns()) {
 				Type columnType = columnInfo.getType();
 				
 				if(columnType == null) {
