@@ -1,3 +1,4 @@
+import com.bmuschko.gradle.docker.tasks.image.DockerPushImage
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.tasks.Copy
@@ -115,6 +116,13 @@ class PublisherPlay implements Plugin<Project> {
 					dependsOn project.rootProject.pullJavaImage, createDockerfile
 					inputDir = project.file('build/docker')
 					tag = "idgis/geopublisher_${moduleName}:${project.version}"
+				}
+
+				pushImage(DockerPushImage) {
+					def moduleName = project.name.substring(project.name.indexOf('-') + 1)
+					
+					dependsOn buildImage
+					imageName = "idgis/geopublisher_${moduleName}:${project.version}"
 				}
 			}
 		}

@@ -25,6 +25,7 @@ repositories {
 apply plugin: DockerRemoteConfig
 
 import com.bmuschko.gradle.docker.tasks.image.DockerPullImage
+import com.bmuschko.gradle.docker.tasks.image.DockerPushImage
 
 task pullJavaImage(type: DockerPullImage) {
 	repository 'azul/zulu-openjdk'
@@ -397,6 +398,11 @@ project(':publisher-provider:publisher-provider-app') {
 		inputDir = file("${project.buildDir}/docker")
 		tag = "idgis/geopublisher_provider:${project.version}"
 	}
+
+	task pushImage(type: DockerPushImage) {
+		dependsOn buildImage
+		imageName = "idgis/geopublisher_provider:${project.version}"
+	}
 }
 
 project(':publisher-provider:publisher-provider-protocol') {
@@ -548,6 +554,11 @@ project(':publisher-database') {
 		inputDir = project.file("${project.buildDir}/docker")
 		tag = "idgis/geopublisher_database:${project.version}"
 	}
+
+	task pushImage(type: DockerPushImage) {
+		dependsOn buildImage
+		imageName = "idgis/geopublisher_database:${project.version}"
+	}
 }
 
 project(':publisher-monitor') {
@@ -576,6 +587,11 @@ project(':publisher-monitor') {
 
 		inputDir = file("${project.buildDir}/docker")
 		tag = "idgis/geopublisher_monitor:${project.version}"
+	}
+
+	task pushImage(type: DockerPushImage) {
+		dependsOn buildImage
+		imageName = "idgis/geopublisher_monitor:${project.version}"
 	}
 	
 	dependencies {
@@ -682,6 +698,11 @@ project(':publisher-service') {
 
 		inputDir = file("${project.buildDir}/docker")
 		tag = "idgis/geopublisher_service:${project.version}"
+	}
+
+	task pushImage(type: DockerPushImage) {
+		dependsOn buildImage
+		imageName = "idgis/geopublisher_service:${project.version}"
 	}
 }
 
@@ -817,6 +838,11 @@ project(':publisher-geoserver') {
 		inputDir = project.file("${project.buildDir}/docker")
 		tag = "idgis/geopublisher_geoserver:${project.version}"
 	}
+
+	task pushImage(type: DockerPushImage) {
+		dependsOn buildImage
+		imageName = "idgis/geopublisher_geoserver:${project.version}"
+	}
 }
 
 project(':publisher-console') {
@@ -850,6 +876,11 @@ project(':publisher-console') {
 		
 		inputDir = file("${project.buildDir}/docker")
 		tag = "idgis/geopublisher_console:${project.version}"
+	}
+
+	task pushImage(type: DockerPushImage) {
+		dependsOn buildImage
+		imageName = "idgis/geopublisher_console:${project.version}"
 	}
 }
 
@@ -887,6 +918,11 @@ project(':publisher-database-cleanup') {
 		
 		inputDir = file("${project.buildDir}/docker")
 		tag = "idgis/geopublisher_database_cleanup:${project.version}"
+	}
+
+	task pushImage(type: DockerPushImage) {
+		dependsOn buildImage
+		imageName = "idgis/geopublisher_database_cleanup:${project.version}"
 	}
 }
 
