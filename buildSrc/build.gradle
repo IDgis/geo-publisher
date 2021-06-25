@@ -8,5 +8,5 @@ dependencies {
 	compile 'com.github.houbie:lesscss-gradle-plugin:1.0.3-less-1.7.0'
 	compile 'com.mysema.querydsl:querydsl-sql-codegen:3.4.1'
 	compile 'com.vividsolutions:jts:1.13'
-	compile 'com.bmuschko:gradle-docker-plugin:3.0.7'
+	compile 'com.bmuschko:gradle-docker-plugin:3.0.11'
 }
