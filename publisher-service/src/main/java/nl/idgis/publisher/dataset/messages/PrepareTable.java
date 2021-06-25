@@ -22,15 +22,18 @@ public class PrepareTable implements Serializable, AsyncTransactional {
 	
 	private final List<Column> columns;
 	
-	public PrepareTable(String tmpTable, String datasetId, List<Column> columns) {
-		this(Optional.empty(), tmpTable, datasetId, columns);
+	private final long insertCount;
+	
+	public PrepareTable(String tmpTable, String datasetId, List<Column> columns, long insertCount) {
+		this(Optional.empty(), tmpTable, datasetId, columns, insertCount);
 	}
 	
-	public PrepareTable(Optional<AsyncTransactionRef> transactionRef, String tmpTable, String datasetId, List<Column> columns) {
+	public PrepareTable(Optional<AsyncTransactionRef> transactionRef, String tmpTable, String datasetId, List<Column> columns, long insertCount) {
 		this.transactionRef = transactionRef.orElse(null);
 		this.tmpTable = Objects.requireNonNull(tmpTable, "tmpTable should not be null");
 		this.datasetId = Objects.requireNonNull(datasetId, "datasetId should not be null");
 		this.columns = Objects.requireNonNull(columns, "columns should not be null");
+		this.insertCount = insertCount;
 	}
 
 	@Override
@@ -48,5 +51,9 @@ public class PrepareTable implements Serializable, AsyncTransactional {
 	
 	public List<Column> getColumns() {
 		return columns;
+	}
+	
+	public long getInsertCount() {
+		return insertCount;
 	}
 }

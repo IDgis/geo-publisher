@@ -204,8 +204,11 @@ public class DatasetManager extends UntypedActor {
 				importJobColumn.dataType);
 	}
 	
-	private CompletableFuture<Object> makeDatasetCopy(AsyncHelper tx, String tmpTable, String datasetId) {
+	private CompletableFuture<Object> makeDatasetCopy(AsyncHelper tx, String tmpTable, String datasetId, long insertCount) {
 		log.debug("making dataset copy");
+		
+		long timeout = insertCount * 3 + 15000;
+		log.debug("Creating dataset copy on dataset {} with a timeout of: {} ms", datasetId, timeout);
 		
 		return tx.ask(new DropView("data", datasetId)).thenCompose(dropViewResult ->
 			dropViewResult instanceof Ack
@@ -216,7 +219,7 @@ public class DatasetManager extends UntypedActor {
 						.exists())
 					.execute()
 						.thenCompose(cnt ->
-							tx.ask(new CopyTable("data", datasetId, "staging_data", datasetId))).thenCompose(copyTableResult ->
+							tx.ask(new CopyTable("data", datasetId, "staging_data", datasetId), timeout)).thenCompose(copyTableResult ->
 								tx.insert(datasetCopy)
 									.columns(
 										datasetCopy.datasetId,
@@ -247,6 +250,7 @@ public class DatasetManager extends UntypedActor {
 		String tmpTable = msg.getTmpTable();
 		String datasetId = msg.getDatasetId();
 		List<Column> columns = msg.getColumns();
+		long insertCount = msg.getInsertCount();
 		
 		return db.transactional(msg, tx ->
 			fetchViewInfo(tx, datasetId).thenCompose(viewColumns ->
@@ -254,7 +258,7 @@ public class DatasetManager extends UntypedActor {
 					? tx.ask(new ReplaceTable("staging_data", tmpTable, datasetId)) 
 					: viewColumns.equals(columns) // same columns?
 						? keepDatasetView(tx, tmpTable, datasetId)
-						: makeDatasetCopy(tx, tmpTable, datasetId)));
+						: makeDatasetCopy(tx, tmpTable, datasetId, insertCount)));
 	}
 
 	private CompletableFuture<List<Column>> fetchViewInfo(AsyncHelper tx, String datasetId) {
