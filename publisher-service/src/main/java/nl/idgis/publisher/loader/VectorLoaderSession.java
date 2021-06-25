@@ -89,7 +89,8 @@ public class VectorLoaderSession extends AbstractLoaderSession<VectorImportJobIn
 					Optional.of(tx.getTransactionRef()), 
 					tmpTable,
 					importJob.getDatasetId(),
-					importColumns)).thenCompose(prepareTableMsg -> {
+					importColumns,
+					insertCount)).thenCompose(prepareTableMsg -> {
 					
 					log.debug("table prepared");
 					
