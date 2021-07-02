@@ -578,7 +578,7 @@ public class DatasetMetadata extends AbstractMetadata {
 				}
 			}
 			
-			metadataDocument.addPrefixToReferenceSystemIdentifiers("http://www.opengis.net/def/crs/EPSG/0/");
+			metadataDocument.addPrefixToReferenceSystemIdentifiers("https://www.opengis.net/def/crs/EPSG/0/");
 			
 			try {
 				metadataDocument.verifyMaintenanceFrequencyCodeListValue();
