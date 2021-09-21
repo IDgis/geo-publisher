@@ -179,21 +179,45 @@ public class DatasetMetadata extends AbstractMetadata {
 			.orderBy(sourceDatasetVersionColumn.index.asc())
 			.list(sourceDatasetVersionColumn.name, sourceDatasetVersionColumn.alias);
 	}
-
+	
+	private void transitionToMetadata20(MetadataDocument metadataDocument) {
+		try {
+			metadataDocument.updateSchemas();
+			metadataDocument.setMetadataStandardVersion("Nederlandse metadata profiel op ISO 19115 voor geografie 2.0");
+			metadataDocument.addPrefixToReferenceSystemIdentifiers("https://www.opengis.net/def/crs/EPSG/0/");
+			metadataDocument.verifyMaintenanceFrequencyCodeListValue();
+			metadataDocument.resetOtherConstraints();
+		} catch(QueryFailure qf) {
+			qf.printStackTrace();
+			
+			// do nothing
+		}
+		
+		try {
+			metadataDocument.resetUseLimitations();
+		} catch(NotFound nf) {
+			nf.printStackTrace();
+			
+			// do nothing
+		}
+	}
+	
 	private Resource tupleToDatasetResource(Transaction tx, Tuple datasetTuple, int sourceDatasetId, Integer datasetId, String fileIdentifier, String datasetIdentifier) {
 		final QSourceDatasetVersion sourceDatasetVersionSub = new QSourceDatasetVersion("source_dataset_version_sub");
 		
 		try {
-			MetadataDocument metadataDocument = mdf.parseDocument(datasetTuple.get(sourceDatasetMetadata.document));
+			final MetadataDocument metadataDocument = mdf.parseDocument(datasetTuple.get(sourceDatasetMetadata.document));
 			
 			metadataDocument.removeStylesheet();
 			stylesheet("datasets").ifPresent(metadataDocument::setStylesheet);
 			
-			metadataDocument.updateSchemas();
+			if(!"Nederlandse metadata profiel op ISO 19115 voor geografie 2.0"
+					.equals(metadataDocument.getMetadataStandardVersion())) {
+				transitionToMetadata20(metadataDocument);
+			}
 			
 			metadataDocument.setDatasetIdentifier(datasetIdentifier);
 			metadataDocument.setFileIdentifier(fileIdentifier);
-			metadataDocument.setMetadataStandardVersion("Nederlandse metadata profiel op ISO 19115 voor geografie 2.0");
 			
 			final String physicalName = tx.query().from(sourceDatasetVersion)
 					.where(sourceDatasetVersion.sourceDatasetId.eq(sourceDatasetId)
@@ -217,7 +241,7 @@ public class DatasetMetadata extends AbstractMetadata {
 				metadataDocument.addDatasetAlternateTitle(physicalName);
 			}
 			
-			if(!s.isTrusted()) {
+			if(!s.isTrusted() && config.getRemoveAdditionalPointOfContacts()) {
 				metadataDocument.removeAdditionalPointOfContacts();
 			}
 			
@@ -576,32 +600,6 @@ public class DatasetMetadata extends AbstractMetadata {
 						}
 					}
 				}
-			}
-			
-			metadataDocument.addPrefixToReferenceSystemIdentifiers("https://www.opengis.net/def/crs/EPSG/0/");
-			
-			try {
-				metadataDocument.verifyMaintenanceFrequencyCodeListValue();
-			} catch(QueryFailure qf) {
-				qf.printStackTrace();
-				
-				// do nothing
-			}
-			
-			try {
-				metadataDocument.resetOtherConstraints();
-			} catch(QueryFailure qf) {
-				qf.printStackTrace();
-				
-				// do nothing
-			}
-			
-			try {
-				metadataDocument.resetUseLimitations();
-			} catch(NotFound nf) {
-				nf.printStackTrace();
-				
-				// do nothing
 			}
 			
 			return new DefaultResource("application/xml", metadataDocument.getContent());

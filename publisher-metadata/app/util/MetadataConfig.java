@@ -53,6 +53,8 @@ public class MetadataConfig {
 	
 	private final String acceptedDomainsUpdateStylesheet;
 	
+	private final boolean removeAdditionalPointOfContacts;
+	
 	@Inject
 	public MetadataConfig(Configuration config) {
 
@@ -107,6 +109,8 @@ public class MetadataConfig {
 		includeSourceDatasetMetadata = metadata.getBoolean("include-source-dataset-metadata", true);
 		
 		acceptedDomainsUpdateStylesheet = metadata.getString("accepted-domains-update-stylesheet");
+		
+		removeAdditionalPointOfContacts = metadata.getBoolean("remove-additional-point-of-contacts");
 	}
 	
 	public String getHost() {
@@ -210,5 +214,9 @@ public class MetadataConfig {
 	
 	public Optional<String> getAcceptedDomainsUpdateStylesheet() {
 		return Optional.ofNullable(acceptedDomainsUpdateStylesheet);
+	}
+	
+	public Boolean getRemoveAdditionalPointOfContacts() {
+		return removeAdditionalPointOfContacts;
 	}
 }
