@@ -241,7 +241,7 @@ public class DatasetMetadata extends AbstractMetadata {
 				metadataDocument.addDatasetAlternateTitle(physicalName);
 			}
 			
-			if(!s.isTrusted()) {
+			if(!s.isTrusted() && config.getRemoveAdditionalPointOfContacts()) {
 				metadataDocument.removeAdditionalPointOfContacts();
 			}
 			
