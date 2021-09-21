@@ -180,20 +180,12 @@ public class DatasetMetadata extends AbstractMetadata {
 			.list(sourceDatasetVersionColumn.name, sourceDatasetVersionColumn.alias);
 	}
 	
-	private MetadataDocument transitionToMetadata20(MetadataDocument metadataDocument) {
-		metadataDocument.updateSchemas();
-		metadataDocument.setMetadataStandardVersion("Nederlandse metadata profiel op ISO 19115 voor geografie 2.0");
-		metadataDocument.addPrefixToReferenceSystemIdentifiers("http://www.opengis.net/def/crs/EPSG/0/");
-		
+	private void transitionToMetadata20(MetadataDocument metadataDocument) {
 		try {
+			metadataDocument.updateSchemas();
+			metadataDocument.setMetadataStandardVersion("Nederlandse metadata profiel op ISO 19115 voor geografie 2.0");
+			metadataDocument.addPrefixToReferenceSystemIdentifiers("http://www.opengis.net/def/crs/EPSG/0/");
 			metadataDocument.verifyMaintenanceFrequencyCodeListValue();
-		} catch(QueryFailure qf) {
-			qf.printStackTrace();
-			
-			// do nothing
-		}
-		
-		try {
 			metadataDocument.resetOtherConstraints();
 		} catch(QueryFailure qf) {
 			qf.printStackTrace();
@@ -208,22 +200,20 @@ public class DatasetMetadata extends AbstractMetadata {
 			
 			// do nothing
 		}
-		
-		return metadataDocument;
 	}
 	
 	private Resource tupleToDatasetResource(Transaction tx, Tuple datasetTuple, int sourceDatasetId, Integer datasetId, String fileIdentifier, String datasetIdentifier) {
 		final QSourceDatasetVersion sourceDatasetVersionSub = new QSourceDatasetVersion("source_dataset_version_sub");
 		
 		try {
-			MetadataDocument metadataDocument = mdf.parseDocument(datasetTuple.get(sourceDatasetMetadata.document));
+			final MetadataDocument metadataDocument = mdf.parseDocument(datasetTuple.get(sourceDatasetMetadata.document));
 			
 			metadataDocument.removeStylesheet();
 			stylesheet("datasets").ifPresent(metadataDocument::setStylesheet);
 			
 			if(!"Nederlandse metadata profiel op ISO 19115 voor geografie 2.0"
 					.equals(metadataDocument.getMetadataStandardVersion())) {
-				metadataDocument = transitionToMetadata20(metadataDocument);
+				transitionToMetadata20(metadataDocument);
 			}
 			
 			metadataDocument.setDatasetIdentifier(datasetIdentifier);
