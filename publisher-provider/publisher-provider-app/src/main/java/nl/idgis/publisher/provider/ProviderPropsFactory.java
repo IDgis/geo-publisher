@@ -37,12 +37,13 @@ public class ProviderPropsFactory {
 	}
 
 	private ProviderProps vector(String name, Config providerConfig) {
-		Props database = Database.props(providerConfig.getConfig("database"), name);
+		Config databaseConfig = providerConfig.getConfig("database");
+		Props database = Database.props(databaseConfig, name);
 		Props metadata = metadata(providerConfig);
 		
 		log.info("creating vector provider: {}", name);
 		
-		return new ProviderProps(name, VectorProvider.props(database, metadata));
+		return new ProviderProps(name, VectorProvider.props(database, metadata, databaseConfig));
 	}
 	
 	private ProviderProps raster(String name, Config providerConfig) {

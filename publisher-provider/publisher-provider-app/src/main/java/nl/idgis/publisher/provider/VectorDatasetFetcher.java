@@ -27,6 +27,9 @@ import nl.idgis.publisher.utils.FutureUtils;
 
 import scala.concurrent.duration.Duration;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigException;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
@@ -36,17 +39,28 @@ import akka.japi.Procedure;
 public class VectorDatasetFetcher extends AbstractDatasetFetcher<GetVectorDataset> {
 	
 	private final ActorRef database;
+	private final DatabaseType databaseVendor;
 	
 	private FutureUtils f;
 		
-	public VectorDatasetFetcher(ActorRef sender, ActorRef database, GetVectorDataset request) {
+	public VectorDatasetFetcher(ActorRef sender, ActorRef database, GetVectorDataset request, Config databaseConfig) {
 		super(sender, request);
 		
 		this.database = database;
+
+		if (databaseConfig.hasPath("vendor")) {
+			try {
+				this.databaseVendor = DatabaseType.valueOf(databaseConfig.getString("vendor").toUpperCase());
+			} catch(IllegalArgumentException iae) {
+				throw new ConfigException.BadValue("vendor", "Invalid vendor supplied in config");
+			}
+		} else {
+			this.databaseVendor = DatabaseType.ORACLE;
+		}
 	}
 	
-	public static Props props(ActorRef sender, ActorRef database, GetVectorDataset request) {
-		return Props.create(VectorDatasetFetcher.class, sender, database, request);
+	public static Props props(ActorRef sender, ActorRef database, GetVectorDataset request, Config databaseConfig) {
+		return Props.create(VectorDatasetFetcher.class, sender, database, request, databaseConfig);
 	}
 	
 	@Override
@@ -152,7 +166,7 @@ public class VectorDatasetFetcher extends AbstractDatasetFetcher<GetVectorDatase
 								.collect(Collectors.toMap(AbstractDatabaseColumnInfo::getName, AbstractDatabaseColumnInfo::getTypeName));
 
 							List<AbstractDatabaseColumnInfo> columnInfos = request.getColumnNames().stream()
-								.map(columnName -> FactoryDatabaseColumnInfo.getDatabaseColumnInfo(columnName, columnTypes.get(columnName), DatabaseType.ORACLE))
+								.map(columnName -> FactoryDatabaseColumnInfo.getDatabaseColumnInfo(columnName, columnTypes.get(columnName), databaseVendor))
 								.collect(Collectors.toList());
 							
 							transaction.tell(new FetchTable(tableName, columnInfos, request.getMessageSize()), getSelf());
