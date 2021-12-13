@@ -8,6 +8,8 @@ set -e
 echo "Starting PostgreSQL daemon ..."
 /etc/init.d/postgresql start
 
+sleep 5s
+
 # Create the database:
 RESULT=$(psql -l | grep "$PG_DATABASE" | wc -l)
 if [[ ${RESULT} != 1 ]]; then
