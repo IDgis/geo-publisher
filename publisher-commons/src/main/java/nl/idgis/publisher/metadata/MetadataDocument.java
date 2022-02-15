@@ -966,15 +966,31 @@ public class MetadataDocument {
 	}
 	
 	/**
+	 * MD Distribution
+	 */	
+	protected String getMdDistributionPath(){
+		return
+				"/gmd:MD_Metadata" + 
+				"/gmd:distributionInfo" + 
+				"/gmd:MD_Distribution";
+	}
+	
+	/**
+	 * Transfer Options
+	 */	
+	protected String getTransferOptionsPath(){
+		return
+				getMdDistributionPath() + 
+				"/gmd:transferOptions";
+	}
+	
+	/**
 	 * Dataset metadata: Service Linkage
 	 */	
 	protected String getDigitalTransferOptionsPath(){
 		return
-				"/gmd:MD_Metadata" + 
-				"/gmd:distributionInfo" + 
-				"/gmd:MD_Distribution" + 
-				"/gmd:transferOptions" + 
-				"/gmd:MD_DigitalTransferOptions" ;
+				getTransferOptionsPath() + 
+				"/gmd:MD_DigitalTransferOptions";
 	}
 	
 	/**
@@ -1043,6 +1059,23 @@ public class MetadataDocument {
 	 * @throws NotFound 
 	 */
 	public void addServiceLinkage(String linkage, String protocol, String name, String description) throws NotFound{
+		boolean digitalTransferOptionsCreated = false;
+		
+		try {
+			isoMetadata.getNode(namespaces, getTransferOptionsPath());
+		} catch(NotFound nf) {
+			isoMetadata.addNode(namespaces, getMdDistributionPath(), "gmd:transferOptions/gmd:MD_DigitalTransferOptions");
+			digitalTransferOptionsCreated = true;
+		}
+		
+		if(!digitalTransferOptionsCreated) {
+			try {
+				isoMetadata.getNode(namespaces, getDigitalTransferOptionsPath());
+			} catch(NotFound nd) {
+				isoMetadata.addNode(namespaces, getTransferOptionsPath(), "gmd:MD_DigitalTransferOptions");
+			}
+		}
+		
 		String parentPath = isoMetadata.addNode(namespaces, getDigitalTransferOptionsPath(), new String[]{"gmd:offLine"}, "gmd:onLine/gmd:CI_OnlineResource");
 		isoMetadata.addNode(namespaces, parentPath, "gmd:linkage/gmd:URL", linkage);
 		isoMetadata.addNode(namespaces, parentPath, "gmd:protocol/gco:CharacterString", protocol);

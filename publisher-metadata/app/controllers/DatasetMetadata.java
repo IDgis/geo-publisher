@@ -183,7 +183,7 @@ public class DatasetMetadata extends AbstractMetadata {
 	private void transitionToMetadata20(MetadataDocument metadataDocument) {
 		try {
 			metadataDocument.updateSchemas();
-			metadataDocument.setMetadataStandardVersion("Nederlandse metadata profiel op ISO 19115 voor geografie 2.0");
+			metadataDocument.setMetadataStandardVersion("Nederlands metadata profiel op ISO 19115 voor geografie 2.0.0");
 			metadataDocument.addPrefixToReferenceSystemIdentifiers("https://www.opengis.net/def/crs/EPSG/0/");
 			metadataDocument.verifyMaintenanceFrequencyCodeListValue();
 			metadataDocument.resetOtherConstraints();
@@ -211,8 +211,7 @@ public class DatasetMetadata extends AbstractMetadata {
 			metadataDocument.removeStylesheet();
 			stylesheet("datasets").ifPresent(metadataDocument::setStylesheet);
 			
-			if(!"Nederlandse metadata profiel op ISO 19115 voor geografie 2.0"
-					.equals(metadataDocument.getMetadataStandardVersion())) {
+			if(!metadataDocument.getMetadataStandardVersion().contains("2.0")) {
 				transitionToMetadata20(metadataDocument);
 			}
 			
