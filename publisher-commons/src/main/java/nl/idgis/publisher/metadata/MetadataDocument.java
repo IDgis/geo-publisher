@@ -21,6 +21,7 @@ import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
@@ -50,6 +51,7 @@ public class MetadataDocument {
 	protected static final String CREATION = "creation";
 	protected static final String REVISION = "revision";
 	protected static final String PUBLICATION = "publication";
+	protected static final String XLINK_ATTRIBUTE_NAME = "xlink:href";
 	
 	public static enum Topic {DATASET, SERVICE};
 	
@@ -875,6 +877,12 @@ public class MetadataDocument {
 			.strings(getOtherConstraintsPath());
 	}
 	
+	public List<XPathHelper> getOtherConstraintNodes() throws NotFound {
+		return isoMetadata
+			.xpath(Optional.of(namespaces))
+			.nodes(getOtherConstraintsPath());
+	}
+	
 	protected String addMdLegalConstraint() throws NotFound {
 		return isoMetadata.addNode(
 				namespaces, 
@@ -898,6 +906,41 @@ public class MetadataDocument {
 				"gmd:accessConstraints/gmd:MD_RestrictionCode",
 				null,
 				attributes);
+	}
+	
+	public void verifyXlinkOtherConstraint() throws NotFound {
+		List<XPathHelper> otherConstraintHelpers = getOtherConstraintNodes();
+		
+		for(XPathHelper otherConstraintHelper : otherConstraintHelpers) {
+			Node otherConstraintCharacterStringNode = otherConstraintHelper.getItem();
+			NamedNodeMap attrs = otherConstraintCharacterStringNode.getAttributes();
+			Node xlink = attrs.getNamedItem(XLINK_ATTRIBUTE_NAME);
+			
+			if(xlink != null) {
+				String xlinkValue = xlink.getNodeValue();
+				String content = otherConstraintCharacterStringNode.getTextContent();
+				
+				Node otherConstraintNode = otherConstraintCharacterStringNode.getParentNode();
+				Node legalConstraintsNode = otherConstraintNode.getParentNode();
+				
+				if(content != null) {
+					attrs.removeNamedItem(XLINK_ATTRIBUTE_NAME);
+					Node copyOtherConstraintNode = otherConstraintNode.cloneNode(true);
+					NodeList copyOtherConstraintNodeChilds = copyOtherConstraintNode.getChildNodes();
+					
+					for(int i = 0; i < copyOtherConstraintNodeChilds.getLength(); i++) {
+						Node copyOtherConstraintNodeChild = copyOtherConstraintNodeChilds.item(i);
+						
+						if(copyOtherConstraintNodeChild.getNodeName().trim().equals("gco:CharacterString")) {
+							copyOtherConstraintNodeChild.setTextContent(xlinkValue);
+							break;
+						}
+					}
+					
+					legalConstraintsNode.insertBefore(copyOtherConstraintNode, otherConstraintNode);
+				}
+			}
+		}
 	}
 	
 	public void resetOtherConstraints() throws NotFound {
@@ -938,8 +981,6 @@ public class MetadataDocument {
 							otherConstraint);
 					} catch (NotFound nf) {
 						nf.printStackTrace();
-						
-						// do nothing
 					}
 				});
 		}
@@ -1406,7 +1447,7 @@ public class MetadataDocument {
 	 */
 	public void addOperatesOn(String href) throws NotFound {
 		Map<String, String> attributes = new HashMap<String, String>();
-		attributes.put("xlink:href", href);
+		attributes.put(XLINK_ATTRIBUTE_NAME, href);
 		
 		isoMetadata.addNode(namespaces, getServiceIdentificationPath(), "srv:operatesOn", attributes);
 	}
@@ -1423,7 +1464,7 @@ public class MetadataDocument {
 					
 					@Override
 					public String getHref() {
-						return node.string("@xlink:href").get();
+						return node.string("@" + XLINK_ATTRIBUTE_NAME).get();
 					}
 					
 				})
