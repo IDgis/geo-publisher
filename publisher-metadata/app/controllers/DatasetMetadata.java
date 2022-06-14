@@ -183,22 +183,34 @@ public class DatasetMetadata extends AbstractMetadata {
 	private void transitionToMetadata20(MetadataDocument metadataDocument) {
 		try {
 			metadataDocument.updateSchemas();
-			metadataDocument.setMetadataStandardVersion("Nederlands metadata profiel op ISO 19115 voor geografie 2.0.0");
-			metadataDocument.addPrefixToReferenceSystemIdentifiers("https://www.opengis.net/def/crs/EPSG/0/");
-			metadataDocument.verifyMaintenanceFrequencyCodeListValue();
-			metadataDocument.resetOtherConstraints();
 		} catch(QueryFailure qf) {
 			qf.printStackTrace();
-			
-			// do nothing
+		}
+		
+		try {
+			metadataDocument.setMetadataStandardVersion("Nederlands metadata profiel op ISO 19115 voor geografie 2.0.0");
+		} catch(QueryFailure qf) {
+			qf.printStackTrace();
+		}
+		
+		metadataDocument.addPrefixToReferenceSystemIdentifiers("https://www.opengis.net/def/crs/EPSG/0/");
+		
+		try {
+			metadataDocument.verifyMaintenanceFrequencyCodeListValue();
+		} catch(QueryFailure qf) {
+			qf.printStackTrace();
+		}
+		
+		try {
+			metadataDocument.resetOtherConstraints();
+		} catch(NotFound nf) {
+			nf.printStackTrace();
 		}
 		
 		try {
 			metadataDocument.resetUseLimitations();
 		} catch(NotFound nf) {
 			nf.printStackTrace();
-			
-			// do nothing
 		}
 	}
 	
@@ -214,6 +226,8 @@ public class DatasetMetadata extends AbstractMetadata {
 			if(!metadataDocument.getMetadataStandardVersion().contains("2.0")) {
 				transitionToMetadata20(metadataDocument);
 			}
+			
+			metadataDocument.verifyXlinkOtherConstraint();
 			
 			metadataDocument.setDatasetIdentifier(datasetIdentifier);
 			metadataDocument.setFileIdentifier(fileIdentifier);
