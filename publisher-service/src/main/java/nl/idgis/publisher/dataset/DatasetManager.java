@@ -54,6 +54,7 @@ import akka.event.LoggingAdapter;
 import akka.util.Timeout;
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.AsyncHelper;
+import nl.idgis.publisher.database.QSourceDatasetVersion;
 import nl.idgis.publisher.database.messages.CopyTable;
 import nl.idgis.publisher.database.messages.CreateView;
 import nl.idgis.publisher.database.messages.DropTable;
@@ -1027,6 +1028,8 @@ public class DatasetManager extends UntypedActor {
 	
 	private CompletableFuture<Long> handleCleanup (final Cleanup cleanup) {
 		return db.transactional (tx -> {
+			final QSourceDatasetVersion sourceDatasetVersionSub = new QSourceDatasetVersion("source_dataset_version_sub");
+			
 			return 
 				f.sequence(
 					Arrays.asList(
@@ -1101,7 +1104,24 @@ public class DatasetManager extends UntypedActor {
 						
 						tx.delete (category)
 							.where (new SQLSubQuery ().from (sourceDatasetVersion).where (sourceDatasetVersion.categoryId.eq (category.id)).notExists ())
-							.execute ()
+							.execute (),
+							
+						tx.update(harvestNotification)
+							.set(harvestNotification.done, true)
+							.where(harvestNotification.done.eq(false)
+								.and(new SQLSubQuery()
+									.from(sourceDataset)
+									.join(sourceDatasetVersion).on(sourceDatasetVersion.sourceDatasetId.eq(sourceDataset.id))
+									.where(sourceDataset.id.eq(harvestNotification.sourceDatasetId)
+										.and(sourceDatasetVersion.id.eq(
+												new SQLSubQuery()
+													.from(sourceDatasetVersionSub)
+													.where(sourceDatasetVersionSub.sourceDatasetId.eq(sourceDataset.id))
+													.unique(sourceDatasetVersionSub.id.max())))
+										.and(sourceDatasetVersion.type.ne("UNAVAILABLE")))
+									.exists())
+								.and(harvestNotification.notificationType.eq("SOURCE_DATASET_UNAVAILABLE")))
+						.execute()
 					)).thenApply(results ->
 							results.stream()
 								.collect(Collectors.summingLong(Long::longValue)));
