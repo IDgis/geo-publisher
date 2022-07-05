@@ -18,8 +18,9 @@ public class OracleDatabaseColumnInfo extends AbstractDatabaseColumnInfo {
 			case "FLOAT":
 				return Type.NUMERIC;
 			case "DATE":
-			case "TIMESTAMP(6)":
 				return Type.DATE;
+			case "TIMESTAMP(6)":
+				return Type.TIMESTAMP;
 			case "VARCHAR2":
 			case "NVARCHAR2":
 			case "NCHAR":

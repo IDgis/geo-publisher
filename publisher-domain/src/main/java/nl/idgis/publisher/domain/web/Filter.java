@@ -106,18 +106,18 @@ public final class Filter extends Entity {
 		AND (0),
 		OR (0),
 		
-		EQUALS (2, Type.DATE, Type.NUMERIC, Type.TEXT),
-		NOT_EQUALS (2, Type.DATE, Type.NUMERIC, Type.TEXT),
-		LESS_THAN (2, Type.DATE, Type.NUMERIC, Type.TEXT),
-		LESS_THAN_EQUAL (2, Type.DATE, Type.NUMERIC, Type.TEXT),
-		GREATER_THAN (2, Type.DATE, Type.NUMERIC, Type.TEXT),
-		GREATER_THAN_EQUAL (2, Type.DATE, Type.NUMERIC, Type.TEXT),
+		EQUALS (2, Type.TIMESTAMP, Type.DATE, Type.NUMERIC, Type.TEXT),
+		NOT_EQUALS (2, Type.TIMESTAMP, Type.DATE, Type.NUMERIC, Type.TEXT),
+		LESS_THAN (2, Type.TIMESTAMP, Type.DATE, Type.NUMERIC, Type.TEXT),
+		LESS_THAN_EQUAL (2, Type.TIMESTAMP, Type.DATE, Type.NUMERIC, Type.TEXT),
+		GREATER_THAN (2, Type.TIMESTAMP, Type.DATE, Type.NUMERIC, Type.TEXT),
+		GREATER_THAN_EQUAL (2, Type.TIMESTAMP, Type.DATE, Type.NUMERIC, Type.TEXT),
 		
-		LIKE (2, Type.DATE, Type.NUMERIC, Type.TEXT),
+		LIKE (2, Type.TIMESTAMP, Type.DATE, Type.NUMERIC, Type.TEXT),
 		
-		IN (2, Type.DATE, Type.NUMERIC, Type.TEXT),
+		IN (2, Type.TIMESTAMP, Type.DATE, Type.NUMERIC, Type.TEXT),
 		
-		NOT_NULL (1, Type.DATE, Type.NUMERIC, Type.TEXT, Type.GEOMETRY);
+		NOT_NULL (1, Type.TIMESTAMP, Type.DATE, Type.NUMERIC, Type.TEXT, Type.GEOMETRY);
 		
 		private final int arity;
 		private final Set<Type> supportedTypes;
@@ -159,6 +159,7 @@ public final class Filter extends Entity {
 			}
 			
 			add (new OperatorInput (OperatorType.IN, Type.DATE, Type.TEXT));
+			add (new OperatorInput (OperatorType.IN, Type.TIMESTAMP, Type.TEXT));
 			add (new OperatorInput (OperatorType.IN, Type.NUMERIC, Type.TEXT));
 			add (new OperatorInput (OperatorType.IN, Type.TEXT, Type.TEXT));
 		}
@@ -281,6 +282,11 @@ public final class Filter extends Entity {
 			case DATE:
 				if (!value.matches ("[0-9]{4}-[0-9]{2}-[0-9]{2}")) {
 					throw new IllegalArgumentException ("Invalid date: " + value);
+				}
+				break;
+			case TIMESTAMP:
+				if (!value.matches ("[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}")) {
+					throw new IllegalArgumentException ("Invalid timestamp: " + value);
 				}
 				break;
 			case NUMERIC:
