@@ -7,5 +7,6 @@ public enum Type {
 	DATE,
 	GEOMETRY, 
 	BOOLEAN,
-	SERIAL
+	SERIAL,
+	TIMESTAMP
 }

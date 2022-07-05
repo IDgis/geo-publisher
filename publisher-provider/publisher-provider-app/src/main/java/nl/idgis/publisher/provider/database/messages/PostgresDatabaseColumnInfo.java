@@ -27,9 +27,10 @@ public class PostgresDatabaseColumnInfo extends AbstractDatabaseColumnInfo {
 			case "DOUBLE PRECISION":
 				return Type.NUMERIC;
 			case "DATE":
+				return Type.DATE;
 			case "TIMESTAMP":
 			case "TIMESTAMP WITHOUT TIME ZONE":
-				return Type.DATE;
+				return Type.TIMESTAMP;
 			case "CHARACTER VARYING": // CHARACTER VARYING(32) etc.
 			case "CHARACTER": // CHARACTER(21) etc.
 			case "TEXT":

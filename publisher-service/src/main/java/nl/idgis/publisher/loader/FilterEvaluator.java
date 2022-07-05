@@ -10,6 +10,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.sql.Timestamp;
 
 import akka.dispatch.Mapper;
 
@@ -62,6 +63,7 @@ public class FilterEvaluator {
 				case NUMERIC:					
 					return new NumericValue(new BigDecimal(((Number)value).doubleValue()));
 				case DATE:
+				case TIMESTAMP:
 					return new DateValue((Date)value);
 				case GEOMETRY:
 					return new GeometryValue((WKBGeometry)value);
@@ -79,8 +81,9 @@ public class FilterEvaluator {
 				case NUMERIC:
 					return new NumericValue(new BigDecimal(value));	
 				case TEXT:
-					return new StringValue(value);					
+					return new StringValue(value);
 				case DATE:
+				case TIMESTAMP:
 					return new DateValue(STRING_DATE_MAPPER.apply(value));
 				case GEOMETRY:
 					throw new IllegalArgumentException("cannot convert string to geometry");
