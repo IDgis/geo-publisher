@@ -92,6 +92,11 @@ public class VectorDatasetFetcher extends AbstractDatasetFetcher<GetVectorDatase
 					
 					sender.tell(new Failure(new TimeoutException("while fetching data")), getSelf());
 					getContext().stop(getSelf());
+				} else if(msg instanceof Failure) {
+					log.error("database failure: {}", msg);
+
+					sender.tell(msg, getSelf());
+					getContext().stop(getSelf());
 				} else if(msg instanceof TableNotFound) {
 					log.debug("table not found");
 					
