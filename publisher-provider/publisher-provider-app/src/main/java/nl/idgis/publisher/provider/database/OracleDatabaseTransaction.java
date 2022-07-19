@@ -29,7 +29,7 @@ public class OracleDatabaseTransaction extends AbstractDatabaseTransaction {
 	
 	Object handleDescribeTable(DescribeTable query) throws SQLException {
 
-		String owner = query.getScheme();
+		String owner = query.getScheme().toUpperCase();
 		String tableName = query.getTableName().toUpperCase();
 
 		final String sql;
@@ -40,7 +40,7 @@ public class OracleDatabaseTransaction extends AbstractDatabaseTransaction {
 					+ "order by column_id";
 		} else {
 			sql = "select column_name, data_type from all_tab_columns "
-					+ "where owner = '" + owner.toUpperCase() + "' and table_name = '" + tableName
+					+ "where owner = '" + owner + "' and table_name = '" + tableName
 					+ "' " + "order by column_id";
 		}
 		
@@ -74,14 +74,14 @@ public class OracleDatabaseTransaction extends AbstractDatabaseTransaction {
 	
 	Object handlePerformCount(PerformCount query) throws SQLException {
 
-		String owner = query.getScheme();
-		String tableName = query.getTableName();
+		String owner = query.getScheme().toUpperCase();
+		String tableName = query.getTableName().toUpperCase();
 
 		String sql;
 		if (owner == null) {
-			sql = "select count(*) from " + tableName;
+			sql = "select count(*) from \"" + tableName + "\"";
 		} else {
-			sql = "select count(*) from " + owner + "." + tableName;
+			sql = "select count(*) from \"" + owner + "\".\"" + tableName + "\"";
 		}
 		log.debug(String.format("executing count query: %s", sql));
 		Statement stmt = connection.createStatement();
@@ -140,8 +140,8 @@ public class OracleDatabaseTransaction extends AbstractDatabaseTransaction {
 		
 		sb.append(" FROM \"");
 
-		String owner = msg.getScheme();
-		String tableName = msg.getTableName();
+		String owner = msg.getScheme().toUpperCase();
+		String tableName = msg.getTableName().toUpperCase();
 
 		if (owner == null) {
 			sb.append(tableName);
