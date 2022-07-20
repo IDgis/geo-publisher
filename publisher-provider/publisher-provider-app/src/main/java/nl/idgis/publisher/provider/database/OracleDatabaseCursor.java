@@ -42,24 +42,19 @@ public class OracleDatabaseCursor extends AbstractDatabaseCursor {
 		if(value == null) {
 			return null;
 		}
+
+		String className = value.getClass().getCanonicalName();
+		log.debug("database column value: {}, class: {}", value, className);
 		
-		log.debug("database column value: " + value);
-		
-		if(columnInfo.getType() == Type.DATE) {
-			String typeName = columnInfo.getTypeName();
-			if("TIMESTAMP(6)".equals(typeName)) {
-				log.debug("database column value is of type timestamp(6)");
-				if(value instanceof TIMESTAMP) {
-					log.debug("database column value is of type oracle.sql.timestamp");
-					
-					TIMESTAMP timestamp = (TIMESTAMP)value;
-					return timestamp.timestampValue();
-				} else {
-					log.error("unsupported value class: {}", value.getClass().getCanonicalName());
-					return null;
-				}
+		if(columnInfo.getType() == Type.TIMESTAMP) {
+			if(value instanceof TIMESTAMP) {
+				log.debug("database column value is of type oracle.sql.TIMESTAMP");
+
+				TIMESTAMP timestamp = (TIMESTAMP)value;
+				return timestamp.timestampValue();
 			} else {
-				return value;
+				log.error("unsupported timestamp value class: {}", className);
+				return null;
 			}
 		} else if(columnInfo.getType() == Type.GEOMETRY) {
 			String typeName = columnInfo.getTypeName();
@@ -77,7 +72,7 @@ public class OracleDatabaseCursor extends AbstractDatabaseCursor {
 					
 					return new WKBGeometry(WKBWriter.write(geom));
 				} else {
-					log.error("unsupported value class: {}", value.getClass().getCanonicalName());
+					log.error("unsupported geometry value class: {}", className);
 					return null;
 				}
 			} else if("ST_GEOMETRY".equals(typeName)) {
@@ -96,7 +91,7 @@ public class OracleDatabaseCursor extends AbstractDatabaseCursor {
 						return new WKBGeometry(blob.getBytes(1l, (int)blobLength));
 					}
 				} else {
-					log.error("unsupported value class: {}", value.getClass().getCanonicalName());
+					log.error("unsupported blob value class: {}", className);
 					return null;
 				}
 			} else {
