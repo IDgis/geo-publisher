@@ -29,18 +29,18 @@ public class OracleDatabaseTransaction extends AbstractDatabaseTransaction {
 	
 	Object handleDescribeTable(DescribeTable query) throws SQLException {
 
-		String owner = query.getScheme().toUpperCase();
-		String tableName = query.getTableName().toUpperCase();
+		String owner = query.getScheme();
+		String tableName = query.getTableName();
 
 		final String sql;
 
 		if(owner == null) {
 			sql = "select column_name, data_type from user_tab_columns "
-					+ "where table_name = '" + tableName + "' "
+					+ "where table_name = '" + tableName.toUpperCase() + "' "
 					+ "order by column_id";
 		} else {
 			sql = "select column_name, data_type from all_tab_columns "
-					+ "where owner = '" + owner + "' and table_name = '" + tableName
+					+ "where owner = '" + owner.toUpperCase() + "' and table_name = '" + tableName.toUpperCase()
 					+ "' " + "order by column_id";
 		}
 		
@@ -74,14 +74,14 @@ public class OracleDatabaseTransaction extends AbstractDatabaseTransaction {
 	
 	Object handlePerformCount(PerformCount query) throws SQLException {
 
-		String owner = query.getScheme().toUpperCase();
-		String tableName = query.getTableName().toUpperCase();
+		String owner = query.getScheme();
+		String tableName = query.getTableName();
 
 		String sql;
 		if (owner == null) {
-			sql = "select count(*) from \"" + tableName + "\"";
+			sql = "select count(*) from \"" + tableName.toUpperCase() + "\"";
 		} else {
-			sql = "select count(*) from \"" + owner + "\".\"" + tableName + "\"";
+			sql = "select count(*) from \"" + owner.toUpperCase() + "\".\"" + tableName.toUpperCase() + "\"";
 		}
 		log.debug(String.format("executing count query: %s", sql));
 		Statement stmt = connection.createStatement();
@@ -140,16 +140,16 @@ public class OracleDatabaseTransaction extends AbstractDatabaseTransaction {
 		
 		sb.append(" FROM \"");
 
-		String owner = msg.getScheme().toUpperCase();
-		String tableName = msg.getTableName().toUpperCase();
+		String owner = msg.getScheme();
+		String tableName = msg.getTableName();
 
 		if (owner == null) {
-			sb.append(tableName);
+			sb.append(tableName.toUpperCase());
 		} else {
 			sb
-				.append(owner)
+				.append(owner.toUpperCase())
 				.append("\".\"")
-				.append(tableName);
+				.append(tableName.toUpperCase());
 		}
 		
 		sb.append("\" T");
