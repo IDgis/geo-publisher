@@ -126,7 +126,7 @@ public abstract class JdbcTransaction extends UntypedActor {
 				log.debug("pending cursors");
 			}
 		} else {
-			log.error("unknown actor terminated: " + actor);
+			log.error("unknown actor terminated: {}", actor);
 		}
 	}
 
@@ -145,7 +145,7 @@ public abstract class JdbcTransaction extends UntypedActor {
 				cursor.tell(new NextItem(), getSender());
 			}
 		} catch(Exception e) {
-			log.error("error during executing streaming query: {}, {}", msg, e);
+			log.error(e, "error during executing streaming query: {}", msg);
 			getSender().tell(new Failure(e), getSelf());
 		}
 	}
@@ -166,7 +166,7 @@ public abstract class JdbcTransaction extends UntypedActor {
 			} catch(Exception e) {
 				e.printStackTrace();
 				
-				log.error("error during executing query: {}, {}", msg, e);
+				log.error(e, "error during executing query: {}", msg);
 				
 				sender.tell(new Failure(e), self);
 			}
@@ -182,7 +182,7 @@ public abstract class JdbcTransaction extends UntypedActor {
 				connection.rollback();
 				sender.tell(new Ack(), self);
 			} catch(Exception e) {
-				log.error("rollback failed: {}", e);
+				log.error(e, "rollback failed");
 				
 				sender.tell(new Failure(e), self);
 			}
@@ -200,7 +200,7 @@ public abstract class JdbcTransaction extends UntypedActor {
 				connection.commit();
 				sender.tell(new Ack(), self);
 			} catch(Exception e) {
-				log.error("commit failed: {}", e);
+				log.error(e, "commit failed");
 				
 				sender.tell(new Failure(e), self);
 			}
@@ -217,7 +217,7 @@ public abstract class JdbcTransaction extends UntypedActor {
 			try {
 				connection.rollback();
 			} catch(Exception e) {
-				log.error("rollback failed: {}" + e);
+				log.error(e, "rollback failed"); 
 			}
 			
 			self.tell(PoisonPill.getInstance(), self);
