@@ -145,16 +145,32 @@ public class ProviderDatasetConverter extends StreamConverter {
 						try {
 							if(confidentialPath != null) {
 								List<String> useLimitations = metadata.getMetadataElements(confidentialPath);
+								List<String> ccMarkUseLimitations =
+										useLimitations.stream()
+											.filter(useLimitation -> useLimitation.contains("creativecommons"))
+											.filter(useLimitation -> useLimitation.contains("mark"))
+											.collect(Collectors.toList());
 								
 								log.debug("useLimitations: {}", useLimitations);
+								log.debug("ccMarkUseLimitations: {}", ccMarkUseLimitations);
 								
 								if(dataPublicValue != null) {
-									confidential = !useLimitations.contains(dataPublicValue);
+									if(dataPublicValue.contains("creativecommons") && dataPublicValue.contains("mark")) {
+										confidential = ccMarkUseLimitations.isEmpty();
+									} else {
+										confidential = !useLimitations.contains(dataPublicValue);
+									}
+									
 									log.debug("data confidential: {}", confidential);
 								}
 								
 								if(metadataPublicValue != null) {
-									metadataConfidential = !useLimitations.contains(metadataPublicValue);
+									if(metadataPublicValue.contains("creativecommons") && metadataPublicValue.contains("mark")) {
+										metadataConfidential = ccMarkUseLimitations.isEmpty();
+									} else {
+										metadataConfidential = !useLimitations.contains(metadataPublicValue);
+									}
+									
 									log.debug("metadata confidential: {}", metadataConfidential);
 								}
 								
