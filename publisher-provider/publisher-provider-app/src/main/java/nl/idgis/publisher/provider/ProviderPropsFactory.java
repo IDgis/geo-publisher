@@ -4,9 +4,11 @@ import java.io.File;
 import java.util.Optional;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigException;
 
 import nl.idgis.publisher.folder.Folder;
 import nl.idgis.publisher.provider.database.Database;
+import nl.idgis.publisher.provider.database.DatabaseType;
 import nl.idgis.publisher.provider.metadata.Metadata;
 
 import akka.actor.Props;
@@ -37,12 +39,24 @@ public class ProviderPropsFactory {
 	}
 
 	private ProviderProps vector(String name, Config providerConfig) {
-		Props database = Database.props(providerConfig.getConfig("database"), name);
+		Config databaseConfig = providerConfig.getConfig("database");
+		Props database = Database.props(databaseConfig, name);
 		Props metadata = metadata(providerConfig);
 		
 		log.info("creating vector provider: {}", name);
 		
-		return new ProviderProps(name, VectorProvider.props(database, metadata));
+		DatabaseType databaseVendor = null;
+		if (databaseConfig.hasPath("vendor")) {
+			try {
+				databaseVendor = DatabaseType.valueOf(databaseConfig.getString("vendor").toUpperCase());
+			} catch(IllegalArgumentException iae) {
+				throw new ConfigException.BadValue("vendor", "Invalid vendor supplied in config");
+			}
+		} else {
+			databaseVendor = DatabaseType.ORACLE;
+		}
+		
+		return new ProviderProps(name, VectorProvider.props(database, metadata, databaseVendor));
 	}
 	
 	private ProviderProps raster(String name, Config providerConfig) {
