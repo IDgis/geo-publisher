@@ -105,7 +105,7 @@ public class VectorProviderTest {
 		ActorSystem actorSystem = ActorSystem.create("test", akkaConfig);
 		
 		recorder = actorSystem.actorOf(Recorder.props(), "recorder");
-		provider = actorSystem.actorOf(VectorProvider.props(DatabaseMock.props(recorder), MetadataMock.props(recorder)), "provider");
+		provider = actorSystem.actorOf(VectorProvider.props(DatabaseMock.props(recorder), MetadataMock.props(recorder), DatabaseType.ORACLE), "provider");
 		
 		metadata = ActorSelection.apply(provider, "metadata");
 		database = ActorSelection.apply(provider, "database");
