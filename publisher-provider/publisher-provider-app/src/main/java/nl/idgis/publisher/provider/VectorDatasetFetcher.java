@@ -35,18 +35,21 @@ import akka.japi.Procedure;
 
 public class VectorDatasetFetcher extends AbstractDatasetFetcher<GetVectorDataset> {
 	
+	private final DatabaseType databaseVendor;
+	
 	private final ActorRef database;
 	
 	private FutureUtils f;
 		
-	public VectorDatasetFetcher(ActorRef sender, ActorRef database, GetVectorDataset request) {
+	public VectorDatasetFetcher(ActorRef sender, ActorRef database, DatabaseType databaseVendor, GetVectorDataset request) {
 		super(sender, request);
 		
 		this.database = database;
+		this.databaseVendor = databaseVendor;
 	}
 	
-	public static Props props(ActorRef sender, ActorRef database, GetVectorDataset request) {
-		return Props.create(VectorDatasetFetcher.class, sender, database, request);
+	public static Props props(ActorRef sender, ActorRef database, DatabaseType databaseVendor, GetVectorDataset request) {
+		return Props.create(VectorDatasetFetcher.class, sender, database, databaseVendor, request);
 	}
 	
 	@Override
@@ -157,7 +160,7 @@ public class VectorDatasetFetcher extends AbstractDatasetFetcher<GetVectorDatase
 								.collect(Collectors.toMap(AbstractDatabaseColumnInfo::getName, AbstractDatabaseColumnInfo::getTypeName));
 
 							List<AbstractDatabaseColumnInfo> columnInfos = request.getColumnNames().stream()
-								.map(columnName -> FactoryDatabaseColumnInfo.getDatabaseColumnInfo(columnName, columnTypes.get(columnName), DatabaseType.ORACLE))
+								.map(columnName -> FactoryDatabaseColumnInfo.getDatabaseColumnInfo(columnName, columnTypes.get(columnName), databaseVendor))
 								.collect(Collectors.toList());
 							
 							transaction.tell(new FetchTable(tableName, columnInfos, request.getMessageSize()), getSelf());
