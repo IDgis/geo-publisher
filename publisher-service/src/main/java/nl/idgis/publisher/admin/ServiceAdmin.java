@@ -15,7 +15,6 @@ import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVer
 import static nl.idgis.publisher.service.manager.QServiceStructure.serviceStructure;
 import static nl.idgis.publisher.service.manager.QServiceStructure.withServiceStructure;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -218,9 +217,9 @@ public class ServiceAdmin extends AbstractAdmin {
 									GenericLayer.transformUserGroupsToList(t.get(genericLayer.usergroups)),
 									t.get(service.metadata),
 									t.get(genericLayer.identification),
+									t.get(constants.identification),
 									t.get(service.wfsMetadataFileIdentification),
 									t.get(service.wmsMetadataFileIdentification),
-									t.get(constants.identification),
 									t.get(11, Boolean.class),
 									t.get(12, Boolean.class),
 									t.get(13, Boolean.class)
