@@ -36,4 +36,52 @@ with job_ids as (
 )
 delete from publisher.job j where j.id in (select job_id from job_ids);
 
+with sdv_ids as (
+	select sdv.id as sdv_id
+	from publisher.source_dataset sd
+	join publisher.source_dataset_version sdv on sdv.source_dataset_id = sd.id
+	where sdv.id != (
+		select max(id)
+		from publisher.source_dataset_version sdv2
+		where sdv2.source_dataset_id = sd.id
+	) and not exists (select *
+		from publisher.import_job ij
+		join publisher.source_dataset_version sdv2 on sdv2.id = ij.source_dataset_version_id
+		where sdv2.id = sdv.id
+	)
+)
+delete from publisher.source_dataset_version_log where source_dataset_version_id in (select sdv_id from sdv_ids);
+
+with sdv_ids as (
+	select sdv.id as sdv_id
+	from publisher.source_dataset sd
+	join publisher.source_dataset_version sdv on sdv.source_dataset_id = sd.id
+	where sdv.id != (
+		select max(id)
+		from publisher.source_dataset_version sdv2
+		where sdv2.source_dataset_id = sd.id
+	) and not exists (select *
+		from publisher.import_job ij
+		join publisher.source_dataset_version sdv2 on sdv2.id = ij.source_dataset_version_id
+		where sdv2.id = sdv.id
+	)
+)
+delete from publisher.source_dataset_version_column where source_dataset_version_id in (select sdv_id from sdv_ids);
+
+with sdv_ids as (
+	select sdv.id as sdv_id
+	from publisher.source_dataset sd
+	join publisher.source_dataset_version sdv on sdv.source_dataset_id = sd.id
+	where sdv.id != (
+		select max(id)
+		from publisher.source_dataset_version sdv2
+		where sdv2.source_dataset_id = sd.id
+	) and not exists (select *
+		from publisher.import_job ij
+		join publisher.source_dataset_version sdv2 on sdv2.id = ij.source_dataset_version_id
+		where sdv2.id = sdv.id
+	)
+)
+delete from publisher.source_dataset_version where id in (select sdv_id from sdv_ids);
+
 commit;
