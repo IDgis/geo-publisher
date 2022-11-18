@@ -871,6 +871,11 @@ public class MetadataDocument {
 				+ "gmd:MD_LegalConstraints/gmd:otherConstraints/gco:CharacterString";
 	}
 	
+	protected String getOtherConstraintsGmxPath() {
+		return getDatasetIdentificationPath() + "/gmd:resourceConstraints/"
+				+ "gmd:MD_LegalConstraints/gmd:otherConstraints/gmx:Anchor";
+	}
+	
 	public List<String> getOtherConstraints() throws NotFound {
 		return isoMetadata
 			.xpath(Optional.of(namespaces))
@@ -881,6 +886,12 @@ public class MetadataDocument {
 		return isoMetadata
 			.xpath(Optional.of(namespaces))
 			.nodes(getOtherConstraintsPath());
+	}
+	
+	public List<XPathHelper> getOtherConstraintGmxNodes() throws NotFound {
+		return isoMetadata
+			.xpath(Optional.of(namespaces))
+			.nodes(getOtherConstraintsGmxPath());
 	}
 	
 	protected String addMdLegalConstraint() throws NotFound {
@@ -939,6 +950,43 @@ public class MetadataDocument {
 					
 					legalConstraintsNode.insertBefore(copyOtherConstraintNode, otherConstraintNode);
 				}
+			}
+		}
+	}
+	
+	public void transformOtherConstraintGmxToCharacterString() throws NotFound {
+		List<XPathHelper> otherConstraintGmxHelpers = getOtherConstraintGmxNodes();
+		for(XPathHelper otherConstraintGmxHelper : otherConstraintGmxHelpers) {
+			Node anchorNode = otherConstraintGmxHelper.getItem();
+			Node otherConstraintNode = anchorNode.getParentNode();
+			Node legalConstraintNode = otherConstraintNode.getParentNode();
+			Node resourceConstraintNode = legalConstraintNode.getParentNode();
+			
+			String content = anchorNode.getTextContent();
+			NamedNodeMap attrs = anchorNode.getAttributes();
+			Node xlink = attrs.getNamedItem("xlink:href");
+			
+			if(xlink != null && content != null) {
+				String xlinkValue = xlink.getNodeValue();
+				
+				isoMetadata
+					.getNode(namespaces, getDatasetIdentificationPath())
+					.removeChild(resourceConstraintNode);
+				
+				String parentPath = addMdLegalConstraint();
+				addAccessConstraint(parentPath, "otherRestrictions");
+				
+				isoMetadata.addNode(
+						namespaces, 
+						parentPath, 
+						"gmd:otherConstraints/gco:CharacterString",
+						content);
+				
+				isoMetadata.addNode(
+						namespaces, 
+						parentPath, 
+						"gmd:otherConstraints/gco:CharacterString",
+						xlinkValue);
 			}
 		}
 	}

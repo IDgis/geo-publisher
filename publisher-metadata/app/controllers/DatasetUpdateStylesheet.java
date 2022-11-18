@@ -118,6 +118,8 @@ public class DatasetUpdateStylesheet extends Controller {
 						md.setStylesheet(stylesheet);
 					});
 					
+					md.transformOtherConstraintGmxToCharacterString();
+					
 					return ok(md.getContent()).as("UTF-8");
 				} catch(NotParseable np) {
 					return internalServerError("500 Internal Server Error: response is not an XML document");
