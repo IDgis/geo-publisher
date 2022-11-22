@@ -894,7 +894,26 @@ public class MetadataDocument {
 			.nodes(getOtherConstraintsGmxPath());
 	}
 	
-	protected String addMdLegalConstraint() throws NotFound {
+	protected List<String> readLegalConstraintChild(Node legalConstraintChild, List<String> constraintCodeListValues) {
+		NodeList constraintsChildren = legalConstraintChild.getChildNodes();
+		for(int constraintsChildrenInt = 0; constraintsChildrenInt < constraintsChildren.getLength(); constraintsChildrenInt++) {
+			Node constraintsChild = constraintsChildren.item(constraintsChildrenInt);
+			
+			if("MD_RestrictionCode".equals(constraintsChild.getNodeName())) {
+				NamedNodeMap constraintsChildAttrs = constraintsChild.getAttributes();
+				Node constraintsChildCodeListValueNode = constraintsChildAttrs.getNamedItem("codeListValue");
+				
+				if(constraintsChildCodeListValueNode != null) {
+					String constraintsChildCodeListValue = constraintsChildCodeListValueNode.getNodeValue();
+					constraintCodeListValues.add(constraintsChildCodeListValue);
+				}
+			}
+		}
+		
+		return constraintCodeListValues;
+	}
+	
+	protected String addLegalConstraint() throws NotFound {
 		return isoMetadata.addNode(
 				namespaces, 
 				getDatasetIdentificationPath(), 
@@ -915,6 +934,19 @@ public class MetadataDocument {
 				namespaces, 
 				parentPath, 
 				"gmd:accessConstraints/gmd:MD_RestrictionCode",
+				null,
+				attributes);
+	}
+	
+	protected void addUseConstraint(String parentPath, String codeListValue) throws NotFound {
+		Map<String, String> attributes = new HashMap<>();
+		attributes.put("codeList", "./resources/codeList.xml#MD_RestrictionCode");
+		attributes.put("codeListValue", codeListValue);
+		
+		isoMetadata.addNode(
+				namespaces, 
+				parentPath, 
+				"gmd:useConstraints/gmd:MD_RestrictionCode",
 				null,
 				attributes);
 	}
@@ -969,22 +1001,43 @@ public class MetadataDocument {
 			if(xlink != null && content != null) {
 				String xlinkValue = xlink.getNodeValue();
 				
+				List<String> accessConstraintCodeListValues = new ArrayList<>();
+				List<String> useConstraintCodeListValues = new ArrayList<>();
+				
+				NodeList legalConstraintChildren = legalConstraintNode.getChildNodes();
+				for(int legalConstraintChildrenInt = 0; legalConstraintChildrenInt < legalConstraintChildren.getLength(); legalConstraintChildrenInt++) {
+					Node legalConstraintChild = legalConstraintChildren.item(legalConstraintChildrenInt);
+					
+					if("accessConstraints".equals(legalConstraintChild.getNodeName())) {
+						readLegalConstraintChild(legalConstraintChild, accessConstraintCodeListValues);
+					}
+					
+					if("useConstraints".equals(legalConstraintChild.getNodeName())) {
+						readLegalConstraintChild(legalConstraintChild, useConstraintCodeListValues);
+					}
+				}
+				
 				isoMetadata
 					.getNode(namespaces, getDatasetIdentificationPath())
 					.removeChild(resourceConstraintNode);
 				
-				String parentPath = addMdLegalConstraint();
-				addAccessConstraint(parentPath, "otherRestrictions");
+				String legalConstraintPath = addLegalConstraint();
+				for(String accessConstraintCodeListValue : accessConstraintCodeListValues) {
+					addAccessConstraint(legalConstraintPath, accessConstraintCodeListValue);
+				}
+				for(String useConstraintCodeListValue : useConstraintCodeListValues) {
+					addUseConstraint(legalConstraintPath, useConstraintCodeListValue);
+				}
 				
 				isoMetadata.addNode(
-						namespaces, 
-						parentPath, 
+						namespaces,
+						legalConstraintPath,
 						"gmd:otherConstraints/gco:CharacterString",
 						content);
 				
 				isoMetadata.addNode(
-						namespaces, 
-						parentPath, 
+						namespaces,
+						legalConstraintPath,
 						"gmd:otherConstraints/gco:CharacterString",
 						xlinkValue);
 			}
@@ -1005,7 +1058,7 @@ public class MetadataDocument {
 			toBeRemoved.add("accessConstraints");
 			applyMethodOnResourceConstraints(this::verifyNodeToBeRemoved, toBeRemoved);
 			
-			String parentPath = addMdLegalConstraint();
+			String parentPath = addLegalConstraint();
 			addAccessConstraint(parentPath, "otherRestrictions");
 			
 			List<String> updatedOtherConstraints = new ArrayList<>();
