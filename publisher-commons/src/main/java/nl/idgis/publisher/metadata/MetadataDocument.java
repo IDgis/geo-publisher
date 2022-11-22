@@ -913,7 +913,7 @@ public class MetadataDocument {
 		return constraintCodeListValues;
 	}
 	
-	protected String addMdLegalConstraint() throws NotFound {
+	protected String addLegalConstraint() throws NotFound {
 		return isoMetadata.addNode(
 				namespaces, 
 				getDatasetIdentificationPath(), 
@@ -1021,7 +1021,7 @@ public class MetadataDocument {
 					.getNode(namespaces, getDatasetIdentificationPath())
 					.removeChild(resourceConstraintNode);
 				
-				String legalConstraintPath = addMdLegalConstraint();
+				String legalConstraintPath = addLegalConstraint();
 				for(String accessConstraintCodeListValue : accessConstraintCodeListValues) {
 					addAccessConstraint(legalConstraintPath, accessConstraintCodeListValue);
 				}
@@ -1058,7 +1058,7 @@ public class MetadataDocument {
 			toBeRemoved.add("accessConstraints");
 			applyMethodOnResourceConstraints(this::verifyNodeToBeRemoved, toBeRemoved);
 			
-			String parentPath = addMdLegalConstraint();
+			String parentPath = addLegalConstraint();
 			addAccessConstraint(parentPath, "otherRestrictions");
 			
 			List<String> updatedOtherConstraints = new ArrayList<>();
