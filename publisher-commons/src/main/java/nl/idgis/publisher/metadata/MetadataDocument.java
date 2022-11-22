@@ -1021,23 +1021,23 @@ public class MetadataDocument {
 					.getNode(namespaces, getDatasetIdentificationPath())
 					.removeChild(resourceConstraintNode);
 				
-				String mdLegalConstraintPath = addMdLegalConstraint();
+				String legalConstraintPath = addMdLegalConstraint();
 				for(String accessConstraintCodeListValue : accessConstraintCodeListValues) {
-					addAccessConstraint(mdLegalConstraintPath, accessConstraintCodeListValue);
+					addAccessConstraint(legalConstraintPath, accessConstraintCodeListValue);
 				}
 				for(String useConstraintCodeListValue : useConstraintCodeListValues) {
-					addUseConstraint(mdLegalConstraintPath, useConstraintCodeListValue);
+					addUseConstraint(legalConstraintPath, useConstraintCodeListValue);
 				}
 				
 				isoMetadata.addNode(
 						namespaces,
-						mdLegalConstraintPath,
+						legalConstraintPath,
 						"gmd:otherConstraints/gco:CharacterString",
 						content);
 				
 				isoMetadata.addNode(
 						namespaces,
-						mdLegalConstraintPath,
+						legalConstraintPath,
 						"gmd:otherConstraints/gco:CharacterString",
 						xlinkValue);
 			}
