@@ -894,7 +894,7 @@ public class MetadataDocument {
 			.nodes(getOtherConstraintsGmxPath());
 	}
 	
-	protected List<String> readMdLegalConstraints(Node legalConstraintChild, List<String> constraintCodeListValues) {
+	protected List<String> readLegalConstraintChild(Node legalConstraintChild, List<String> constraintCodeListValues) {
 		NodeList constraintsChildren = legalConstraintChild.getChildNodes();
 		for(int constraintsChildrenInt = 0; constraintsChildrenInt < constraintsChildren.getLength(); constraintsChildrenInt++) {
 			Node constraintsChild = constraintsChildren.item(constraintsChildrenInt);
@@ -1009,11 +1009,11 @@ public class MetadataDocument {
 					Node legalConstraintChild = legalConstraintChildren.item(legalConstraintChildrenInt);
 					
 					if("accessConstraints".equals(legalConstraintChild.getNodeName())) {
-						readMdLegalConstraints(legalConstraintChild, accessConstraintCodeListValues);
+						readLegalConstraintChild(legalConstraintChild, accessConstraintCodeListValues);
 					}
 					
 					if("useConstraints".equals(legalConstraintChild.getNodeName())) {
-						readMdLegalConstraints(legalConstraintChild, useConstraintCodeListValues);
+						readLegalConstraintChild(legalConstraintChild, useConstraintCodeListValues);
 					}
 				}
 				
