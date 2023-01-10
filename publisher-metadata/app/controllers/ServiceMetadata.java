@@ -189,7 +189,6 @@ public class ServiceMetadata extends AbstractMetadata {
 			metadataDocument.setMetaDataPointOfContactName(role, serviceTuple.get(constants.organization));
 			metadataDocument.setMetaDataPointOfContactEmail(role, serviceTuple.get(constants.email));
 			
-			Integer lastDatasetId = null;
 			metadataDocument.removeOperatesOn();
 			for(Tuple serviceDatasetTuple : serviceDatasetTuples) {
 				int datasetId = serviceDatasetTuple.get(dataset.id);
@@ -197,6 +196,7 @@ public class ServiceMetadata extends AbstractMetadata {
 				// a service can operate on a dataset using multiple
 				// layer names (i.e. we encounter it multiple times in this loop), 
 				// but it should reported only once here.
+				Integer lastDatasetId = null;
 				if(lastDatasetId == null || datasetId != lastDatasetId) {
 					lastDatasetId = datasetId;
 					
@@ -265,14 +265,23 @@ public class ServiceMetadata extends AbstractMetadata {
 			}
 			
 			for(Tuple serviceDatasetTuple : serviceDatasetTuples) {
-				String identifier = serviceDatasetTuple.get(dataset.metadataIdentification);
-				String scopedName = serviceDatasetTuple.get(publishedServiceDataset.layerName);
+				int datasetId = serviceDatasetTuple.get(dataset.id);
 				
-				if(serviceType == ServiceType.WMS) {
-					metadataDocument.addServiceBrowseGraphic(linkage + config.getBrowseGraphicWmsRequest() + scopedName);
+				// a service can operate on a dataset using multiple
+				// layer names (i.e. we encounter it multiple times in this loop), 
+				// but it should reported only once here.
+				Integer lastDatasetId = null;
+				if(lastDatasetId == null || datasetId != lastDatasetId) {
+					lastDatasetId = datasetId;
+					
+					String identifier = serviceDatasetTuple.get(dataset.metadataIdentification);
+					String scopedName = serviceDatasetTuple.get(publishedServiceDataset.layerName);
+					if(serviceType == ServiceType.WMS) {
+						metadataDocument.addServiceBrowseGraphic(linkage + config.getBrowseGraphicWmsRequest() + scopedName);
+					}
+					metadataDocument.addServiceLinkage(linkage, serviceType.getProtocol(), scopedName, "accessPoint");
+					metadataDocument.addSVCoupledResource(serviceType.getOperationName(), identifier, scopedName);
 				}
-				metadataDocument.addServiceLinkage(linkage, serviceType.getProtocol(), scopedName, "accessPoint");
-				metadataDocument.addSVCoupledResource(serviceType.getOperationName(), identifier, scopedName);
 			}
 			
 			metadataDocument.removeStylesheet();
