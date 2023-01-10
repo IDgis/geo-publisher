@@ -190,15 +190,16 @@ public class ServiceMetadata extends AbstractMetadata {
 			metadataDocument.setMetaDataPointOfContactEmail(role, serviceTuple.get(constants.email));
 			
 			metadataDocument.removeOperatesOn();
+			
+			Integer lastDatasetIdForOperatesOn = null;
 			for(Tuple serviceDatasetTuple : serviceDatasetTuples) {
 				int datasetId = serviceDatasetTuple.get(dataset.id);
 				
 				// a service can operate on a dataset using multiple
 				// layer names (i.e. we encounter it multiple times in this loop), 
 				// but it should reported only once here.
-				Integer lastDatasetId = null;
-				if(lastDatasetId == null || datasetId != lastDatasetId) {
-					lastDatasetId = datasetId;
+				if(lastDatasetIdForOperatesOn == null || datasetId != lastDatasetIdForOperatesOn) {
+					lastDatasetIdForOperatesOn = datasetId;
 					
 					String fileIdentification = serviceDatasetTuple.get(dataset.metadataFileIdentification);
 					String uuidref = 
@@ -264,15 +265,15 @@ public class ServiceMetadata extends AbstractMetadata {
 				}
 			}
 			
+			Integer lastDatasetIdForServiceLinkage = null;
 			for(Tuple serviceDatasetTuple : serviceDatasetTuples) {
 				int datasetId = serviceDatasetTuple.get(dataset.id);
 				
 				// a service can operate on a dataset using multiple
 				// layer names (i.e. we encounter it multiple times in this loop), 
 				// but it should reported only once here.
-				Integer lastDatasetId = null;
-				if(lastDatasetId == null || datasetId != lastDatasetId) {
-					lastDatasetId = datasetId;
+				if(lastDatasetIdForServiceLinkage == null || datasetId != lastDatasetIdForServiceLinkage) {
+					lastDatasetIdForServiceLinkage = datasetId;
 					
 					String identifier = serviceDatasetTuple.get(dataset.metadataIdentification);
 					String scopedName = serviceDatasetTuple.get(publishedServiceDataset.layerName);
