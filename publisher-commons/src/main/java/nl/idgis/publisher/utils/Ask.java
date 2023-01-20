@@ -111,6 +111,8 @@ public final class Ask extends UntypedActor {
 	
 	@Override
 	public void onReceive(Object msg) throws Exception {
+		log.debug("message received, {}", msg.getClass().getCanonicalName());
+
 		if(msg instanceof ReceiveTimeout) {
 			log.debug("timeout");
 			
@@ -125,7 +127,8 @@ public final class Ask extends UntypedActor {
 			
 			promise.success(new AskResponse<>(msg, getSender()));
 		}
-		
+
+		log.debug("stopping actor");
 		getContext().stop(self());
 	}
 }

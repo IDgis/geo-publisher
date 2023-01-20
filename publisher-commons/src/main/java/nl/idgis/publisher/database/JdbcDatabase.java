@@ -137,7 +137,7 @@ public abstract class JdbcDatabase extends UntypedActor {
 		log.debug("executing query in autocommit mode");
 		
 		ActorRef sender = getSender(), self = getSelf();
-		transactionHandler.transactional(tx -> f.ask(tx, query)).whenComplete((result, t) -> {
+		transactionHandler.transactional(tx -> f.askDelayed(tx, query)).whenComplete((result, t) -> {
 			if(t == null) {
 				sender.tell(result, self);
 			} else {
