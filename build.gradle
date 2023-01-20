@@ -810,6 +810,13 @@ project(':publisher-geoserver') {
 		into "${project.buildDir}/docker/webapps/geoserver"
 	}
 	
+	task copyEsriFonts(type: Copy) {
+		dependsOn copyGeoserverWebapp
+	
+		from 'src/main/esri_fonts'
+		into "${project.buildDir}/docker/webapps/geoserver/data/styles"
+	}
+	
 	task copyGeoserverDependencies(type: Copy) {
 		dependsOn copyGeoserverWebapp
 	
@@ -831,7 +838,7 @@ project(':publisher-geoserver') {
 	}
 	
 	task prepareDockerContext {
-		dependsOn copyDockerContext, copyProvisioningWebapp, copyGeoserverDependencies, moveJdbcDriver
+		dependsOn copyDockerContext, copyProvisioningWebapp, copyEsriFonts, copyGeoserverDependencies, moveJdbcDriver
 	}
 	
 	task buildImage(type: DockerBuildImage) {
