@@ -16,6 +16,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import akka.actor.ActorSystem;
+import akka.actor.UntypedActor;
+import akka.actor.Props;
+import akka.actor.ActorRef;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -31,11 +34,26 @@ public class FutureUtilsTest {
 	private FutureUtils f;
 	
 	private CompletableFuture<Object> testFuture;
+
+	private ActorRef echoActorRef;
+
+	static class EchoActor extends UntypedActor {
+
+		static Props props() {
+			return Props.create(EchoActor.class);
+		}
+
+		@Override
+		public final void onReceive(final Object msg) throws Exception {
+			getSender().tell(msg, getSelf());
+		}
+	}
 	
 	@Before
 	public void setUp() {
 		
 		ActorSystem system = ActorSystem.create();
+		echoActorRef = system.actorOf(EchoActor.props());
 		f = new FutureUtils(system);
 		
 		testFuture = new CompletableFuture<>();
@@ -283,5 +301,20 @@ public class FutureUtilsTest {
 				
 				return null;
 			});
+	}
+
+	@Test
+	public void testAsk() {
+		f.ask(echoActorRef, "Hello world!").handle((echo, throwable) -> {
+			try {
+				assertEquals("Hello world!", echo);
+
+				testFuture.complete(true);
+			} catch(Throwable t) {
+				testFuture.completeExceptionally(t);
+			}
+
+			return null;
+		});
 	}
 }
