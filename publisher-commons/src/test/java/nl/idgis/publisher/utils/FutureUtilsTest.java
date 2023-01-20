@@ -295,8 +295,8 @@ public class FutureUtilsTest {
 					assertTrue(result.contains("c"));
 					
 					testFuture.complete(true);
-				} catch(Exception e) {
-					testFuture.completeExceptionally(e);
+				} catch(Throwable t) {
+					testFuture.completeExceptionally(t);
 				}
 				
 				return null;
