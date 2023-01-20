@@ -20,6 +20,8 @@ import akka.actor.UntypedActor;
 import akka.actor.Props;
 import akka.actor.ActorRef;
 
+import scala.concurrent.duration.FiniteDuration;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -35,7 +37,7 @@ public class FutureUtilsTest {
 	
 	private CompletableFuture<Object> testFuture;
 
-	private ActorRef echoActorRef;
+	private ActorRef echoActorRef, slowEchoActorRef;
 
 	static class EchoActor extends UntypedActor {
 
@@ -48,12 +50,71 @@ public class FutureUtilsTest {
 			getSender().tell(msg, getSelf());
 		}
 	}
+
+	static class DelayedSendActor extends UntypedActor {
+
+		private static class Pulse {};
+
+		private final Object msg;
+
+		private final ActorRef target, sender;
+
+		private int count = 10;
+
+		public DelayedSendActor(Object msg, ActorRef target, ActorRef sender) {
+			this.msg = msg;
+			this.target = target;
+			this.sender = sender;
+		}
+
+		@Override
+		public void preStart() throws Exception {
+			schedulePulse();
+		}
+
+		private void schedulePulse() {
+			getContext().system().scheduler().scheduleOnce(
+					new FiniteDuration(1, TimeUnit.MILLISECONDS),
+					getSelf(),
+					new Pulse(),
+					getContext().dispatcher(),
+					getSelf());
+		}
+
+		@Override
+		public void onReceive(Object msg) throws Exception {
+			if (--count == 0) {
+				target.tell(this.msg, sender);
+				getContext().stop(getSelf());
+			} else {
+				target.tell(new Busy(), sender);
+				schedulePulse();
+			}
+		}
+
+		static Props props(Object echoMsg, ActorRef target, ActorRef sender) {
+			return Props.create(DelayedSendActor.class, echoMsg, target, sender);
+		}
+	}
+
+	static class SlowEchoActor extends UntypedActor {
+
+		static Props props() {
+			return Props.create(SlowEchoActor.class);
+		}
+
+		@Override
+		public final void onReceive(final Object msg) throws Exception {
+			getContext().actorOf(DelayedSendActor.props(msg, getSender(), getSelf()));
+		}
+	}
 	
 	@Before
 	public void setUp() {
 		
 		ActorSystem system = ActorSystem.create();
 		echoActorRef = system.actorOf(EchoActor.props());
+		slowEchoActorRef = system.actorOf(SlowEchoActor.props());
 		f = new FutureUtils(system);
 		
 		testFuture = new CompletableFuture<>();
@@ -306,6 +367,21 @@ public class FutureUtilsTest {
 	@Test
 	public void testAsk() {
 		f.ask(echoActorRef, "Hello world!").handle((echo, throwable) -> {
+			try {
+				assertEquals("Hello world!", echo);
+
+				testFuture.complete(true);
+			} catch(Throwable t) {
+				testFuture.completeExceptionally(t);
+			}
+
+			return null;
+		});
+	}
+
+	@Test
+	public void testAskDelayed() {
+		f.askDelayed(slowEchoActorRef, "Hello world!").handle((echo, throwable) -> {
 			try {
 				assertEquals("Hello world!", echo);
 
