@@ -132,7 +132,7 @@ public class VectorLoaderSessionTest {
 			f,
 			Logging.getLogger());
 
-		loaderSession = actorSystem.actorOf(VectorLoaderSession.props(Duration.create(1, TimeUnit.SECONDS), 2, loader, importJob, UUID.randomUUID().toString() /* tmpTable*/, importJob.getColumns(), datasetManager, null /* filterEvaluator */, tx, jobContext));
+		loaderSession = actorSystem.actorOf(VectorLoaderSession.props(Duration.create(1, TimeUnit.SECONDS), 2, loader, importJob, UUID.randomUUID().toString() /* tmpTable*/, importJob.getColumns(), datasetManager, null /* filterEvaluator */, tx.getTransactionRef(), jobContext));
 	}
 	
 	@Test

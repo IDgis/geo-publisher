@@ -13,7 +13,9 @@ import akka.actor.Props;
 
 import scala.concurrent.duration.Duration;
 
+import nl.idgis.publisher.database.AsyncTransactionRef;
 import nl.idgis.publisher.database.AsyncTransactionHelper;
+import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.database.messages.CreateIndices;
 import nl.idgis.publisher.database.messages.InsertRecords;
 
@@ -37,31 +39,40 @@ public class VectorLoaderSession extends AbstractLoaderSession<VectorImportJobIn
 	
 	private final List<Column> importColumns;
 	
-	private final AsyncTransactionHelper tx;
+	private final AsyncTransactionRef txRef;
 	
 	private final ActorRef datasetManager;
 	
 	private final FilterEvaluator filterEvaluator;	
 	
 	private long insertCount = 0, filteredCount = 0;
-	
-	public VectorLoaderSession(Duration receiveTimeout, int maxRetries, ActorRef loader, VectorImportJobInfo importJob, String tmpTable, List<Column> importColumns, ActorRef datasetManager, FilterEvaluator filterEvaluator, AsyncTransactionHelper tx, ActorRef jobContext) throws IOException {		
+
+	private AsyncTransactionHelper tx;
+
+	public VectorLoaderSession(Duration receiveTimeout, int maxRetries, ActorRef loader, VectorImportJobInfo importJob, String tmpTable, List<Column> importColumns, ActorRef datasetManager, FilterEvaluator filterEvaluator, AsyncTransactionRef txRef, ActorRef jobContext) throws IOException {
 		super(receiveTimeout, maxRetries, loader, importJob, jobContext);
 		
 		this.tmpTable = tmpTable;
 		this.importColumns = importColumns;
 		this.datasetManager = datasetManager;
 		this.filterEvaluator = filterEvaluator;
-		this.tx = tx;
+		this.txRef = txRef;
 	}
 	
-	public static Props props(Duration receiveTimeout, int maxRetries, ActorRef loader, VectorImportJobInfo importJob, String tmpTable, List<Column> importColumns, ActorRef datasetManager, FilterEvaluator filterEvaluator, AsyncTransactionHelper tx, ActorRef jobContext) {
-		return Props.create(VectorLoaderSession.class, receiveTimeout, maxRetries, loader, importJob, tmpTable, importColumns, datasetManager, filterEvaluator, tx, jobContext);
+	public static Props props(Duration receiveTimeout, int maxRetries, ActorRef loader, VectorImportJobInfo importJob, String tmpTable, List<Column> importColumns, ActorRef datasetManager, FilterEvaluator filterEvaluator, AsyncTransactionRef txRef, ActorRef jobContext) {
+		return Props.create(VectorLoaderSession.class, receiveTimeout, maxRetries, loader, importJob, tmpTable, importColumns, datasetManager, filterEvaluator, txRef, jobContext);
 	}
 	
-	public static Props props(ActorRef loader, VectorImportJobInfo importJob, String tmpTable, List<Column> importColumns, ActorRef datasetManager, FilterEvaluator filterEvaluator, AsyncTransactionHelper tx, ActorRef jobContext) {
-		return props(DEFAULT_RECEIVE_TIMEOUT, DEFAULT_MAX_RETRIES, loader, importJob, tmpTable, importColumns, datasetManager, filterEvaluator, tx, jobContext);
-	}	
+	public static Props props(ActorRef loader, VectorImportJobInfo importJob, String tmpTable, List<Column> importColumns, ActorRef datasetManager, FilterEvaluator filterEvaluator, AsyncTransactionRef txRef, ActorRef jobContext) {
+		return props(DEFAULT_RECEIVE_TIMEOUT, DEFAULT_MAX_RETRIES, loader, importJob, tmpTable, importColumns, datasetManager, filterEvaluator, txRef, jobContext);
+	}
+
+	@Override
+	public void preStart() throws Exception {
+		super.preStart();
+
+		tx = AsyncTransactionHelper.bind(txRef, f, log);
+	}
 	
 	@Override
 	protected void handleItemContent(Object content) throws Exception {
@@ -82,21 +93,21 @@ public class VectorLoaderSession extends AbstractLoaderSession<VectorImportJobIn
 
 		return tx.ask(new CreateIndices("staging_data", tmpTable, geometryColumns)).thenCompose(createIndicesMsg -> {
 			log.debug("indices created");
-			
-			if(createIndicesMsg instanceof Ack) {
+
+			if (createIndicesMsg instanceof Ack) {
 				return f.ask(datasetManager, new PrepareTable(
-					Optional.of(tx.getTransactionRef()), 
-					tmpTable,
-					importJob.getDatasetId(),
-					importColumns,
-					insertCount)).thenCompose(prepareTableMsg -> {
-					
+						Optional.of(tx.getTransactionRef()),
+						tmpTable,
+						importJob.getDatasetId(),
+						importColumns,
+						insertCount)).thenCompose(prepareTableMsg -> {
+
 					log.debug("table prepared");
-					
-					if(prepareTableMsg instanceof Ack) {
+
+					if (prepareTableMsg instanceof Ack) {
 						return tx.commit().thenApply(commitMsg -> {
 							log.debug("transaction committed");
-							
+
 							return commitMsg;
 						});
 					} else {
@@ -113,7 +124,7 @@ public class VectorLoaderSession extends AbstractLoaderSession<VectorImportJobIn
 	protected CompletableFuture<Object> importFailed() {
 		return tx.rollback().thenApply(msg -> {
 			log.debug("transaction rolled back");
-			
+
 			return msg;
 		});
 	}	
@@ -159,16 +170,17 @@ public class VectorLoaderSession extends AbstractLoaderSession<VectorImportJobIn
 		updateProgress();
 		
 		ActorRef sender = getSender(), self = getSelf();
+
 		tx.ask(new InsertRecords(
-			"staging_data",
-			tmpTable, 
-			importColumns, 
-			processedRecords))
+						"staging_data",
+						tmpTable,
+						importColumns,
+						processedRecords))
 				.exceptionally(t -> new Failure(t))
 				.thenAccept(resp -> {
-					if(resp instanceof Failure) {
+					if (resp instanceof Failure) {
 						log.error("failed to insert records: {}", records);
-						
+
 						sender.tell(new Stop(), getSelf());
 						self.tell(new FinalizeSession(JobState.FAILED), self);
 					} else {
