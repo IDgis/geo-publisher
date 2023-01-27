@@ -261,7 +261,7 @@ public class DataSources extends Controller {
 								: Domain.message(sourceDatasetStat.lastLogMessage()))));
 					});
 				
-				if(sourceDatasetStats.currentPage() < sourceDatasetStats.pageCount()) {	
+				if(sourceDatasetStats.currentPage() + 1 < sourceDatasetStats.pageCount()) {	
 					from(database)
 						.query(new ListSourceDatasets (currentDataSource, currentCategory, search, withErrors, null, null, null, ListSourceDatasetsOrderBy.TITLE, sourceDatasetStats.currentPage() + 1, itemsPerPage))
 						.execute(nextSourceDatasetStats -> processPage(out, nextSourceDatasetStats))
@@ -275,20 +275,19 @@ public class DataSources extends Controller {
 				
 				return null;
 			}
-
-	        public void onReady(Chunks.Out<String> out) {
-	        	out.write(toLine(Arrays.asList("id", "name", "category", "datasets", "error")));
-	        	
-	        	from(database)
+			
+			public void onReady(Chunks.Out<String> out) {
+				out.write(toLine(Arrays.asList("id", "name", "category", "datasets", "error")));
+				
+				from(database)
 					.query(new ListSourceDatasets (currentDataSource, currentCategory, search, withErrors, null, null, null, ListSourceDatasetsOrderBy.TITLE, 1l, itemsPerPage))
 					.execute(sourceDatasetStats -> processPage(out, sourceDatasetStats))
 					.onFailure(t -> {
 						Logger.error("generating csv output failed", t);
 						out.close();
 					});
-	        }
-	        
-	    });	    
+			}
+		});
 	}
 	
 	public static Promise<Result> refreshDatasources () {
