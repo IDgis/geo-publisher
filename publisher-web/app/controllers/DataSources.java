@@ -227,7 +227,7 @@ public class DataSources extends Controller {
 		
 		response().setContentType("application/x-download; charset=" + encoding);  
 		response().setHeader("Content-disposition", "attachment; filename=" + filename);
-
+		
 		String currentDataSource = null; 
 		String currentCategory = null;
 		
@@ -261,7 +261,8 @@ public class DataSources extends Controller {
 								: Domain.message(sourceDatasetStat.lastLogMessage()))));
 					});
 				
-				if(sourceDatasetStats.currentPage() + 1 < sourceDatasetStats.pageCount()) {	
+				if((sourceDatasetStats.currentPage() == 0 && sourceDatasetStats.currentPage() + 1 < sourceDatasetStats.pageCount()) ||
+						(sourceDatasetStats.currentPage() > 0 && sourceDatasetStats.currentPage() < sourceDatasetStats.pageCount())) {
 					from(database)
 						.query(new ListSourceDatasets (currentDataSource, currentCategory, search, withErrors, null, null, null, ListSourceDatasetsOrderBy.TITLE, sourceDatasetStats.currentPage() + 1, itemsPerPage))
 						.execute(nextSourceDatasetStats -> processPage(out, nextSourceDatasetStats))
