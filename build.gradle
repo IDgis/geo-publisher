@@ -40,7 +40,7 @@ ext {
 	guavaVersion = '17.0'
 	h2Version = '1.4.180'
 	jodatimeVersion = '2.3'
-	geoserverVersion = '2.12.1'
+	geoserverVersion = '2.22.2'
 	gtVersion = '20.0'
 	commonsIOVersion = '2.4'
 	deegreeVersion = '3.4-RC1'
