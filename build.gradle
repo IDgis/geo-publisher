@@ -41,7 +41,7 @@ ext {
 	h2Version = '1.4.180'
 	jodatimeVersion = '2.3'
 	geoserverVersion = '2.22.2'
-	gtVersion = '20.0'
+	gtVersion = '28.2'
 	commonsIOVersion = '2.4'
 	deegreeVersion = '3.4-RC1'
 	logbackVersion= '1.1.2'
@@ -790,6 +790,7 @@ project(':publisher-geoserver') {
 		geoserver "org.geotools.xsd:gt-xsd-wps:${gtVersion}"
 		geoserver "org.geotools.ogc:net.opengis.wps:${gtVersion}"
 		geoserver "xalan:serializer:2.7.1"
+		geoserver "org.geoserver.extension:gs-geopkg-output:${geoserverVersion}"
 		geoserver "org.geoserver.community:gs-mbtiles:${geoserverVersion}"
 		geoserver "org.geotools:gt-mbtiles:${gtVersion}"
 		geoserver "org.geoserver.community:gs-geopkg:${geoserverVersion}"
