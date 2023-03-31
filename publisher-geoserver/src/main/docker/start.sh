@@ -4,8 +4,8 @@ if [ "$(ls -A $GEOSERVER_DATA_DIR)" ]; then
 	echo "GeoServer data directory already exists, keep using existing configuration..."
 else
 	echo "Building initial GeoServer data directory..."
-	cp -R /var/lib/tomcat7/webapps/geoserver/data/* $GEOSERVER_DATA_DIR
-	chown -R tomcat7:tomcat7 $GEOSERVER_DATA_DIR
+	cp -R /usr/local/tomcat9/webapps/geoserver/data/* $GEOSERVER_DATA_DIR
+	chown -R tomcat9:tomcat9 $GEOSERVER_DATA_DIR
 	
 	echo "Configuring GeoServer password..."
 	mkdir -p $GEOSERVER_DATA_DIR/security/
@@ -73,6 +73,6 @@ echo \
 		"testOnBorrow=\"true\" "\
 		"validationInterval=\"0\" "\
 	"/>"\
-"</Context>" > /var/lib/tomcat7/conf/Catalina/localhost/geoserver.xml
+"</Context>" > /usr/local/tomcat9/conf/Catalina/localhost/geoserver.xml
 
-exec /usr/share/tomcat7/bin/catalina.sh run
+exec /usr/local/tomcat9/bin/catalina.sh run
