@@ -7,7 +7,6 @@ RUN apt-get update \
 		fontconfig \
 		fonts-liberation \
 		openjdk-8-jre-headless \
-		tomcat7 \
 		unzip \
 		wget \
 		xml2
@@ -15,32 +14,33 @@ RUN apt-get update \
 ENV SERVICE_IDENTIFICATION="geoserver"
 ENV SERVICE_AJP_PORT="8009"
 ENV SERVICE_HTTP_PORT="8080"
-ENV SERVICE_FORCE_HTTPS="false"		
+ENV SERVICE_FORCE_HTTPS="false"
 
 ENV ENABLE_SERVICES="WMS,WFS"
 
 ENV GEOSERVER_DATA_DIR="/var/lib/geo-publisher/geoserver"
-ENV CATALINA_BASE="/var/lib/tomcat7"
-ENV CATALINA_HOME="/usr/share/tomcat7"
-ENV CATALINA_TMPDIR="/var/lib/tomcat7/tmp"
-ENV PATH="$CATALINA_HOME/bin:$PATH"
+ENV CATALINA_BASE="/usr/local/tomcat9"
+ENV CATALINA_TMPDIR="/usr/local/tomcat9/tmp"
+ENV CATALINA_CONTEXT="/usr/local/tomcat9/conf/Catalina/localhost"
 
 # Copy webapps, jars, start script and tomcat configuration:
-COPY /webapps/geoserver /var/lib/tomcat7/webapps/geoserver
-COPY /geowebcache_empty.xml /var/lib/tomcat7/webapps/geoserver/data/gwc/geowebcache.xml
-COPY /webapps/provisioning-registration-war /var/lib/tomcat7/webapps/provisioning-registration-war
-COPY /lib/* /usr/share/tomcat7/lib
+COPY /apache-tomcat-9.0.73 /usr/local/tomcat9
+COPY /webapps/geoserver /usr/local/tomcat9/webapps/geoserver
+COPY /geowebcache_empty.xml /usr/local/tomcat9/webapps/geoserver/data/gwc/geowebcache.xml
+COPY /webapps/provisioning-registration-war /usr/local/tomcat9/webapps/provisioning-registration-war
+COPY /lib/* /usr/local/tomcat9/lib
 COPY /start.sh /opt/start.sh
-COPY /server.xml /var/lib/tomcat7/conf/server.xml
+COPY /server.xml /usr/local/tomcat9/conf/server.xml
+
+RUN useradd -m --uid 7000 --shell /bin/false tomcat9
 
 # Set permissions, create data directory:
 RUN chmod +x /opt/start.sh && \
 	mkdir -p $CATALINA_TMPDIR && \
-	chown tomcat7:tomcat7 $CATALINA_TMPDIR && \ 
 	mkdir -p $GEOSERVER_DATA_DIR && \
-	chown tomcat7:tomcat7 $GEOSERVER_DATA_DIR && \
-	chown -R tomcat7:tomcat7 /var/lib/tomcat7/webapps/ && \
-	chown -R tomcat7:tomcat7 /var/lib/tomcat7/conf/
+	mkdir -p $CATALINA_CONTEXT && \
+	chown tomcat9:tomcat9 $GEOSERVER_DATA_DIR && \
+	chown -R tomcat9:tomcat9 /usr/local/tomcat9/
 	
 # Download and install the core fonts:
 ENV MSCOREFONTS_BASE="http://netcologne.dl.sourceforge.net/project/corefonts/the%20fonts/final/"
@@ -62,8 +62,8 @@ RUN wget -q -O /tmp/andale32.exe "${MSCOREFONTS_BASE}andale32.exe" && \
 	fc-cache -fv && \
 	fc-list
 	
-# Run the command as the tomcat7 user:
-USER tomcat7
+# Run the command as the tomcat9 user:
+USER tomcat9
 
 # Expose network ports:
 EXPOSE 8080
