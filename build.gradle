@@ -783,6 +783,7 @@ project(':publisher-geoserver') {
 		
 		geoserver "org.geoserver.extension:gs-charts:${geoserverVersion}"
 		geoserver "org.geotools:gt-charts:${gtVersion}"
+		geoserver "jfree:eastwood:1.1.1-20090908"
 		geoserver "org.geoserver.extension:gs-dxf-core:${geoserverVersion}"
 		geoserver "org.geoserver.extension:gs-wps-core:${geoserverVersion}"
 		geoserver "org.geoserver.extension:gs-web-wps:${geoserverVersion}"
