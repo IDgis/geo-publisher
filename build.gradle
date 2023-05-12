@@ -40,8 +40,8 @@ ext {
 	guavaVersion = '17.0'
 	h2Version = '1.4.180'
 	jodatimeVersion = '2.3'
-	geoserverVersion = '2.12.1'
-	gtVersion = '20.0'
+	geoserverVersion = '2.22.2'
+	gtVersion = '28.2'
 	commonsIOVersion = '2.4'
 	deegreeVersion = '3.4-RC1'
 	logbackVersion= '1.1.2'
@@ -783,6 +783,7 @@ project(':publisher-geoserver') {
 		
 		geoserver "org.geoserver.extension:gs-charts:${geoserverVersion}"
 		geoserver "org.geotools:gt-charts:${gtVersion}"
+		geoserver "jfree:eastwood:1.1.1-20090908"
 		geoserver "org.geoserver.extension:gs-dxf-core:${geoserverVersion}"
 		geoserver "org.geoserver.extension:gs-wps-core:${geoserverVersion}"
 		geoserver "org.geoserver.extension:gs-web-wps:${geoserverVersion}"
@@ -790,6 +791,7 @@ project(':publisher-geoserver') {
 		geoserver "org.geotools.xsd:gt-xsd-wps:${gtVersion}"
 		geoserver "org.geotools.ogc:net.opengis.wps:${gtVersion}"
 		geoserver "xalan:serializer:2.7.1"
+		geoserver "org.geoserver.extension:gs-geopkg-output:${geoserverVersion}"
 		geoserver "org.geoserver.community:gs-mbtiles:${geoserverVersion}"
 		geoserver "org.geotools:gt-mbtiles:${gtVersion}"
 		geoserver "org.geoserver.community:gs-geopkg:${geoserverVersion}"
@@ -808,6 +810,13 @@ project(':publisher-geoserver') {
 	task copyGeoserverWebapp(type: Copy) {
 		from configurations.geoserverWebapp.collect { zipTree(it) }
 		into "${project.buildDir}/docker/webapps/geoserver"
+	}
+	
+	task copyEsriFonts(type: Copy) {
+		dependsOn copyGeoserverWebapp
+	
+		from 'src/main/esri_fonts'
+		into "${project.buildDir}/docker/webapps/geoserver/data/styles"
 	}
 	
 	task copyGeoserverDependencies(type: Copy) {
@@ -831,7 +840,7 @@ project(':publisher-geoserver') {
 	}
 	
 	task prepareDockerContext {
-		dependsOn copyDockerContext, copyProvisioningWebapp, copyGeoserverDependencies, moveJdbcDriver
+		dependsOn copyDockerContext, copyProvisioningWebapp, copyEsriFonts, copyGeoserverDependencies, moveJdbcDriver
 	}
 	
 	task buildImage(type: DockerBuildImage) {

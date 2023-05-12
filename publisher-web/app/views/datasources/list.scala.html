@@ -281,7 +281,7 @@
 							<div class="row">
 								<form class="form-horizontal" action="@routes.DataSources.download()" method="get">
 									@if(search != null) {
-										<input type="hidden" name="search" value="@search">
+										<input type="hidden" name="searchString" value="@search">
 									}
 									@if(withErrors != null) {
 										<input type="hidden" name="withErrors" value="@withErrors">
