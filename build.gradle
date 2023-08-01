@@ -78,43 +78,16 @@ subprojects {
 
 	repositories {	
 		mavenCentral artifactUrls: ['http://maven.geotoolkit.org/', 'https://repo.osgeo.org/repository/release/']
-		maven {
-			name "idgis-public"
-			url "http://nexus.idgis.eu/content/groups/public/"
-			credentials {
-				username nexusUser 
-				password nexusPassword
-			}
-		}
-		maven {
-			name "idgis-restricted"
-			url "http://nexus.idgis.eu/content/groups/restricted/"
-			credentials {
-				username nexusUser 
-				password nexusPassword
-			}
-		}
 	}
 	
 	publishing {
-		if(project.version != 'unspecified') { // do not publish without version
-			if(project.version.endsWith('-SNAPSHOT')) {
-				repositories.maven {
-					name 'idgis-snapshots'
-					url 'http://nexus.idgis.eu/content/repositories/snapshots/'
-					credentials {
-						username nexusUser 
-						password nexusPassword
-					}
-				}
-			} else {		
-				repositories.maven {
-					name 'idgis-releases'
-					url 'http://nexus.idgis.eu/content/repositories/releases/'
-					credentials {
-						username nexusUser 
-						password nexusPassword
-					}
+		repositories {
+			maven {
+				name = "GitHubPackages"
+				url = "https://maven.pkg.github.com/IDgis/geo-publisher"
+				credentials {
+					username = System.getenv("GITHUB_USER") ?: ghUser
+					password = System.getenv("GITHUB_TOKEN") ?: ghKey
 				}
 			}
 		}
@@ -295,7 +268,6 @@ project(':publisher-web') {
 }
 
 project(':publisher-provider:publisher-provider-app') {
-	apply plugin: 'com.github.johnrengelman.shadow'
 	apply plugin: 'maven-publish'
 	apply plugin: 'application'
 	apply plugin: DockerRemoteConfig
@@ -310,10 +282,8 @@ project(':publisher-provider:publisher-provider-app') {
 	
 	publishing {
 		publications {
-			shadow(MavenPublication) {
-				from components.java
-				groupId 'nl.idgis.publisher'
-				artifact shadowJar
+			gpr(MavenPublication) {
+				from(components.java)
 			}
 		}
 	}
@@ -420,12 +390,11 @@ project(':publisher-database') {
 	// publish jar (includes required *.sql files)
 	apply plugin: 'maven-publish'
 	apply plugin: DockerRemoteConfig
-		
+	
 	publishing {
 		publications {
-			mavenJava(MavenPublication) {
-				groupId 'nl.idgis.publisher'
-				artifact jar
+			gpr(MavenPublication) {
+				from(components.java)
 			}
 		}
 	}
