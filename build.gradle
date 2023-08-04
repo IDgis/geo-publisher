@@ -611,7 +611,7 @@ project(':publisher-service') {
 		testCompile "com.h2database:h2:${h2Version}"
 		testCompile "com.typesafe.akka:akka-testkit_${scalaAbiVersion}:${akkaVersion}"
 		testCompile 'com.google.jimfs:jimfs:1.0'
-		testCompile('org.opengeo:geodb:0.8') {
+		testCompile('org.opengeo:geodb:0.9') {
 			exclude group: 'xerces', module: 'xercesImpl'
 		}
 		testCompile "org.eclipse.jetty:jetty-webapp:${jettyVersion}"
