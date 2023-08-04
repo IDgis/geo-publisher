@@ -22,5 +22,5 @@ jobs:
       run: ./gradlew clean build
       env:
         GITHUB_USER: "github"
-        GITHUB_TOKEN: ${{ github.token }}
+        GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
       
