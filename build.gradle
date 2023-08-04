@@ -48,7 +48,7 @@ ext {
 	jettyVersion = '9.2.2.v20140723'
 	curatorVersion = '2.7.1'
 	querydslVersion = '3.4.1'
-	provisionRegistrationVersion = '1.1.3'
+	provisionRegistrationVersion = '1.1.6-SNAPSHOT'
 	jolokiaVersion = '1.3.7'
 	postgresVersion = '42.2.18'
 }
@@ -78,6 +78,13 @@ subprojects {
 
 	repositories {	
 		mavenCentral artifactUrls: ['http://maven.geotoolkit.org/', 'https://repo.osgeo.org/repository/release/']
+		maven {
+			url = "https://maven.pkg.github.com/IDgis/sysadmin"
+			credentials {
+				username = System.getenv("GITHUB_USER") ?: ghUser
+				password = System.getenv("GITHUB_TOKEN") ?: ghKey
+			}
+		}
 	}
 	
 	publishing {
