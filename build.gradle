@@ -85,6 +85,13 @@ subprojects {
 				password = System.getenv("GITHUB_TOKEN") ?: ghKey
 			}
 		}
+		maven {
+			url = "https://maven.pkg.github.com/IDgis/play-simple-webdav"
+			credentials {
+				username = System.getenv("GITHUB_USER") ?: ghUser
+				password = System.getenv("GITHUB_TOKEN") ?: ghKey
+			}
+		}
 	}
 	
 	publishing {
