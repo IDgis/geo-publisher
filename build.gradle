@@ -33,24 +33,24 @@ task pullJavaImage(type: DockerPullImage) {
 }
 
 ext {
-	junitVersion = '4.11'
-	scalaAbiVersion = '2.11'
 	akkaVersion = '2.3.9'
-	jacksonVersion = '2.8.8'
-	guavaVersion = '17.0'
-	h2Version = '1.4.180'
-	jodatimeVersion = '2.3'
+	commonsIOVersion = '2.4'
+	curatorVersion = '2.7.1'
+	deegreeVersion = '3.4-RC1'
 	geoserverVersion = '2.22.2'
 	gtVersion = '28.2'
-	commonsIOVersion = '2.4'
-	deegreeVersion = '3.4-RC1'
-	logbackVersion= '1.1.2'
+	guavaVersion = '17.0'
+	h2Version = '1.4.180'
+	jacksonVersion = '2.8.8'
 	jettyVersion = '9.2.2.v20140723'
-	curatorVersion = '2.7.1'
-	querydslVersion = '3.4.1'
-	provisionRegistrationVersion = '1.1.6-SNAPSHOT'
+	jodatimeVersion = '2.3'
 	jolokiaVersion = '1.3.7'
+	junitVersion = '4.11'
+	logbackVersion= '1.1.2'
 	postgresVersion = '42.2.18'
+	provisionRegistrationVersion = '1.1.6-SNAPSHOT'
+	querydslVersion = '3.4.1'
+	scalaAbiVersion = '2.11'
 }
 
 configure([
