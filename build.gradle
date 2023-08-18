@@ -595,6 +595,8 @@ project(':publisher-service') {
 	configurations {
 		webapp
 		agents
+		gsWebAppMissingDeps
+		gsWebAppMissingDeps.transitive = false
 	}
 
 	dependencies {
@@ -603,6 +605,8 @@ project(':publisher-service') {
 		}
 	
 		webapp "org.geoserver.web:gs-web-app:${geoserverVersion}@war"
+		
+		gsWebAppMissingDeps "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:${jacksonVersion}"
 		
 		testCompile project(':publisher-test')
 		testCompile project(path: ':publisher-commons', configuration: 'testArtifact')
@@ -641,6 +645,11 @@ project(':publisher-service') {
 			project.copy {
 				from zipTree(artifact.file)
 				into new File(project.buildDir, 'geoserver')
+			}
+			
+			project.copy {
+				from configurations.gsWebAppMissingDeps
+				into "${project.buildDir}/geoserver/WEB-INF/lib"
 			}
 		}
 	}
@@ -764,20 +773,22 @@ project(':publisher-geoserver') {
 		geoserverWebapp "org.geoserver.web:gs-web-app:${geoserverVersion}@war"
 		provisioningWebapp "nl.idgis.sys:provisioning-registration-war:${provisionRegistrationVersion}@war"
 		
-		geoserver "org.geoserver.extension:gs-charts:${geoserverVersion}"
-		geoserver "org.geotools:gt-charts:${gtVersion}"
 		geoserver "jfree:eastwood:1.1.1-20090908"
-		geoserver "org.geoserver.extension:gs-dxf-core:${geoserverVersion}"
-		geoserver "org.geoserver.extension:gs-wps-core:${geoserverVersion}"
-		geoserver "org.geoserver.extension:gs-web-wps:${geoserverVersion}"
-		geoserver "org.geotools:gt-process-geometry:${gtVersion}"
-		geoserver "org.geotools.xsd:gt-xsd-wps:${gtVersion}"
-		geoserver "org.geotools.ogc:net.opengis.wps:${gtVersion}"
 		geoserver "xalan:serializer:2.7.1"
+		
+		geoserver "org.geotools:gt-charts:${gtVersion}"
+		geoserver "org.geotools:gt-mbtiles:${gtVersion}"
+		geoserver "org.geotools:gt-process-geometry:${gtVersion}"
+		geoserver "org.geotools.ogc:net.opengis.wps:${gtVersion}"
+		geoserver "org.geotools.xsd:gt-xsd-wps:${gtVersion}"
+		
+		geoserver "org.geoserver.extension:gs-charts:${geoserverVersion}"
+		geoserver "org.geoserver.extension:gs-dxf-core:${geoserverVersion}"
+		geoserver "org.geoserver.community:gs-geopkg:${geoserverVersion}"
 		geoserver "org.geoserver.extension:gs-geopkg-output:${geoserverVersion}"
 		geoserver "org.geoserver.community:gs-mbtiles:${geoserverVersion}"
-		geoserver "org.geotools:gt-mbtiles:${gtVersion}"
-		geoserver "org.geoserver.community:gs-geopkg:${geoserverVersion}"
+		geoserver "org.geoserver.extension:gs-web-wps:${geoserverVersion}"
+		geoserver "org.geoserver.extension:gs-wps-core:${geoserverVersion}"
 	}
 
 	task copyDockerContext(type: Copy) {
