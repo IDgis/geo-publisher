@@ -41,12 +41,9 @@ import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.LoggingAdapter;
 import akka.util.Timeout;
-
-import nl.idgis.publisher.database.AsyncDatabaseHelper;
-
 import nl.idgis.publisher.DatabaseMock;
 import nl.idgis.publisher.EmptyQueryResultTransactionMock;
-
+import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.domain.web.NotFound;
 import nl.idgis.publisher.domain.web.tree.DatasetLayerRef;
@@ -58,7 +55,6 @@ import nl.idgis.publisher.domain.web.tree.Service;
 import nl.idgis.publisher.domain.web.tree.StyleRef;
 import nl.idgis.publisher.domain.web.tree.Tiling;
 import nl.idgis.publisher.domain.web.tree.VectorDatasetLayer;
-
 import nl.idgis.publisher.job.context.messages.UpdateJobState;
 import nl.idgis.publisher.job.manager.messages.EnsureServiceJobInfo;
 import nl.idgis.publisher.job.manager.messages.VacuumServiceJobInfo;
@@ -124,7 +120,7 @@ public class GeoServerServiceTest {
 		} 
 		
 		public String getServiceId() {
-			return serviceId;			
+			return serviceId;
 		}
 		
 		public Service getService() {
@@ -153,8 +149,6 @@ public class GeoServerServiceTest {
 			return sld;
 		}
 	}
-	
-	
 	
 	static class ServiceManagerMock extends UntypedActor {
 		
@@ -188,7 +182,7 @@ public class GeoServerServiceTest {
 				services.put(putService.getServiceId(), putService.getService());
 				getSender().tell(new Ack(), getSelf());
 			} else if(msg instanceof PutServiceIndex) {
-				serviceIndex = ((PutServiceIndex)msg).getServiceIndex();				
+				serviceIndex = ((PutServiceIndex)msg).getServiceIndex();
 				getSender().tell(new Ack(), getSelf());
 			} else if(msg instanceof PutStyle) {
 				PutStyle putStyle = (PutStyle)msg;
@@ -259,7 +253,7 @@ public class GeoServerServiceTest {
 		stmt.execute("create schema \"staging_data\"");
 		stmt.execute("create table \"staging_data\".\"myTable\"(\"id\" serial primary key, \"label\" text)");
 		stmt.execute("select AddGeometryColumn ('staging_data', 'myTable', 'the_geom', 4326, 'GEOMETRY', 2)");
-		stmt.execute("insert into \"staging_data\".\"myTable\"(\"label\", \"the_geom\") select 'Hello, world!', st_geomfromtext('POINT(42.0 47.0)', 4326)");
+		stmt.execute("insert into \"staging_data\".\"myTable\"(\"label\", \"the_geom\") select 'Hello, world!', st_geomfromtext('POINT(6.520187 52.309432)', 4326)");
 		
 		stmt.close();
 		
@@ -347,13 +341,13 @@ public class GeoServerServiceTest {
 		when(datasetLayer.isVectorLayer()).thenReturn(true);
 		when(datasetLayer.isRasterLayer()).thenReturn(false);
 		when(datasetLayer.asVectorLayer()).thenReturn(datasetLayer);
-		when(datasetLayer.getTableName()).thenReturn("myTable");		
+		when(datasetLayer.getTableName()).thenReturn("myTable");
 		when(datasetLayer.getTiling()).thenReturn(Optional.empty());
 		when(datasetLayer.getImportTime()).thenReturn(Optional.empty());
 		
 		List<StyleRef> styleRefs = Arrays.asList(styleNames).stream()
 			.map(styleName -> {
-				StyleRef styleRef = mock(StyleRef.class);					
+				StyleRef styleRef = mock(StyleRef.class);
 				when(styleRef.getName()).thenReturn(styleName);
 				
 				return styleRef;
@@ -380,7 +374,7 @@ public class GeoServerServiceTest {
 		f.ask(recorder, new Wait(3), Waited.class).get();
 		assertSuccessful(f.ask(recorder, new GetRecording(), Recording.class).get());
 		
-		Document features = h.getFeature("serviceName", "layer");		
+		Document features = h.getFeature("serviceName", "layer");
 		assertTrue(h.getText(features).contains("Hello, world!"));
 		
 		Document capabilities = h.getCapabilities("serviceName", ServiceType.WMS, "1.3.0");
@@ -429,7 +423,7 @@ public class GeoServerServiceTest {
 			layers.add(layerRef);
 		}
 		
-		GroupLayer groupLayer = mock(GroupLayer.class);		
+		GroupLayer groupLayer = mock(GroupLayer.class);
 		when(groupLayer.getName()).thenReturn("group");
 		when(groupLayer.getTitle()).thenReturn("groupTitle");
 		when(groupLayer.getAbstract()).thenReturn("groupAbstract");
@@ -457,13 +451,13 @@ public class GeoServerServiceTest {
 		Document capabilities = h.getCapabilities("serviceName", ServiceType.WMS, "1.3.0");
 		List<String> layerNames = h.getText(h.getNodeList("//wms:Layer/wms:Name", capabilities));
 		for(int i = 0; i < numberOfLayers; i++) {
-			assertTrue(layerNames.contains("serviceName:layer" + i)); // TODO: figure out how to remove the workspace prefix from the name
+			assertTrue(layerNames.contains("layer" + i)); // TODO: figure out how to remove the workspace prefix from the name
 		}
 		assertTrue(layerNames.contains("group"));
 		
 		layerNames = h.getText(h.getNodeList("//wms:Layer[wms:Name = 'group']/wms:Layer/wms:Name", capabilities));
 		for(int i = 0; i < numberOfLayers; i++) {
-			assertTrue(layerNames.contains("serviceName:layer" + i));
+			assertTrue(layerNames.contains("layer" + i));
 		}
 		assertFalse(layerNames.contains("group"));
 		
@@ -606,11 +600,9 @@ public class GeoServerServiceTest {
 		assertSuccessful(f.ask(recorder, new GetRecording(), Recording.class).get());
 		
 		Document capabilities = h.getCapabilities("serviceName", ServiceType.WMS, "1.3.0");		
-		assertEquals("serviceName:layer", h.getText("//wms:Layer/wms:Layer/wms:Layer/wms:Layer/wms:Name", capabilities));
-		assertEquals("serviceName:layer", h.getText("//wms:Layer/wms:Layer/wms:Layer[wms:Name = 'serviceName:group0']/wms:Layer/wms:Name", capabilities));
-		assertEquals("serviceName:layer", h.getText("//wms:Layer/wms:Layer[wms:Name = 'group1']/wms:Layer[wms:Name = 'serviceName:group0']/wms:Layer/wms:Name", capabilities));
-		
-		
+		assertEquals("layer", h.getText("//wms:Layer/wms:Layer/wms:Layer/wms:Layer/wms:Name", capabilities));
+		assertEquals("layer", h.getText("//wms:Layer/wms:Layer/wms:Layer[wms:Name = 'group0']/wms:Layer/wms:Name", capabilities));
+		assertEquals("layer", h.getText("//wms:Layer/wms:Layer[wms:Name = 'group1']/wms:Layer[wms:Name = 'group0']/wms:Layer/wms:Name", capabilities));
 	}
 	
 	@Test
