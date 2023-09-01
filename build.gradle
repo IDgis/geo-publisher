@@ -77,7 +77,13 @@ subprojects {
 	version = rootProject.version
 
 	repositories {	
-		mavenCentral artifactUrls: ['http://maven.geotoolkit.org/', 'https://repo.osgeo.org/repository/release/']
+		mavenCentral artifactUrls: ['http://maven.geotoolkit.org/']
+		maven {
+			url "https://repo.osgeo.org/repository/release/"
+		}
+		maven {
+			url "https://repo.deegree.org/content/repositories/public/"
+		}
 		maven {
 			url = "https://maven.pkg.github.com/IDgis/sysadmin"
 			credentials {
@@ -311,7 +317,7 @@ project(':publisher-provider:publisher-provider-app') {
 		compile "commons-io:commons-io:${commonsIOVersion}"
 		compile 'com.fasterxml:aalto-xml:0.9.9'
 		compile "org.postgresql:postgresql:${postgresVersion}"
-		compile 'com.oracle:ojdbc7:12.1.0.1.0'
+		compile 'com.oracle.database.jdbc:ojdbc8:12.2.0.1'
 		compile("org.deegree:deegree-sqldialect-oracle:${deegreeVersion}") {
 			exclude group: 'org.deegree', module: 'deegree-sqldialect-commons'
 			exclude group: 'org.deegree', module: 'deegree-core-db'
