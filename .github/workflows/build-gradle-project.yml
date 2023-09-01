@@ -23,4 +23,5 @@ jobs:
       env:
         GITHUB_USER: "github"
         GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+        DOCKER_HOST: "http://localhost:2375"
       
