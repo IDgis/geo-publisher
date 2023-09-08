@@ -6,6 +6,11 @@ on:
 jobs:
   build-gradle-project:
     runs-on: ubuntu-latest
+    services:
+      postgis:
+        image: mdillon/postgis:9.6
+        ports:
+          - 49153:5432
     steps:
     - name: Checkout project sources
       uses: actions/checkout@v3

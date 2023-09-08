@@ -617,7 +617,6 @@ project(':publisher-service') {
 		testCompile project(':publisher-test')
 		testCompile project(path: ':publisher-commons', configuration: 'testArtifact')
 		testCompile project(path: ':publisher-database', configuration: 'testArtifact')
-		testCompile 'com.spotify:docker-client:8.16.0'
 		testCompile "com.h2database:h2:${h2Version}"
 		testCompile "com.typesafe.akka:akka-testkit_${scalaAbiVersion}:${akkaVersion}"
 		testCompile 'com.google.jimfs:jimfs:1.0'
