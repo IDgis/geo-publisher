@@ -55,7 +55,7 @@ public class GeoServerTestHelper {
 
 	private static final String DB_HOST = "localhost";
 
-	private static final String DB_PORT = "49153";
+	private String dbPort;
 			
 	private Server jettyServer;
 	
@@ -63,7 +63,9 @@ public class GeoServerTestHelper {
 	
 	private XPath xpath;
 	
-	public GeoServerTestHelper() throws Exception {
+	public GeoServerTestHelper(String dbPort) throws Exception {
+		this.dbPort = dbPort;
+		
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		dbf.setNamespaceAware(true);
 		documentBuilder = dbf.newDocumentBuilder();
@@ -98,7 +100,7 @@ public class GeoServerTestHelper {
 		for(int i = 60; i >= 0; i--) {
 			Thread.sleep(1000);
 			
-			try(Connection c = DriverManager.getConnection("jdbc:postgresql://" + DB_HOST + ":" + DB_PORT + "/postgres", "postgres", "postgres");
+			try(Connection c = DriverManager.getConnection("jdbc:postgresql://" + DB_HOST + ":" + dbPort + "/postgres", "postgres", "postgres");
 				Statement stmt = c.createStatement()) {
 				stmt.execute("create database \"test\"");
 				break;
@@ -109,7 +111,7 @@ public class GeoServerTestHelper {
 			}
 		}
 		
-		try(Connection c = DriverManager.getConnection("jdbc:postgresql://" + DB_HOST + ":" + DB_PORT + "/test", "postgres", "postgres");
+		try(Connection c = DriverManager.getConnection("jdbc:postgresql://" + DB_HOST + ":" + dbPort + "/test", "postgres", "postgres");
 			Statement stmt = c.createStatement()) {
 			stmt.execute("create extension postgis");
 		} catch(Exception e) { 
@@ -169,7 +171,7 @@ public class GeoServerTestHelper {
 		
 		BasicDataSource ds = new BasicDataSource();
 		ds.setDriverClassName("org.postgresql.Driver");		
-		ds.setUrl("jdbc:postgresql://" + DB_HOST + ":" + DB_PORT + "/test");
+		ds.setUrl("jdbc:postgresql://" + DB_HOST + ":" + dbPort + "/test");
 		ds.setUsername("postgres");
 		ds.setPassword("postgres");
 		
@@ -285,7 +287,7 @@ public class GeoServerTestHelper {
 	}
 
 	public String getDbPort() {
-		return DB_PORT;
+		return dbPort;
 	}
 
 	public String getDbHost() {

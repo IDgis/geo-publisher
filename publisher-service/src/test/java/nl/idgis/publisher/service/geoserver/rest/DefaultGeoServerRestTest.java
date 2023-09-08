@@ -90,7 +90,8 @@ public class DefaultGeoServerRestTest {
 	
 	@BeforeClass
 	public static void startServers() throws Exception {
-		h = new GeoServerTestHelper();
+		String dbPort = "49153";
+		h = new GeoServerTestHelper(dbPort);
 		h.start();
 		
 		Config akkaConfig = ConfigFactory.empty()
