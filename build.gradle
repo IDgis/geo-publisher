@@ -644,6 +644,14 @@ project(':publisher-service') {
 		compile 'org.apache.httpcomponents:httpclient:4.5.10'
 	}
 	
+	task runDockerComposeUp(type: Exec) {
+		commandLine 'docker-compose', '-f', 'pub-service-test-postgis.yml', 'up', '-d'
+	}
+	
+	task runDockerComposeDown(type: Exec) {
+		commandLine 'docker-compose', '-f', 'pub-service-test-postgis.yml', 'down', '-v'
+	}
+	
 	// extract geoserver webapp for nl.idgis.publisher.service.geoserver.GeoServerTestHelper
 	task extractWebapp << {
 		configurations.webapp.resolvedConfiguration.resolvedArtifacts.each { artifact ->
