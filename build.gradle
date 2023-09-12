@@ -669,6 +669,9 @@ project(':publisher-service') {
 	
 	processTestResources.dependsOn(extractWebapp)
 	
+	runDockerComposeUp.dependsOn(runDockerComposeDown)
+	test.dependsOn(runDockerComposeUp)
+	
 	task unpackTar(type: Copy) {
 		dependsOn distTar
 
