@@ -33,4 +33,5 @@ jobs:
         GITHUB_USER: "github"
         GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
         DOCKER_HOST: "http://localhost:2375"
+        NO_EXECUTE_DOCKER_COMPOSE: "true"
       

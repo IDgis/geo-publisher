@@ -652,6 +652,10 @@ project(':publisher-service') {
 		commandLine 'docker-compose', '-f', 'pub-service-test-postgis.yml', 'down', '-v'
 	}
 	
+	task runDockerComposeDownFinalized(type: Exec) {
+		commandLine 'docker-compose', '-f', 'pub-service-test-postgis.yml', 'down', '-v'
+	}
+	
 	// extract geoserver webapp for nl.idgis.publisher.service.geoserver.GeoServerTestHelper
 	task extractWebapp << {
 		configurations.webapp.resolvedConfiguration.resolvedArtifacts.each { artifact ->
@@ -669,8 +673,14 @@ project(':publisher-service') {
 	
 	processTestResources.dependsOn(extractWebapp)
 	
-	runDockerComposeUp.dependsOn(runDockerComposeDown)
-	test.dependsOn(runDockerComposeUp)
+	def env = System.env
+	def no_execute_docker_compose = env.NO_EXECUTE_DOCKER_COMPOSE
+	
+	if(!"true".equals(no_execute_docker_compose)) {
+		runDockerComposeUp.dependsOn(runDockerComposeDown)
+		test.dependsOn(runDockerComposeUp)
+		test.finalizedBy(runDockerComposeDownFinalized)
+	}
 	
 	task unpackTar(type: Copy) {
 		dependsOn distTar
