@@ -5,19 +5,18 @@ import static play.data.Form.form;
 import java.util.Collections;
 import java.util.Map;
 
-import models.Domain;
-
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import controllers.User.Login;
+import models.Domain;
 import play.data.Form;
 import play.mvc.Http;
 import play.test.FakeApplication;
 import play.test.Helpers;
 import play.twirl.api.Content;
-import controllers.User.Login;
 
 
 /**

@@ -1,0 +1,37 @@
+name: Build Gradle project
+
+on:
+  push:
+
+jobs:
+  build-gradle-project:
+    runs-on: ubuntu-latest
+    services:
+      postgis-first:
+        image: mdillon/postgis:9.6
+        ports:
+          - 49153:5432
+      postgis-second:
+        image: mdillon/postgis:9.6
+        ports:
+          - 49154:5432
+    steps:
+    - name: Checkout project sources
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: Setup Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: zulu
+        java-version: 8
+    - name: Setup Gradle
+      uses: gradle/gradle-build-action@v2
+    - name: Run build with Gradle Wrapper
+      run: ./gradlew clean build
+      env:
+        GITHUB_USER: "github"
+        GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+        DOCKER_HOST: "http://localhost:2375"
+        NO_EXECUTE_DOCKER_COMPOSE: "true"
+      

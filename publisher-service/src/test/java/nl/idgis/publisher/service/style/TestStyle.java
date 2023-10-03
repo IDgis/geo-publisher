@@ -31,8 +31,6 @@ public class TestStyle {
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		dbf.setNamespaceAware(true);
 		DocumentBuilder db = dbf.newDocumentBuilder();
-		Document sld = db.parse(content);
-			
-		return sld;
+		return db.parse(content);
 	}
 }
