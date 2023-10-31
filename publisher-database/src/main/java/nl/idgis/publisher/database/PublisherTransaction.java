@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import nl.idgis.publisher.database.messages.AddNotificationResult;
 import nl.idgis.publisher.database.messages.BaseDatasetInfo;
@@ -108,6 +109,8 @@ import com.mysema.query.types.expr.ComparableExpressionBase;
 import com.mysema.query.types.path.PathBuilder;
 import com.typesafe.config.Config;
 
+import scala.concurrent.duration.FiniteDuration;
+
 public class PublisherTransaction extends QueryDSLTransaction {
 	
 	private final static PathBuilder<Long> layerCountPath = new PathBuilder<Long> (Long.class, "layerCount");
@@ -145,6 +148,15 @@ public class PublisherTransaction extends QueryDSLTransaction {
 		}
 		
 		return query;
+	}
+
+	@Override
+	protected FiniteDuration getBusyInterval(Query query) {
+		if (query instanceof CreateIndices) {
+			return new FiniteDuration(5000, TimeUnit.MILLISECONDS);
+		}
+
+		return null;
 	}
 	
 	@Override

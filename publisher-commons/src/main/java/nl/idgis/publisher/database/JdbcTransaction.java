@@ -26,7 +26,10 @@ import nl.idgis.publisher.database.messages.StreamingQuery;
 import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.stream.messages.NextItem;
+import nl.idgis.publisher.utils.BusySender;
+
 import scala.concurrent.duration.Duration;
+import scala.concurrent.duration.FiniteDuration;
 
 public abstract class JdbcTransaction extends UntypedActor {
 	
@@ -48,6 +51,10 @@ public abstract class JdbcTransaction extends UntypedActor {
 	}
 	
 	protected Object executeQuery(Query query) throws Exception {
+		return null;
+	}
+
+	protected FiniteDuration getBusyInterval(Query query) {
 		return null;
 	}
 	
@@ -151,24 +158,31 @@ public abstract class JdbcTransaction extends UntypedActor {
 	}
 
 	private void handleQuery(Query msg) throws SQLException {
-		ActorRef sender = getSender(), self = getSelf();
+		final ActorRef target, self = getSelf();
+
+		final FiniteDuration busyInterval = getBusyInterval(msg);
+		if (busyInterval != null) {
+			target = getContext().actorOf(BusySender.props(busyInterval, getSender(), self));
+		} else {
+			target = getSender();
+		}
 		
 		executorService.execute(() -> {
 			try {
-				log.debug("executing query: {} from {}", msg, sender);
+				log.debug("executing query: {} from {}", msg, target);
 				
 				Object queryResult = executeQuery(msg);
 				if(queryResult == null) {
-					sender.tell(new NotFound(), self);
+					target.tell(new NotFound(), self);
 				} else {
-					sender.tell(queryResult, self);
+					target.tell(queryResult, self);
 				}
 			} catch(Exception e) {
 				e.printStackTrace();
 				
 				log.error(e, "error during executing query: {}", msg);
 				
-				sender.tell(new Failure(e), self);
+				target.tell(new Failure(e), self);
 			}
 		});
 	}
