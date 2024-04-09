@@ -295,7 +295,7 @@ public class DatasetMetadataDCAT extends Controller{
 			Map<String, String> contactPoint = new HashMap<>();
 			contactPoint.put("@type", "vcard:Contact");
 			try {
-				contactPoint.put("fn", metadataDocument.getMetaDataPointOfContactName("pointOfContact"));
+				contactPoint.put("fn", metadataDocument.getMetaDataPointOfContactOrganisationName("pointOfContact"));
 				contactPoint.put("hasEmail", metadataDocument.getMetaDataPointOfContactEmail("pointOfContact"));	
 			} catch (NotFound nf) {
 				contactPoint.put("fn", null);

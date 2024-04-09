@@ -522,7 +522,6 @@ public class MetadataDocument {
 		return getIdentificationPath(topic) +
 			"/gmd:pointOfContact" +
 			"/gmd:CI_ResponsibleParty" + 
-
 			"[gmd:role" +
 			"/gmd:CI_RoleCode" +
 			"/@codeListValue" +
@@ -642,7 +641,13 @@ public class MetadataDocument {
 			;
 	}
 	
-	protected String getMetaDataPointOfContactNamePath(String role) {
+	protected String getMetaDataPointOfContactIndividualNamePath(String role) {
+		return getMetaDataPointOfContactPath(role) + 
+			"/gmd:individualName" +
+			"/gco:CharacterString";
+	}
+	
+	protected String getMetaDataPointOfContactOrganisationNamePath(String role) {
 		return getMetaDataPointOfContactPath(role) + 
 			"/gmd:organisationName" +
 			"/gco:CharacterString";
@@ -658,23 +663,70 @@ public class MetadataDocument {
 			"/gco:CharacterString";
 	}
 	
-	public String getMetaDataPointOfContactName(String role) throws NotFound{
-		return isoMetadata.getString(namespaces, getMetaDataPointOfContactNamePath(role));
+	public String getMetaDataPointOfContactIndividualName(String role) throws NotFound{
+		return isoMetadata.getString(namespaces, getMetaDataPointOfContactIndividualNamePath(role));
+	}
+	
+	public String getMetaDataPointOfContactOrganisationName(String role) throws NotFound{
+		return isoMetadata.getString(namespaces, getMetaDataPointOfContactOrganisationNamePath(role));
 	}
 	
 	public String getMetaDataPointOfContactEmail(String role) throws Exception{
 		return isoMetadata.getString(namespaces, getMetaDataPointOfContactEmailPath(role));
 	}
 	
-	public void setMetaDataPointOfContactName(String role, String name) throws Exception{
-		isoMetadata.updateString(namespaces, getMetaDataPointOfContactNamePath(role), name);
+	public void setMetaDataPointOfContactIndividualName(String role, String name) throws Exception{
+		isoMetadata.updateString(namespaces, getMetaDataPointOfContactIndividualNamePath(role), name);
+	}
+	
+	public void setMetaDataPointOfContactOrganisationName(String role, String name) throws Exception{
+		isoMetadata.updateString(namespaces, getMetaDataPointOfContactOrganisationNamePath(role), name);
 	}
 	
 	public void setMetaDataPointOfContactEmail(String role, String email) throws Exception{
 		isoMetadata.updateString(namespaces, getMetaDataPointOfContactEmailPath(role), email);
 	}
 	
-
+	/*
+	 * Metadata Distributor
+	 */
+	
+	protected String getDistributorPath(String role) {
+		return 
+			"/gmd:MD_Metadata" +
+			"/gmd:distributionInfo" +
+			"/gmd:MD_Distribution" +
+			"/gmd:distributor" +
+			"/gmd:MD_Distributor" +
+			"/gmd:distributorContact" +
+			"/gmd:CI_ResponsibleParty" +
+			"[gmd:role" +
+			"/gmd:CI_RoleCode" +
+			"/@codeListValue" +
+				"='" + role + "']"
+			;
+	}
+	
+	protected String getDistributorIndividualNamePath(String role) {
+		return getDistributorPath(role) + 
+			"/gmd:individualName" +
+			"/gco:CharacterString";
+	}
+	
+	protected String getDistributorOrganisationNamePath(String role) {
+		return getDistributorPath(role) + 
+			"/gmd:organisationName" +
+			"/gco:CharacterString";
+	}
+	
+	public void setDistributorIndividualName(String role, String name) throws Exception{
+		isoMetadata.updateString(namespaces, getDistributorIndividualNamePath(role), name);
+	}
+	
+	public void setDistributorOrganisationName(String role, String name) throws Exception{
+		isoMetadata.updateString(namespaces, getDistributorOrganisationNamePath(role), name);
+	}
+	
 	/*
 	 * Metadata creation date
 	 */
