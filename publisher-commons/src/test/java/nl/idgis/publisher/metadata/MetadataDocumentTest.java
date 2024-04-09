@@ -227,17 +227,17 @@ public class MetadataDocumentTest {
 		String email = "emailaddress";
 		
 		// check current values
-		String result = document.getMetaDataPointOfContactName("owner");
+		String result = document.getMetaDataPointOfContactOrganisationName("owner");
 		assertFalse("unexpected responsibleparty", result.indexOf(name) >= 0);
 		result = document.getMetaDataPointOfContactEmail("owner");
 		assertFalse("unexpected email", result.indexOf(email) >= 0);
 		
 		// set new values
-		document.setMetaDataPointOfContactName("owner", name);
+		document.setMetaDataPointOfContactOrganisationName("owner", name);
 		document.setMetaDataPointOfContactEmail("owner", email);
 		
 		// check new values again
-		result = document.getMetaDataPointOfContactName("owner");
+		result = document.getMetaDataPointOfContactOrganisationName("owner");
 		assertEquals("wrong responsibleparty", name, result);		
 		result = document.getMetaDataPointOfContactEmail("owner");
 		assertEquals("wrong email", email, result);
@@ -277,17 +277,17 @@ public class MetadataDocumentTest {
 		String email = "someaddress";
 		
 		// check current values
-		String result = document.getMetaDataPointOfContactName("pointOfContact");
+		String result = document.getMetaDataPointOfContactOrganisationName("pointOfContact");
 		assertFalse("unexpected responsibleparty", result.indexOf(name) >= 0);
 		result = document.getMetaDataPointOfContactEmail("pointOfContact");
 		assertFalse("unexpected email", result.indexOf(email) >= 0);
 		
 		// set new values
-		document.setMetaDataPointOfContactName("pointOfContact", name);
+		document.setMetaDataPointOfContactOrganisationName("pointOfContact", name);
 		document.setMetaDataPointOfContactEmail("pointOfContact", email);
 		
 		// check new values again
-		result = document.getMetaDataPointOfContactName("pointOfContact");
+		result = document.getMetaDataPointOfContactOrganisationName("pointOfContact");
 		assertEquals("wrong responsibleparty", name, result);		
 		result = document.getMetaDataPointOfContactEmail("pointOfContact");
 		assertEquals("wrong email", email, result);
