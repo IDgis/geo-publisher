@@ -183,11 +183,17 @@ public class ServiceMetadata extends AbstractMetadata {
 				"http://www.isotc211.org/2005/resources/codeList.xml#CI_DateTypeCode", 
 				"publication");
 			
-			String role = "pointOfContact";		
+			String role = "pointOfContact";
+			
 			metadataDocument.setServiceResponsiblePartyName(role, serviceTuple.get(constants.organization));
 			metadataDocument.setServiceResponsiblePartyEmail(role, serviceTuple.get(constants.email));		
-			metadataDocument.setMetaDataPointOfContactName(role, serviceTuple.get(constants.organization));
+			
+			metadataDocument.setMetaDataPointOfContactIndividualName(role, serviceTuple.get(constants.contact));
+			metadataDocument.setMetaDataPointOfContactOrganisationName(role, serviceTuple.get(constants.organization));
 			metadataDocument.setMetaDataPointOfContactEmail(role, serviceTuple.get(constants.email));
+			
+			metadataDocument.setDistributorIndividualName(role, serviceTuple.get(constants.contact));
+			metadataDocument.setDistributorOrganisationName(role, serviceTuple.get(constants.organization));
 			
 			metadataDocument.removeOperatesOn();
 			
