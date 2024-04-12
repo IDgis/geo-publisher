@@ -6,7 +6,9 @@ with job_ids as (
 			from (select dataset_id, max(ij2.id) as last_imported_id
 				from publisher.import_job ij2
 				join publisher.job_state js on js.job_id = ij2.job_id
-				where js.state = 'SUCCEEDED'
+				join publisher.notification n on n.job_id = ij2.job_id 
+				join publisher.notification_result nr on nr.notification_id = n.id 
+				where js.state = 'SUCCEEDED' and nr.result = 'OK'
 				group by dataset_id) as info
 			where info.dataset_id = ij.dataset_id))
 ), notification_ids as (select n.id as notification_id from publisher.notification n where n.job_id in (select job_id from job_ids))
@@ -18,7 +20,9 @@ with job_ids as (
 			from (select dataset_id, max(ij2.id) as last_imported_id
 				from publisher.import_job ij2
 				join publisher.job_state js on js.job_id = ij2.job_id
-				where js.state = 'SUCCEEDED'
+				join publisher.notification n on n.job_id = ij2.job_id 
+				join publisher.notification_result nr on nr.notification_id = n.id 
+				where js.state = 'SUCCEEDED' and nr.result = 'OK'
 				group by dataset_id) as info
 			where info.dataset_id = ij.dataset_id))
 )
@@ -30,7 +34,9 @@ with job_ids as (
 			from (select dataset_id, max(ij2.id) as last_imported_id
 				from publisher.import_job ij2
 				join publisher.job_state js on js.job_id = ij2.job_id
-				where js.state = 'SUCCEEDED'
+				join publisher.notification n on n.job_id = ij2.job_id 
+				join publisher.notification_result nr on nr.notification_id = n.id 
+				where js.state = 'SUCCEEDED' and nr.result = 'OK'
 				group by dataset_id) as info
 			where info.dataset_id = ij.dataset_id))
 )
