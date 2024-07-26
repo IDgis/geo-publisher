@@ -1,4 +1,4 @@
-FROM ubuntu:xenial
+FROM ubuntu:bionic
 
 # Install software:
 RUN apt-get update \
@@ -6,7 +6,7 @@ RUN apt-get update \
 		cabextract \
 		fontconfig \
 		fonts-liberation \
-		openjdk-8-jre-headless \
+		openjdk-11-jre-headless \
 		unzip \
 		wget \
 		xml2

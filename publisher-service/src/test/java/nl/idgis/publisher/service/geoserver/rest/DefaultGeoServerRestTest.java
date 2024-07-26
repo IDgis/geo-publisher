@@ -26,7 +26,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -90,8 +89,7 @@ public class DefaultGeoServerRestTest {
 	
 	@BeforeClass
 	public static void startServers() throws Exception {
-		String dbPort = "49153";
-		h = new GeoServerTestHelper(dbPort);
+		h = new GeoServerTestHelper();
 		h.start();
 		
 		Config akkaConfig = ConfigFactory.empty()
@@ -100,7 +98,7 @@ public class DefaultGeoServerRestTest {
 		
 		ActorSystem actorSystem = ActorSystem.create("test", akkaConfig);
 		f = new FutureUtils(actorSystem, Timeout.apply(30, TimeUnit.SECONDS));
-		service = new DefaultGeoServerRest(f, log, "http://localhost:" + GeoServerTestHelper.JETTY_PORT + "/", "admin", "geoserver");
+		service = new DefaultGeoServerRest(f, log, "http://localhost:" + h.getGeoserverPort() + "/geoserver/", "admin", "geoserver");
 	}
 
 	private static Connection getConnection() throws SQLException {
@@ -110,11 +108,6 @@ public class DefaultGeoServerRestTest {
 	@After
 	public void clean() throws Exception {
 		h.clean(f, log);
-	}
-	
-	@AfterClass
-	public static void stopServers() throws Exception {
-		h.stop();
 	}
 	
 	@Test
@@ -310,8 +303,8 @@ public class DefaultGeoServerRestTest {
 		assertNotNull(dataStore);
 		assertEquals("testDataStore", dataStore.getName());
 		connectionParameters = dataStore.getConnectionParameters();
-		assertEquals(h.getDbHost(), connectionParameters.get("host"));
-		assertEquals(h.getDbPort(), connectionParameters.get("port"));
+		assertEquals(h.getDatastoreDbHost(), connectionParameters.get("host"));
+		assertEquals("5432", connectionParameters.get("port"));
 		assertEquals("test", connectionParameters.get("database"));
 		assertEquals("postgres", connectionParameters.get("user"));
 		assertEquals("postgis", connectionParameters.get("dbtype"));
@@ -455,8 +448,8 @@ public class DefaultGeoServerRestTest {
 
 	private Map<String, String> getConnectionParameters() {
 		Map<String, String> connectionParameters = new HashMap<>();
-		connectionParameters.put("host", h.getDbHost());
-		connectionParameters.put("port", h.getDbPort());
+		connectionParameters.put("host", h.getDatastoreDbHost());
+		connectionParameters.put("port", "5432");
 		connectionParameters.put("database", "test");
 		connectionParameters.put("user", "postgres");
 		connectionParameters.put("passwd", "postgres");
@@ -736,7 +729,7 @@ public class DefaultGeoServerRestTest {
 		Workspace workspace = new Workspace("workspace");
 		service.postWorkspace(workspace).get();
 		
-		CoverageStore coverageStore = new CoverageStore("test", testRasterUrl);
+		CoverageStore coverageStore = new CoverageStore("test", TestRaster.getRasterUrlGeoServerContainer());
 		service.postCoverageStore(workspace, coverageStore).get();
 	
 		String nativeName = testRasterFile.getName().split("\\.")[0];
@@ -778,7 +771,7 @@ public class DefaultGeoServerRestTest {
 			CoverageStore retrievedCoverageStore = entry.getKey();
 			
 			assertEquals("test", retrievedCoverageStore.getName());
-			assertEquals(testRasterUrl, retrievedCoverageStore.getUrl());
+			assertEquals(TestRaster.getRasterUrlGeoServerContainer(), retrievedCoverageStore.getUrl());
 			
 			List<Coverage> retrievedCoverages = entry.getValue();
 			assertEquals(1, retrievedCoverages.size());

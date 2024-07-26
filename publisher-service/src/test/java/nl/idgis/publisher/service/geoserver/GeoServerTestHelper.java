@@ -2,14 +2,9 @@ package nl.idgis.publisher.service.geoserver;
 
 import static org.junit.Assert.fail;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -19,21 +14,11 @@ import java.util.List;
 import javax.xml.namespace.NamespaceContext;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
 
-import org.apache.commons.dbcp2.BasicDataSource;
-import org.eclipse.jetty.plus.jndi.Resource;
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.webapp.Configuration.ClassList;
-import org.eclipse.jetty.webapp.WebAppContext;
 import org.w3c.dom.Document;
-import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -46,26 +31,23 @@ import nl.idgis.publisher.service.geoserver.rest.DefaultGeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.GeoServerRest;
 import nl.idgis.publisher.service.geoserver.rest.ServiceType;
 import nl.idgis.publisher.service.geoserver.rest.Workspace;
-import nl.idgis.publisher.utils.FileUtils;
 import nl.idgis.publisher.utils.FutureUtils;
 
 public class GeoServerTestHelper {
 	
-	public static final int JETTY_PORT = 7000;
-
 	private static final String DB_HOST = "localhost";
+	
+	private static final String DATASTORE_DB_HOST = "postgis-test";
 
-	private String dbPort;
-			
-	private Server jettyServer;
+	private static final int GEOSERVER_PORT = 8080;
+
+	private static final String DB_PORT = "49153";
 	
 	private DocumentBuilder documentBuilder;
 	
 	private XPath xpath;
 	
-	public GeoServerTestHelper(String dbPort) throws Exception {
-		this.dbPort = dbPort;
-		
+	public GeoServerTestHelper() throws Exception {
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		dbf.setNamespaceAware(true);
 		documentBuilder = dbf.newDocumentBuilder();
@@ -97,94 +79,11 @@ public class GeoServerTestHelper {
 	}
 	
 	public void start() throws Exception {
-		for(int i = 60; i >= 0; i--) {
-			Thread.sleep(1000);
-			
-			try(Connection c = DriverManager.getConnection("jdbc:postgresql://" + DB_HOST + ":" + dbPort + "/postgres", "postgres", "postgres");
-				Statement stmt = c.createStatement()) {
-				stmt.execute("create database \"test\"");
-				break;
-			} catch(Exception e) { 
-				if(i == 0) {
-					throw new IllegalStateException("Failed to create test database", e);
-				}
-			}
-		}
-		
-		try(Connection c = DriverManager.getConnection("jdbc:postgresql://" + DB_HOST + ":" + dbPort + "/test", "postgres", "postgres");
-			Statement stmt = c.createStatement()) {
-			stmt.execute("create extension postgis");
-		} catch(Exception e) { 
-			throw new IllegalStateException("Failed to create postgis extention", e);
-		}
-		
-		File dataDir = new File("build/geoserver-data");
-		
-		if(dataDir.exists()) {
-			FileUtils.delete(dataDir);
-		}
-		
-		dataDir.mkdir();
-		
-		String geoserverDataDir = dataDir.getAbsolutePath();
-		System.setProperty("GEOSERVER_DATA_DIR", geoserverDataDir);
-		
-		jettyServer = new Server(JETTY_PORT);
-		
-		ClassList classlist = ClassList.setServerDefault(jettyServer);
-		classlist.addAfter(
-			"org.eclipse.jetty.webapp.FragmentConfiguration", 
-			"org.eclipse.jetty.plus.webapp.EnvConfiguration", 
-			"org.eclipse.jetty.plus.webapp.PlusConfiguration");
-		
-		WebAppContext context = new WebAppContext();
-		File webXml = new File("build/geoserver/WEB-INF/web.xml");
-		
-		FileInputStream fis = new FileInputStream(webXml);
-		DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();		
-		Document d = db.parse(fis);
-		fis.close();
-		
-		Element resourceRef = d.createElement("resource-ref");
-		
-		Element resourceRefName = d.createElement("res-ref-name");
-		resourceRefName.appendChild(d.createTextNode("jdbc/db"));
-		resourceRef.appendChild(resourceRefName);
-		
-		Element resourceRefType = d.createElement("res-type");
-		resourceRefType.appendChild(d.createTextNode("javax.sql.DataSource"));
-		resourceRef.appendChild(resourceRefType);
-		
-		Element resourceRefAuth = d.createElement("res-auth");
-		resourceRefAuth.appendChild(d.createTextNode("Container"));
-		resourceRef.appendChild(resourceRefAuth);
-		
-		d.getDocumentElement().appendChild(resourceRef);
-		
-		Transformer t = TransformerFactory.newInstance().newTransformer();
-		t.transform(new DOMSource(d), new StreamResult(webXml));
-		
-		context.setDescriptor(webXml.getAbsolutePath());
-		context.setResourceBase("build/geoserver");
-		context.setContextPath("/");
-		context.setParentLoaderPriority(false);
-		
-		BasicDataSource ds = new BasicDataSource();
-		ds.setDriverClassName("org.postgresql.Driver");		
-		ds.setUrl("jdbc:postgresql://" + DB_HOST + ":" + dbPort + "/test");
-		ds.setUsername("postgres");
-		ds.setPassword("postgres");
-		
-		new Resource(context, "jdbc/db", ds);
-		
-		jettyServer.setHandler(context);
-		jettyServer.start();
-		
 		for(int i = 25; i >= 0; i--) {
 			Thread.sleep(1000);
 			
 			try {
-				HttpURLConnection connection = (HttpURLConnection)(new URL("http://localhost:" + JETTY_PORT + "/rest/workspaces.xml").openConnection());
+				HttpURLConnection connection = (HttpURLConnection)(new URL("http://localhost:" + getGeoserverPort() + "/geoserver/rest/workspaces.xml").openConnection());
 				if(connection.getResponseCode() == 200) {
 					break;
 				}
@@ -193,12 +92,6 @@ public class GeoServerTestHelper {
 					throw new IllegalStateException("Failed to start GeoServer", e);
 				}
 			}
-		}
-	}
-	
-	public void stop() throws Exception {
-		if (jettyServer != null) {
-			jettyServer.stop();
 		}
 	}
 	
@@ -225,8 +118,8 @@ public class GeoServerTestHelper {
 	}
 	
 	public List<String> getText(NodeList nodeList) {
-		List<String> retval = new ArrayList<>();		
-		processNodeList(nodeList, retval);		
+		List<String> retval = new ArrayList<>();
+		processNodeList(nodeList, retval);
 		return retval;
 	}
 	
@@ -257,7 +150,7 @@ public class GeoServerTestHelper {
 	}
 	
 	private String getServiceUrl(String serviceName, ServiceType serviceType) {
-		return "http://localhost:" + JETTY_PORT + "/" + serviceName 
+		return "http://localhost:" + getGeoserverPort() + "/geoserver/" + serviceName 
 			+ "/" + serviceType.name().toLowerCase();
 	}
 	
@@ -271,7 +164,7 @@ public class GeoServerTestHelper {
 	}
 	
 	public GeoServerRest rest(FutureUtils f, LoggingAdapter log) throws Exception {
-		return new DefaultGeoServerRest(f, log, "http://localhost:" + GeoServerTestHelper.JETTY_PORT + "/", "admin", "geoserver");
+		return new DefaultGeoServerRest(f, log, "http://localhost:" + getGeoserverPort() + "/geoserver/", "admin", "geoserver");
 	}
 	
 	public void clean(FutureUtils f, LoggingAdapter log) throws Exception {
@@ -287,7 +180,15 @@ public class GeoServerTestHelper {
 	}
 
 	public String getDbPort() {
-		return dbPort;
+		return DB_PORT;
+	}
+	
+	public int getGeoserverPort() {
+		return GEOSERVER_PORT;
+	}
+
+	public String getDatastoreDbHost() {
+		return DATASTORE_DB_HOST;
 	}
 
 	public String getDbHost() {

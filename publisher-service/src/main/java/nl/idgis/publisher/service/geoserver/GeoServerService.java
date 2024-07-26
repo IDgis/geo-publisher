@@ -386,10 +386,10 @@ public class GeoServerService extends UntypedActor {
 		
 		return new Procedure<Object>() {
 			
-			URL getRasterUrl(String fileName) throws MalformedURLException {
+			String getRasterUrl(String fileName) throws MalformedURLException {
 				log.debug("creating raster url for fileName: {}, rasterFolder: {}", fileName, rasterFolder);
 				
-				return Paths.get(rasterFolder, fileName).toUri().toURL();
+				return Paths.get(rasterFolder, fileName).toString();
 			}
 			
 			String getCoverageStoreName(EnsureCoverageLayer ensureLayer) {
@@ -400,7 +400,7 @@ public class GeoServerService extends UntypedActor {
 				String fileName = ensureLayer.getFileName();
 				
 				String name = getCoverageStoreName(ensureLayer);
-				URL url = getRasterUrl(fileName);
+				String url = getRasterUrl(fileName);
 				
 				CoverageStore coverageStore = new CoverageStore(name, url);
 				
