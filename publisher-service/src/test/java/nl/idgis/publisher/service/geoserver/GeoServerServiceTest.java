@@ -24,7 +24,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -244,8 +243,7 @@ public class GeoServerServiceTest {
 		
 	@BeforeClass
 	public static void testServers() throws Exception {
-		String dbPort = "49154";
-		h = new GeoServerTestHelper(dbPort);
+		h = new GeoServerTestHelper();
 		h.start();
 		
 		Connection connection = DriverManager.getConnection("jdbc:postgresql://" + h.getDbHost() + ":" + h.getDbPort() + "/test", "postgres", "postgres");
@@ -259,11 +257,6 @@ public class GeoServerServiceTest {
 		stmt.close();
 		
 		connection.close();
-	}
-	
-	@AfterClass
-	public static void stopServers() throws Exception {
-		h.stop();
 	}
 	
 	@After
@@ -289,7 +282,7 @@ public class GeoServerServiceTest {
 		provisioningManager = actorSystem.actorOf(ProvisioningManager.props(database, serviceManager, new DefaultProvisioningPropsFactory() {
 
 			@Override
-			public Props environmentInfoProviderProps(ActorRef database) {				
+			public Props environmentInfoProviderProps(ActorRef database) {
 				return EnvironmentInfoProviderMock.props(database);
 			}
 			
@@ -301,11 +294,10 @@ public class GeoServerServiceTest {
 		
 		provisioningManager.tell(new AddStagingService(new ServiceInfo(
 			new ConnectionInfo(
-					"http://localhost:" + GeoServerTestHelper.JETTY_PORT + "/",
+					"http://localhost:" + h.getGeoserverPort() + "/geoserver/",
 					"admin",
 					"geoserver"),
-			rasterFolder)), 
-					
+			rasterFolder)),
 			updateServiceInfoRecorder);
 		
 		// wait for update acknowledgement
@@ -703,7 +695,7 @@ public class GeoServerServiceTest {
 		
 		List<StyleRef> styleRefs = Arrays.asList(styleNames).stream()
 			.map(styleName -> {
-				StyleRef styleRef = mock(StyleRef.class);					
+				StyleRef styleRef = mock(StyleRef.class);
 				when(styleRef.getName()).thenReturn(styleName);
 				
 				return styleRef;

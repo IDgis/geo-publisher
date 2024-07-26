@@ -404,7 +404,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				try {
 					return new CoverageStore(
 						coverageStore.string("name").get(),
-						new URL(coverageStore.string("url").get()));
+						coverageStore.string("url").get());
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}
@@ -466,7 +466,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 				sw.writeEndElement();
 			sw.writeEndElement();
 			sw.writeStartElement("url");
-				sw.writeCharacters(coverageStore.getUrl().toExternalForm());
+				sw.writeCharacters(coverageStore.getUrl());
 			sw.writeEndElement();
 		sw.writeEndElement();
 		sw.writeEndDocument();
@@ -474,7 +474,7 @@ public class DefaultGeoServerRest implements GeoServerRest {
 		
 		os.close();
 		
-		return os.toByteArray();		
+		return os.toByteArray();
 	}
 
 	@Override

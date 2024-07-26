@@ -6,9 +6,9 @@ public class CoverageStore {
 	
 	private final String name;
 
-	private final URL url;
+	private final String url;
 	
-	public CoverageStore(String name, URL url) {
+	public CoverageStore(String name, String url) {
 		this.name = name;
 		this.url = url;
 	}
@@ -17,7 +17,7 @@ public class CoverageStore {
 		return name;
 	}
 	
-	public URL getUrl() {
+	public String getUrl() {
 		return url;
 	}
 }

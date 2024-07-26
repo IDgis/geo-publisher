@@ -37,7 +37,7 @@ ext {
 	commonsIOVersion = '2.4'
 	curatorVersion = '2.7.1'
 	deegreeVersion = '3.4-RC1'
-	geoserverVersion = '2.22.2'
+	geoserverVersion = '2.23.6'
 	gtVersion = '28.2'
 	guavaVersion = '17.0'
 	h2Version = '1.4.180'
@@ -601,8 +601,6 @@ project(':publisher-service') {
 	configurations {
 		webapp
 		agents
-		gsWebAppMissingDeps
-		gsWebAppMissingDeps.transitive = false
 	}
 
 	dependencies {
@@ -611,8 +609,6 @@ project(':publisher-service') {
 		}
 	
 		webapp "org.geoserver.web:gs-web-app:${geoserverVersion}@war"
-		
-		gsWebAppMissingDeps "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:${jacksonVersion}"
 		
 		testCompile project(':publisher-test')
 		testCompile project(path: ':publisher-commons', configuration: 'testArtifact')
@@ -645,15 +641,15 @@ project(':publisher-service') {
 	}
 	
 	task runDockerComposeUp(type: Exec) {
-		commandLine 'docker-compose', '-f', 'pub-service-test-postgis.yml', 'up', '-d'
+		commandLine 'docker', 'compose', '-f', 'docker-test/pub-service-test.yml', 'up', '-d'
 	}
 	
 	task runDockerComposeDown(type: Exec) {
-		commandLine 'docker-compose', '-f', 'pub-service-test-postgis.yml', 'down', '-v'
+		commandLine 'docker', 'compose', '-f', 'docker-test/pub-service-test.yml', 'down', '-v'
 	}
 	
 	task runDockerComposeDownFinalized(type: Exec) {
-		commandLine 'docker-compose', '-f', 'pub-service-test-postgis.yml', 'down', '-v'
+		commandLine 'docker', 'compose', '-f', 'docker-test/pub-service-test.yml', 'down', '-v'
 	}
 	
 	// extract geoserver webapp for nl.idgis.publisher.service.geoserver.GeoServerTestHelper
@@ -661,22 +657,16 @@ project(':publisher-service') {
 		configurations.webapp.resolvedConfiguration.resolvedArtifacts.each { artifact ->
 			project.copy {
 				from zipTree(artifact.file)
-				into new File(project.buildDir, 'geoserver')
-			}
-			
-			project.copy {
-				from configurations.gsWebAppMissingDeps
-				into "${project.buildDir}/geoserver/WEB-INF/lib"
+				into new File('docker-test/geoserver', 'app')
 			}
 		}
 	}
-	
-	processTestResources.dependsOn(extractWebapp)
 	
 	def env = System.env
 	def no_execute_docker_compose = env.NO_EXECUTE_DOCKER_COMPOSE
 	
 	if(!"true".equals(no_execute_docker_compose)) {
+		runDockerComposeUp.dependsOn(extractWebapp)
 		runDockerComposeUp.dependsOn(runDockerComposeDown)
 		test.dependsOn(runDockerComposeUp)
 		test.finalizedBy(runDockerComposeDownFinalized)
