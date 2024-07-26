@@ -2,19 +2,26 @@ name: Build Gradle project
 
 on:
   push:
+    branches: [ master ]
 
 jobs:
   build-gradle-project:
     runs-on: ubuntu-latest
     services:
-      postgis-first:
-        image: mdillon/postgis:9.6
+      postgis-test:
+        image: postgis/postgis:9.6-3.0
         ports:
-          - 49153:5432
-      postgis-second:
-        image: mdillon/postgis:9.6
+          - "127.0.0.1:49153:5432"
+        environment:
+          - POSTGRES_USER=postgres
+          - POSTGRES_PASSWORD=postgres
+          - POSTGRES_DB=test
+      geoserver-test:
+        image: idgis/geopublisher_service_geoserver_test:latest
         ports:
-          - 49154:5432
+          - "127.0.0.1:8080:8080"
+        environment:
+          - PG_HOST=postgis-test
     steps:
     - name: Checkout project sources
       uses: actions/checkout@v3
