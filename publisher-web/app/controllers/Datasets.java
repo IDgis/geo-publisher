@@ -140,6 +140,33 @@ public class Datasets extends Controller {
 			});
 	}
 	
+	public static Promise<Result> setPublicationResult(final String datasetId, final String notificationId) {
+		final String[] resultString = request().body().asFormUrlEncoded().get("result");
+		if (resultString == null || resultString.length != 1 || resultString[0] == null) {
+			return Promise.pure((Result) redirect(controllers.routes.Datasets.show(datasetId)));
+		}
+		
+		final ConfirmNotificationResult result = ConfirmNotificationResult.valueOf(resultString[0]);
+		
+		Logger.debug("Conform notification: " + notificationId + ", " + result);
+		
+		final ActorSelection database = Akka.system().actorSelection(databaseRef);
+		
+		return from(database)
+			.query(new PutNotificationResult(notificationId, result))
+			.execute(new Function<Response<?>, Result>() {
+				@Override
+				public Result apply(final Response<?> response) throws Throwable {
+					if (response.getOperationResponse().equals(CrudResponse.OK)) {
+						flash("success", "De services waar de dataset in voorkomt worden opnieuw gepubliceerd");
+					} else {
+						flash("danger", "De services waar de dataset in voorkomt konden niet opnieuw worden gepubliceerd");
+					}
+					return redirect(controllers.routes.Datasets.show(datasetId));
+				}
+			});
+	}
+	
 	public static Promise<Result> scheduleRefresh(String datasetId) {
 		
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);

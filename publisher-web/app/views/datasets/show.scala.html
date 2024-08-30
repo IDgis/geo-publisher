@@ -5,6 +5,7 @@
 @import nl.idgis.publisher.domain.web._
 @import nl.idgis.publisher.domain.job.ConfirmNotificationResult
 @import nl.idgis.publisher.domain.job.NotificationProperties
+@import nl.idgis.publisher.domain.job.load.ImportNotificationType
 @import nl.idgis.publisher.domain.service.ColumnDiffOperation
 
 @categoryRefLink(cat: Category, cls: String = null) = {
@@ -68,41 +69,62 @@
 			<div class="col-lg-6">
 				@if(!dataset.activeNotifications.isEmpty) {
 					@for(notification <- dataset.activeNotifications) {
-					<form method="POST" action="@routes.Datasets.setNotificationResult(dataset.id, notification.id)" class="panel @if(notification.message.properties.asInstanceOf[NotificationProperties].getResult().equals(ConfirmNotificationResult.NOT_OK)){panel-default}else{panel-info}">
-						<div class="panel-heading">
-							@if(notification.message.properties.asInstanceOf[NotificationProperties].getResult().equals(ConfirmNotificationResult.NOT_OK)) {
-								@Domain.message("web.application.page.datasets.show.form.headingnotaccepted")
-							}else{
-								@Domain.message("web.application.page.datasets.show.form.heading")
-							}
-						</div>
-						<div class="panel-body">
-							@Domain.message("web.application.page.datasets.show.form.body")
-						</div>
-						<table class="table">
-							<tbody>
-								@for(diff <- diffs) {
-									<tr>
-										<th>@diff.getColumn().getName()</th>
-										<td>@diff.getColumn().getDataType().name</td>
-										<td>
-											@if(diff.getOperation().equals(ColumnDiffOperation.ADD)) {
-												@Domain.message("web.application.added")
-											} else {
-												@Domain.message("web.application.removed")
-											}
-										</td>
-									</tr>
-								}
-							</tbody>
-						</table>
-						<div class="panel-footer">
-							@if(!notification.message.properties.asInstanceOf[NotificationProperties].getResult().equals(ConfirmNotificationResult.NOT_OK)) {
-								<button type="submit" class="btn btn-default" name="result" value="@ConfirmNotificationResult.NOT_OK.name">@Domain.message("web.application.page.datasets.show.button.NOK")</button>
-							}
-							<button type="submit" class="btn btn-primary" name="result" value="@ConfirmNotificationResult.OK.name">@Domain.message("web.application.page.datasets.show.button.OK")</button>
-						</div>
-					</form>
+						@if(notification.message.`type`.asInstanceOf[ImportNotificationType].equals(ImportNotificationType.SOURCE_COLUMNS_CHANGED)) {
+							<form method="POST" action="@routes.Datasets.setNotificationResult(dataset.id, notification.id)" class="panel @if(notification.message.properties.asInstanceOf[NotificationProperties].getResult().equals(ConfirmNotificationResult.NOT_OK)){panel-default}else{panel-info}">
+								<div class="panel-heading">
+									@if(notification.message.properties.asInstanceOf[NotificationProperties].getResult().equals(ConfirmNotificationResult.NOT_OK)) {
+										@Domain.message("web.application.page.datasets.show.form.headingnotaccepted")
+									}else{
+										@Domain.message("web.application.page.datasets.show.form.heading")
+									}
+								</div>
+								<div class="panel-body">
+									@Domain.message("web.application.page.datasets.show.form.body")
+								</div>
+								<table class="table">
+									<tbody>
+										@for(diff <- diffs) {
+											<tr>
+												<th>@diff.getColumn().getName()</th>
+												<td>@diff.getColumn().getDataType().name</td>
+												<td>
+													@if(diff.getOperation().equals(ColumnDiffOperation.ADD)) {
+														@Domain.message("web.application.added")
+													} else {
+														@Domain.message("web.application.removed")
+													}
+												</td>
+											</tr>
+										}
+									</tbody>
+								</table>
+								<div class="panel-footer">
+									@if(!notification.message.properties.asInstanceOf[NotificationProperties].getResult().equals(ConfirmNotificationResult.NOT_OK)) {
+										<button type="submit" class="btn btn-default" name="result" value="@ConfirmNotificationResult.NOT_OK.name">@Domain.message("web.application.page.datasets.show.button.NOK")</button>
+									}
+									<button type="submit" class="btn btn-primary" name="result" value="@ConfirmNotificationResult.OK.name">@Domain.message("web.application.page.datasets.show.button.OK")</button>
+								</div>
+							</form>
+						} else {
+							<form method="POST" action="@routes.Datasets.setPublicationResult(dataset.id, notification.id)" class="panel @if(notification.message.properties.asInstanceOf[NotificationProperties].getResult().equals(ConfirmNotificationResult.NOT_OK)){panel-default}else{panel-info}">
+								<div class="panel-heading">
+									@if(notification.message.properties.asInstanceOf[NotificationProperties].getResult().equals(ConfirmNotificationResult.NOT_OK)) {
+										@Domain.message("web.application.page.datasets.show.publish.form.headingnotaccepted")
+									}else{
+										@Domain.message("web.application.page.datasets.show.publish.form.heading")
+									}
+								</div>
+								<div class="panel-body">
+									@Domain.message("web.application.page.datasets.show.publish.form.body")
+								</div>
+								<div class="panel-footer">
+									@if(!notification.message.properties.asInstanceOf[NotificationProperties].getResult().equals(ConfirmNotificationResult.NOT_OK)) {
+										<button type="submit" class="btn btn-default" name="result" value="@ConfirmNotificationResult.NOT_OK.name">@Domain.message("web.application.page.datasets.show.button.NOK")</button>
+									}
+									<button type="submit" class="btn btn-primary" name="result" value="@ConfirmNotificationResult.OK.name">@Domain.message("web.application.page.datasets.show.button.OK")</button>
+								</div>
+							</form>
+						}
 					}
 				} else {
 					<div class="panel panel-info">
