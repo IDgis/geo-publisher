@@ -159,6 +159,11 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 					log.debug("column changes accepted");
 					jobContext.tell(new AddJobNotification(ImportNotificationType.SOURCE_COLUMNS_CHANGED_ACCEPTED), getSelf());
 				}
+			} else if(ImportNotificationType.SOURCE_COLUMNS_CHANGED_ACCEPTED.equals(type)) {
+				if(!ConfirmNotificationResult.OK.equals(result)) {
+					log.debug("services not (yet) re-published");
+					acknowledgeJobAndStop();
+				}
 			} else {
 				log.error("unknown notification type: " + type.name());				
 			}

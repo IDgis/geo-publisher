@@ -28,6 +28,8 @@ import nl.idgis.publisher.database.QImportJob;
 import nl.idgis.publisher.database.QSourceDatasetVersion;
 import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.domain.job.JobState;
+import nl.idgis.publisher.domain.job.Notification;
+import nl.idgis.publisher.domain.job.load.ImportNotificationType;
 import nl.idgis.publisher.job.context.messages.JobFinished;
 import nl.idgis.publisher.job.creator.messages.CreateHarvestJobs;
 import nl.idgis.publisher.job.creator.messages.CreateImportJobs;
@@ -94,20 +96,33 @@ public class Creator extends UntypedActor {
 		if(JobState.SUCCEEDED.equals(jobState) && jobInfo instanceof ImportJobInfo) {
 			String datasetId = ((ImportJobInfo)jobInfo).getDatasetId();
 			
-			log.debug("dataset imported: {}", datasetId);
-			
-			f.ask(serviceManager, new GetServicesWithDataset(datasetId), TypedList.class).thenAccept(serviceIds -> {
-				log.debug("service ids fetched");
+			if (jobInfo.getNotifications().stream().map(Notification::getType)
+					.anyMatch(ImportNotificationType.SOURCE_COLUMNS_CHANGED_ACCEPTED::equals)) {
 				
-				((TypedList<String>)serviceIds).list().stream()
-					.forEach(serviceId -> {
-						log.debug("creating ensure job for service: {}", serviceId);
-						
-						jobManager.tell(new CreateEnsureServiceJob(serviceId), getSelf());
-					});
-			});
-				
+				f.ask(serviceManager, new GetServicesWithDataset(datasetId), TypedList.class).thenAccept(serviceIds -> {
+					log.debug("service ids fetched");
 					
+					((TypedList<String>)serviceIds).list().stream()
+						.forEach(serviceId -> {
+							log.debug("creating ensure job for service: {}", serviceId);
+							
+							jobManager.tell(new CreateEnsureServiceJob(serviceId, true), getSelf());
+						});
+				});
+			} else {
+				log.debug("dataset imported: {}", datasetId);
+				
+				f.ask(serviceManager, new GetServicesWithDataset(datasetId), TypedList.class).thenAccept(serviceIds -> {
+					log.debug("service ids fetched");
+					
+					((TypedList<String>)serviceIds).list().stream()
+						.forEach(serviceId -> {
+							log.debug("creating ensure job for service: {}", serviceId);
+							
+							jobManager.tell(new CreateEnsureServiceJob(serviceId), getSelf());
+						});
+				});
+			}
 		} else {
 			log.debug("nothing to do");
 		}
