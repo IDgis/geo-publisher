@@ -99,15 +99,22 @@ class PublisherPlay implements Plugin<Project> {
 					from project.tarTree("${project.buildDir}/distributions/playBinary.tar")
 					into "${project.buildDir}/docker"
 				}
+				
+				copyStartScript(Copy) {
+					from "src/main/bash/start.sh"
+					into "${project.buildDir}/docker"
+				}
 
 				createDockerfile(Dockerfile) {
-					dependsOn copyTar
+					dependsOn copyTar, copyStartScript
 					destFile = project.file('build/docker/Dockerfile')
 					from 'azul/zulu-openjdk:8'
 					copyFile 'playBinary', '/opt'
+					copyFile 'start.sh', '/opt'
 					runCommand 'chmod u+x /opt/bin/playBinary'
+					runCommand 'chmod u+x /opt/start.sh'
 					exposePort 9000
-					defaultCommand "/opt/bin/playBinary"
+					defaultCommand "/opt/start.sh"
 				}
 
 				buildImage(DockerBuildImage) {
