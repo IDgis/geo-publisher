@@ -22,6 +22,7 @@ import nl.idgis.publisher.domain.query.DomainQuery;
 import nl.idgis.publisher.domain.query.GetDatasetByName;
 import nl.idgis.publisher.domain.query.ListDatasetColumnDiff;
 import nl.idgis.publisher.domain.query.ListDatasetColumns;
+import nl.idgis.publisher.domain.query.ListDatasetPublishedServices;
 import nl.idgis.publisher.domain.query.ListDatasets;
 import nl.idgis.publisher.domain.query.ListLayers;
 import nl.idgis.publisher.domain.query.ListSourceDatasetColumns;
@@ -94,8 +95,9 @@ public class Datasets extends Controller {
 			.get (Dataset.class, datasetId)
 			.query (new ListDatasetColumnDiff (datasetId))
 			.query (new ListLayers (1l, null, datasetId))
-			.execute ((dataset, diffs, layers) -> {
-				return ok (show.render (dataset, diffs, layers));
+			.query (new ListDatasetPublishedServices (datasetId))
+			.execute ((dataset, diffs, layers, publishedServices) -> {
+				return ok (show.render (dataset, diffs, layers, publishedServices));
 			});
 	}
 	
@@ -121,7 +123,7 @@ public class Datasets extends Controller {
 		
 		final ConfirmNotificationResult result = ConfirmNotificationResult.valueOf (resultString[0]);
 		
-		Logger.debug ("Conform notification: " + notificationId + ", " + result);
+		Logger.debug ("Confirm notification: " + notificationId + ", " + result);
 		
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
@@ -148,7 +150,7 @@ public class Datasets extends Controller {
 		
 		final ConfirmNotificationResult result = ConfirmNotificationResult.valueOf(resultString[0]);
 		
-		Logger.debug("Conform notification: " + notificationId + ", " + result);
+		Logger.debug("Confirm notification: " + notificationId + ", " + result);
 		
 		final ActorSelection database = Akka.system().actorSelection(databaseRef);
 		

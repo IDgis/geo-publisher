@@ -1,6 +1,7 @@
 @(dataset: nl.idgis.publisher.domain.web.Dataset, 
 	diffs: List[nl.idgis.publisher.domain.service.ColumnDiff], 
-	layers: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Layer])
+	layers: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Layer], 
+	publishedServices: List[String])
 
 @import nl.idgis.publisher.domain.web._
 @import nl.idgis.publisher.domain.job.ConfirmNotificationResult
@@ -73,13 +74,13 @@
 							<form method="POST" action="@routes.Datasets.setNotificationResult(dataset.id, notification.id)" class="panel @if(notification.message.properties.asInstanceOf[NotificationProperties].getResult().equals(ConfirmNotificationResult.NOT_OK)){panel-default}else{panel-info}">
 								<div class="panel-heading">
 									@if(notification.message.properties.asInstanceOf[NotificationProperties].getResult().equals(ConfirmNotificationResult.NOT_OK)) {
-										@Domain.message("web.application.page.datasets.show.form.headingnotaccepted")
+										@Domain.message("web.application.page.datasets.show.structural.change.headingnotaccepted")
 									}else{
-										@Domain.message("web.application.page.datasets.show.form.heading")
+										@Domain.message("web.application.page.datasets.show.structural.change.heading")
 									}
 								</div>
 								<div class="panel-body">
-									@Domain.message("web.application.page.datasets.show.form.body")
+									@Domain.message("web.application.page.datasets.show.structural.change.body")
 								</div>
 								<table class="table">
 									<tbody>
@@ -106,21 +107,23 @@
 								</div>
 							</form>
 						} else {
-							<form method="POST" action="@routes.Datasets.setPublicationResult(dataset.id, notification.id)" class="panel @if(notification.message.properties.asInstanceOf[NotificationProperties].getResult().equals(ConfirmNotificationResult.NOT_OK)){panel-default}else{panel-info}">
+							<form method="POST" action="@routes.Datasets.setPublicationResult(dataset.id, notification.id)" class="panel panel-info">
 								<div class="panel-heading">
-									@if(notification.message.properties.asInstanceOf[NotificationProperties].getResult().equals(ConfirmNotificationResult.NOT_OK)) {
-										@Domain.message("web.application.page.datasets.show.publish.form.headingnotaccepted")
-									}else{
-										@Domain.message("web.application.page.datasets.show.publish.form.heading")
-									}
+									@Domain.message("web.application.page.datasets.show.publish.form.heading")
 								</div>
 								<div class="panel-body">
 									@Domain.message("web.application.page.datasets.show.publish.form.body")
 								</div>
+								<table class="table">
+									<tbody>
+										@for(publishedService <- publishedServices) {
+											<tr>
+												<th>@publishedService</th>
+											</tr>
+										}
+									</tbody>
+								</table>
 								<div class="panel-footer">
-									@if(!notification.message.properties.asInstanceOf[NotificationProperties].getResult().equals(ConfirmNotificationResult.NOT_OK)) {
-										<button type="submit" class="btn btn-default" name="result" value="@ConfirmNotificationResult.NOT_OK.name">@Domain.message("web.application.page.datasets.show.button.NOK")</button>
-									}
 									<button type="submit" class="btn btn-primary" name="result" value="@ConfirmNotificationResult.OK.name">@Domain.message("web.application.page.datasets.show.button.OK")</button>
 								</div>
 							</form>

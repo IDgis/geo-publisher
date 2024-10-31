@@ -96,33 +96,18 @@ public class Creator extends UntypedActor {
 		if(JobState.SUCCEEDED.equals(jobState) && jobInfo instanceof ImportJobInfo) {
 			String datasetId = ((ImportJobInfo)jobInfo).getDatasetId();
 			
-			if (jobInfo.getNotifications().stream().map(Notification::getType)
-					.anyMatch(ImportNotificationType.SOURCE_COLUMNS_CHANGED_ACCEPTED::equals)) {
+			log.debug("dataset imported: {}", datasetId);
+			
+			f.ask(serviceManager, new GetServicesWithDataset(datasetId), TypedList.class).thenAccept(serviceIds -> {
+				log.debug("service ids fetched");
 				
-				f.ask(serviceManager, new GetServicesWithDataset(datasetId), TypedList.class).thenAccept(serviceIds -> {
-					log.debug("service ids fetched");
-					
-					((TypedList<String>)serviceIds).list().stream()
-						.forEach(serviceId -> {
-							log.debug("creating ensure job for service: {}", serviceId);
-							
-							jobManager.tell(new CreateEnsureServiceJob(serviceId, true), getSelf());
-						});
-				});
-			} else {
-				log.debug("dataset imported: {}", datasetId);
-				
-				f.ask(serviceManager, new GetServicesWithDataset(datasetId), TypedList.class).thenAccept(serviceIds -> {
-					log.debug("service ids fetched");
-					
-					((TypedList<String>)serviceIds).list().stream()
-						.forEach(serviceId -> {
-							log.debug("creating ensure job for service: {}", serviceId);
-							
-							jobManager.tell(new CreateEnsureServiceJob(serviceId), getSelf());
-						});
-				});
-			}
+				((TypedList<String>)serviceIds).list().stream()
+					.forEach(serviceId -> {
+						log.debug("creating ensure job for service: {}", serviceId);
+						
+						jobManager.tell(new CreateEnsureServiceJob(serviceId), getSelf());
+					});
+			});
 		} else {
 			log.debug("nothing to do");
 		}

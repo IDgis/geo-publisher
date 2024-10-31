@@ -18,6 +18,7 @@ import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVer
 import static nl.idgis.publisher.database.QNotification.notification;
 import static nl.idgis.publisher.database.QNotificationResult.notificationResult;
 import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServiceDataset;
+import static nl.idgis.publisher.database.QService.service;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -52,6 +53,7 @@ import nl.idgis.publisher.domain.query.DiscardHarvestNotification;
 import nl.idgis.publisher.domain.query.GetDatasetByName;
 import nl.idgis.publisher.domain.query.ListActiveNotifications;
 import nl.idgis.publisher.domain.query.ListDatasets;
+import nl.idgis.publisher.domain.query.ListDatasetPublishedServices;
 import nl.idgis.publisher.domain.response.Page;
 import nl.idgis.publisher.domain.response.Response;
 import nl.idgis.publisher.domain.service.Column;
@@ -115,6 +117,7 @@ public class DatasetAdmin extends AbstractAdmin {
 		});
 		doQueryOptional (GetDatasetByName.class, this::handleGetDatasetByName);
 		doQuery(DiscardHarvestNotification.class, this::handleDiscardHarvestNotification);
+		doQuery(ListDatasetPublishedServices.class, this::handleListPublishedDatasetServices);
 	}
 	
 	private static DatasetImportStatusType jobStateToDatasetStatus (final JobState jobState) {
@@ -476,6 +479,19 @@ public class DatasetAdmin extends AbstractAdmin {
 			} else {
 				return f.successful(false);
 			}
+		});
+	}
+	
+	private CompletableFuture<List<String>> handleListPublishedDatasetServices(ListDatasetPublishedServices listPublishedDatasetServices) {
+		return db.transactional (tx -> {
+			return tx.query()
+				.from(dataset)
+				.join(publishedServiceDataset).on(publishedServiceDataset.datasetId.eq(dataset.id))
+				.join(service).on(service.id.eq(publishedServiceDataset.serviceId))
+				.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
+				.where(dataset.identification.eq(listPublishedDatasetServices.getDatasetId()))
+				.list(genericLayer.name)
+				.thenApply(serviceNames -> serviceNames.list());
 		});
 	}
 	
