@@ -5,6 +5,7 @@ import static nl.idgis.publisher.database.QDataset.dataset;
 import static nl.idgis.publisher.database.QDatasetActiveNotification.datasetActiveNotification;
 import static nl.idgis.publisher.database.QDatasetColumn.datasetColumn;
 import static nl.idgis.publisher.database.QDatasetStatus.datasetStatus;
+import static nl.idgis.publisher.database.QEnvironment.environment;
 import static nl.idgis.publisher.database.QGenericLayer.genericLayer;
 import static nl.idgis.publisher.database.QHarvestNotification.harvestNotification;
 import static nl.idgis.publisher.database.QImportJob.importJob;
@@ -17,6 +18,7 @@ import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 import static nl.idgis.publisher.database.QSourceDatasetVersion.sourceDatasetVersion;
 import static nl.idgis.publisher.database.QNotification.notification;
 import static nl.idgis.publisher.database.QNotificationResult.notificationResult;
+import static nl.idgis.publisher.database.QPublishedService.publishedService;
 import static nl.idgis.publisher.database.QPublishedServiceDataset.publishedServiceDataset;
 import static nl.idgis.publisher.database.QService.service;
 
@@ -63,6 +65,7 @@ import nl.idgis.publisher.domain.web.Category;
 import nl.idgis.publisher.domain.web.DashboardItem;
 import nl.idgis.publisher.domain.web.Dataset;
 import nl.idgis.publisher.domain.web.DatasetImportStatusType;
+import nl.idgis.publisher.domain.web.DatasetPublishedService;
 import nl.idgis.publisher.domain.web.DatasetStatusType;
 import nl.idgis.publisher.domain.web.EntityRef;
 import nl.idgis.publisher.domain.web.Filter;
@@ -482,16 +485,31 @@ public class DatasetAdmin extends AbstractAdmin {
 		});
 	}
 	
-	private CompletableFuture<List<String>> handleListPublishedDatasetServices(ListDatasetPublishedServices listPublishedDatasetServices) {
+	private CompletableFuture<List<DatasetPublishedService>> handleListPublishedDatasetServices(ListDatasetPublishedServices listPublishedDatasetServices) {
 		return db.transactional (tx -> {
 			return tx.query()
 				.from(dataset)
 				.join(publishedServiceDataset).on(publishedServiceDataset.datasetId.eq(dataset.id))
 				.join(service).on(service.id.eq(publishedServiceDataset.serviceId))
 				.join(genericLayer).on(genericLayer.id.eq(service.genericLayerId))
+				.join(publishedService).on(publishedService.serviceId.eq(service.id))
+				.join(environment).on(environment.id.eq(publishedService.environmentId))
 				.where(dataset.identification.eq(listPublishedDatasetServices.getDatasetId()))
-				.list(genericLayer.name)
-				.thenApply(serviceNames -> serviceNames.list());
+				.groupBy(genericLayer.identification, genericLayer.name, environment.identification)
+				.list(genericLayer.identification, genericLayer.name, environment.identification)
+				.thenApply(tuples -> {
+					List<DatasetPublishedService> publishedServices = new ArrayList<>();
+					for (Tuple t : tuples) {
+						publishedServices.add(new DatasetPublishedService(
+								t.get (genericLayer.identification),
+								t.get (genericLayer.name),
+								t.get (environment.identification)
+							)
+						);
+					}
+					
+					return publishedServices;
+				});
 		});
 	}
 	

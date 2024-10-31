@@ -1,7 +1,7 @@
 @(dataset: nl.idgis.publisher.domain.web.Dataset, 
 	diffs: List[nl.idgis.publisher.domain.service.ColumnDiff], 
 	layers: nl.idgis.publisher.domain.response.Page[nl.idgis.publisher.domain.web.Layer], 
-	publishedServices: List[String])
+	publishedServices: List[nl.idgis.publisher.domain.web.DatasetPublishedService])
 
 @import nl.idgis.publisher.domain.web._
 @import nl.idgis.publisher.domain.job.ConfirmNotificationResult
@@ -118,7 +118,7 @@
 									<tbody>
 										@for(publishedService <- publishedServices) {
 											<tr>
-												<th>@publishedService</th>
+												<th>@publishedService.id() - @publishedService.name() - @publishedService.environmentId()</th>
 											</tr>
 										}
 									</tbody>

@@ -2,7 +2,9 @@ package nl.idgis.publisher.domain.query;
 
 import java.util.List;
 
-public class ListDatasetPublishedServices implements DomainQuery<List<String>> {
+import nl.idgis.publisher.domain.web.DatasetPublishedService;
+
+public class ListDatasetPublishedServices implements DomainQuery<List<DatasetPublishedService>> {
 
 	private static final long serialVersionUID = 1L;
 	
