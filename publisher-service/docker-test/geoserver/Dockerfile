@@ -16,8 +16,6 @@ ENV CATALINA_CONTEXT="/var/lib/tomcat9/conf/Catalina/localhost"
 COPY app /var/lib/tomcat9/webapps/geoserver
 COPY start.sh /opt/start.sh
 
-RUN useradd -m --uid 7000 --shell /bin/false tomcat9
-
 # Set permissions, create data directory:
 RUN chmod +x /opt/start.sh && \
 	mkdir -p $CATALINA_TMPDIR && \

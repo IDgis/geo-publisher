@@ -40,7 +40,7 @@ ext {
 	commonsIOVersion = '2.4'
 	curatorVersion = '2.7.1'
 	deegreeVersion = '3.4-RC1'
-	geoserverVersion = '2.23.6'
+	geoserverVersion = '2.26.1'
 	gtVersion = '28.2'
 	guavaVersion = '17.0'
 	h2Version = '1.4.180'

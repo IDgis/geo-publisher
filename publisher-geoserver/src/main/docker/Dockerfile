@@ -1,4 +1,4 @@
-FROM ubuntu:bionic
+FROM ubuntu:jammy
 
 # Install software:
 RUN apt-get update \
@@ -7,6 +7,7 @@ RUN apt-get update \
 		fontconfig \
 		fonts-liberation \
 		openjdk-11-jre-headless \
+		tomcat9 \
 		unzip \
 		wget \
 		xml2
@@ -19,28 +20,31 @@ ENV SERVICE_FORCE_HTTPS="false"
 ENV ENABLE_SERVICES="WMS,WFS"
 
 ENV GEOSERVER_DATA_DIR="/var/lib/geo-publisher/geoserver"
-ENV CATALINA_BASE="/usr/local/tomcat9"
-ENV CATALINA_TMPDIR="/usr/local/tomcat9/tmp"
-ENV CATALINA_CONTEXT="/usr/local/tomcat9/conf/Catalina/localhost"
+ENV CATALINA_BASE="/var/lib/tomcat9"
+ENV CATALINA_TMPDIR="/var/lib/tomcat9/tmp"
+ENV CATALINA_CONTEXT="/var/lib/tomcat9/conf/Catalina/localhost"
+ENV CATALINA_CONF="/etc/tomcat9"
+ENV CATALINA_LOGS="/var/log/tomcat9"
+ENV CATALINA_CACHE="/var/cache/tomcat9"
 
 # Copy webapps, jars, start script and tomcat configuration:
-COPY /apache-tomcat-9.0.73 /usr/local/tomcat9
-COPY /webapps/geoserver /usr/local/tomcat9/webapps/geoserver
-COPY /geowebcache_empty.xml /usr/local/tomcat9/webapps/geoserver/data/gwc/geowebcache.xml
-COPY /webapps/provisioning-registration-war /usr/local/tomcat9/webapps/provisioning-registration-war
-COPY /lib/* /usr/local/tomcat9/lib
+COPY /webapps/geoserver /var/lib/tomcat9/webapps/geoserver
+COPY /geowebcache_empty.xml /var/lib/tomcat9/webapps/geoserver/data/gwc/geowebcache.xml
+COPY /webapps/provisioning-registration-war /var/lib/tomcat9/webapps/provisioning-registration-war
+COPY /lib/* /var/lib/tomcat9/lib
 COPY /start.sh /opt/start.sh
-COPY /server.xml /usr/local/tomcat9/conf/server.xml
-
-RUN useradd -m --uid 7000 --shell /bin/false tomcat9
+COPY /server.xml /var/lib/tomcat9/conf/server.xml
 
 # Set permissions, create data directory:
 RUN chmod +x /opt/start.sh && \
 	mkdir -p $CATALINA_TMPDIR && \
 	mkdir -p $GEOSERVER_DATA_DIR && \
 	mkdir -p $CATALINA_CONTEXT && \
-	chown tomcat9:tomcat9 $GEOSERVER_DATA_DIR && \
-	chown -R tomcat9:tomcat9 /usr/local/tomcat9/
+	chown tomcat:tomcat $GEOSERVER_DATA_DIR && \
+	chown -R tomcat:tomcat $CATALINA_CONF && \
+	chown -R tomcat:tomcat $CATALINA_LOGS && \
+	chown -R tomcat:tomcat $CATALINA_CACHE && \
+	chown -R tomcat:tomcat /var/lib/tomcat9/
 	
 # Download and install the core fonts:
 ENV MSCOREFONTS_BASE="http://netcologne.dl.sourceforge.net/project/corefonts/the%20fonts/final/"
@@ -62,8 +66,8 @@ RUN wget -q -O /tmp/andale32.exe "${MSCOREFONTS_BASE}andale32.exe" && \
 	fc-cache -fv && \
 	fc-list
 	
-# Run the command as the tomcat9 user:
-USER tomcat9
+# Run the command as the tomcat user:
+USER tomcat
 
 # Expose network ports:
 EXPOSE 8080
