@@ -51,7 +51,6 @@ ext {
 	junitVersion = '4.11'
 	logbackVersion= '1.1.2'
 	postgresVersion = '42.2.18'
-	provisionRegistrationVersion = '1.1.6-SNAPSHOT'
 	querydslVersion = '3.4.1'
 	scalaAbiVersion = '2.11'
 }
@@ -776,95 +775,6 @@ configure([
 		it.project {
 			natures 'org.scala-ide.sdt.core.scalanature', 'org.eclipse.jdt.core.javanature'
 		}
-	}
-}
-
-project(':publisher-geoserver') {
-	apply plugin: DockerRemoteConfig
-
-	configurations {
-		geoserverWebapp
-		provisioningWebapp
-		geoserver
-	}
-	
-	dependencies {
-		geoserverWebapp "org.geoserver.web:gs-web-app:${geoserverVersion}@war"
-		provisioningWebapp "nl.idgis.sys:provisioning-registration-war:${provisionRegistrationVersion}@war"
-		
-		geoserver "jfree:eastwood:1.1.1-20090908"
-		geoserver "xalan:serializer:2.7.1"
-		
-		geoserver "org.geotools:gt-charts:${gtVersion}"
-		geoserver "org.geotools:gt-mbtiles:${gtVersion}"
-		geoserver "org.geotools:gt-process-geometry:${gtVersion}"
-		geoserver "org.geotools.ogc:net.opengis.wps:${gtVersion}"
-		geoserver "org.geotools.xsd:gt-xsd-wps:${gtVersion}"
-		
-		geoserver "org.geoserver.extension:gs-charts:${geoserverVersion}"
-		geoserver "org.geoserver.extension:gs-dxf-core:${geoserverVersion}"
-		geoserver "org.geoserver.community:gs-geopkg:${geoserverVersion}"
-		geoserver "org.geoserver.extension:gs-geopkg-output:${geoserverVersion}"
-		geoserver "org.geoserver.community:gs-mbtiles:${geoserverVersion}"
-		geoserver "org.geoserver.extension:gs-web-wps:${geoserverVersion}"
-		geoserver "org.geoserver.extension:gs-wps-core:${geoserverVersion}"
-	}
-
-	task copyDockerContext(type: Copy) {
-		from 'src/main/docker'
-		into "${project.buildDir}/docker"
-	}
-	
-	task copyProvisioningWebapp(type: Copy) {
-		from configurations.provisioningWebapp.collect { zipTree(it) }
-		into "${project.buildDir}/docker/webapps/provisioning-registration-war"
-	}
-	
-	task copyGeoserverWebapp(type: Copy) {
-		from configurations.geoserverWebapp.collect { zipTree(it) }
-		into "${project.buildDir}/docker/webapps/geoserver"
-	}
-	
-	task copyEsriFonts(type: Copy) {
-		dependsOn copyGeoserverWebapp
-	
-		from 'src/main/esri_fonts'
-		into "${project.buildDir}/docker/webapps/geoserver/data/styles"
-	}
-	
-	task copyGeoserverDependencies(type: Copy) {
-		dependsOn copyGeoserverWebapp
-	
-		from configurations.geoserver
-		into "${project.buildDir}/docker/webapps/geoserver/WEB-INF/lib"
-	}
-	
-	task moveJdbcDriver {
-		dependsOn copyGeoserverWebapp
-		
-		doLast {
-			def jdbcDriver = fileTree(
-				dir: "${project.buildDir}/docker/webapps/geoserver/WEB-INF/lib", 
-				include: 'postgresql*').singleFile
-				
-			file("${project.buildDir}/docker/lib").mkdirs()			
-			jdbcDriver.renameTo("${project.buildDir}/docker/lib/${jdbcDriver.name}")
-		}
-	}
-	
-	task prepareDockerContext {
-		dependsOn copyDockerContext, copyProvisioningWebapp, copyEsriFonts, copyGeoserverDependencies, moveJdbcDriver
-	}
-	
-	task buildImage(type: DockerBuildImage) {
-		dependsOn rootProject.pullJavaImage, prepareDockerContext
-		inputDir = project.file("${project.buildDir}/docker")
-		tag = "idgis/geopublisher_geoserver:${project.version}"
-	}
-
-	task pushImage(type: DockerPushImage) {
-		dependsOn buildImage
-		imageName = "idgis/geopublisher_geoserver:${project.version}"
 	}
 }
 
