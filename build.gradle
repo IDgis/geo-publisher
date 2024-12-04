@@ -40,7 +40,7 @@ ext {
 	commonsIOVersion = '2.4'
 	curatorVersion = '2.7.1'
 	deegreeVersion = '3.4-RC1'
-	geoserverVersion = '2.26.1'
+	geoserverVersion = '2.25.4'
 	gtVersion = '28.2'
 	guavaVersion = '17.0'
 	h2Version = '1.4.180'
@@ -601,7 +601,6 @@ project(':publisher-service') {
 	applicationDefaultJvmArgs = ["-javaagent:/opt/bin/agents/jolokia-jvm-${jolokiaVersion}-agent.jar=host=*"]
 
 	configurations {
-		webapp
 		agents
 	}
 
@@ -610,8 +609,6 @@ project(':publisher-service') {
 			transitive = false
 		}
 	
-		webapp "org.geoserver.web:gs-web-app:${geoserverVersion}@war"
-		
 		testCompile project(':publisher-test')
 		testCompile project(path: ':publisher-commons', configuration: 'testArtifact')
 		testCompile project(path: ':publisher-database', configuration: 'testArtifact')
@@ -626,7 +623,7 @@ project(':publisher-service') {
 		testCompile 'org.apache.commons:commons-dbcp2:2.1.1'
 		
 		compile project(':publisher-commons')
-		compile project(':publisher-database')		
+		compile project(':publisher-database')
 		compile project(':publisher-domain')
 		compile "commons-io:commons-io:${commonsIOVersion}"
 		compile 'commons-codec:commons-codec:1.9'
@@ -642,34 +639,27 @@ project(':publisher-service') {
 		compile 'org.apache.httpcomponents:httpclient:4.5.10'
 	}
 	
+	task runDockerComposeBuild(type: Exec) {
+		commandLine 'docker', 'compose', '-f', 'test-geoserver/compose.yml', 'build', '--no-cache'
+	}
+	
 	task runDockerComposeUp(type: Exec) {
-		commandLine 'docker', 'compose', '-f', 'docker-test/pub-service-test.yml', 'up', '-d'
+		commandLine 'docker', 'compose', '-f', 'test-geoserver/compose.yml', 'up', '-d'
 	}
 	
 	task runDockerComposeDown(type: Exec) {
-		commandLine 'docker', 'compose', '-f', 'docker-test/pub-service-test.yml', 'down', '-v'
+		commandLine 'docker', 'compose', '-f', 'test-geoserver/compose.yml', 'down', '--rmi', 'all'
 	}
 	
 	task runDockerComposeDownFinalized(type: Exec) {
-		commandLine 'docker', 'compose', '-f', 'docker-test/pub-service-test.yml', 'down', '-v'
-	}
-	
-	// extract geoserver webapp for nl.idgis.publisher.service.geoserver.GeoServerTestHelper
-	task extractWebapp << {
-		configurations.webapp.resolvedConfiguration.resolvedArtifacts.each { artifact ->
-			project.copy {
-				from zipTree(artifact.file)
-				into new File('docker-test/geoserver', 'app')
-			}
-		}
+		commandLine 'docker', 'compose', '-f', 'test-geoserver/compose.yml', 'down', '--rmi', 'all'
 	}
 	
 	def env = System.env
 	def no_execute_docker_compose = env.NO_EXECUTE_DOCKER_COMPOSE
 	
 	if(!"true".equals(no_execute_docker_compose)) {
-		runDockerComposeUp.dependsOn(extractWebapp)
-		runDockerComposeUp.dependsOn(runDockerComposeDown)
+		runDockerComposeUp.dependsOn(runDockerComposeDown, runDockerComposeBuild)
 		test.dependsOn(runDockerComposeUp)
 		test.finalizedBy(runDockerComposeDownFinalized)
 	}
