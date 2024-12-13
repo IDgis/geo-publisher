@@ -240,7 +240,6 @@ public class Services extends Controller {
 		
 		return from(database)
 			.query(msg)
-			//.execute(result -> ok("saved: " + result));
 			.executeFlat(new Function <Boolean, Promise<Result>> () {
 				@Override
 				public Promise<Result> apply (final Boolean result) throws Throwable {

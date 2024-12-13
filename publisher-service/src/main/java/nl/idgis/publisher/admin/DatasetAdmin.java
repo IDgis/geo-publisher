@@ -496,6 +496,7 @@ public class DatasetAdmin extends AbstractAdmin {
 				.join(environment).on(environment.id.eq(publishedService.environmentId))
 				.where(dataset.identification.eq(listPublishedDatasetServices.getDatasetId()))
 				.groupBy(genericLayer.identification, genericLayer.name, environment.identification)
+				.orderBy(genericLayer.name.asc())
 				.list(genericLayer.identification, genericLayer.name, environment.identification)
 				.thenApply(tuples -> {
 					List<DatasetPublishedService> publishedServices = new ArrayList<>();

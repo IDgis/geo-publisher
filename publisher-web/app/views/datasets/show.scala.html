@@ -117,8 +117,9 @@
 								<table class="table">
 									<tbody>
 										@for(publishedService <- publishedServices) {
+											<input type="hidden" name="service" value="@publishedService.id()|@publishedService.environmentId()">
 											<tr>
-												<th>@publishedService.id() - @publishedService.name() - @publishedService.environmentId()</th>
+												<th>@publishedService.name()</th>
 											</tr>
 										}
 									</tbody>
