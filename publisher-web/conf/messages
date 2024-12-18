@@ -323,7 +323,7 @@ web.application.page.datasets.show.structural.change.heading=Structuurwijziging
 web.application.page.datasets.show.structural.change.body=Wijzigingen in kolommen:
 
 web.application.page.datasets.show.publish.form.heading=Services publiceren
-web.application.page.datasets.show.publish.form.body=De structuurwijziging van kolommen is geaccepteerd. Wilt u de gepubliceerde services opnieuw publiceren om de veranderingen door te voeren?
+web.application.page.datasets.show.publish.form.body=Er is een structuurwijziging geaccepteerd. Klik op de onderstaande knop om de veranderingen door te voeren. Controleer wel eerst of de dataset daadwerkelijk goed geïmporteerd is na de acceptatie van de structuurwijziging.
 
 web.application.page.datasets.show.button.OK=Toepassen
 web.application.page.datasets.show.button.NOK=Verwerpen
