@@ -22,11 +22,14 @@ import nl.idgis.publisher.domain.query.DomainQuery;
 import nl.idgis.publisher.domain.query.GetDatasetByName;
 import nl.idgis.publisher.domain.query.ListDatasetColumnDiff;
 import nl.idgis.publisher.domain.query.ListDatasetColumns;
+import nl.idgis.publisher.domain.query.ListDatasetPublishedServices;
 import nl.idgis.publisher.domain.query.ListDatasets;
 import nl.idgis.publisher.domain.query.ListLayers;
+import nl.idgis.publisher.domain.query.ListPerformPublish;
 import nl.idgis.publisher.domain.query.ListSourceDatasetColumns;
 import nl.idgis.publisher.domain.query.ListSourceDatasets;
 import nl.idgis.publisher.domain.query.ListSourceDatasetsOrderBy;
+import nl.idgis.publisher.domain.query.PerformPublish;
 import nl.idgis.publisher.domain.query.PutNotificationResult;
 import nl.idgis.publisher.domain.query.RefreshDataset;
 import nl.idgis.publisher.domain.response.Page;
@@ -94,8 +97,9 @@ public class Datasets extends Controller {
 			.get (Dataset.class, datasetId)
 			.query (new ListDatasetColumnDiff (datasetId))
 			.query (new ListLayers (1l, null, datasetId))
-			.execute ((dataset, diffs, layers) -> {
-				return ok (show.render (dataset, diffs, layers));
+			.query (new ListDatasetPublishedServices (datasetId))
+			.execute ((dataset, diffs, layers, publishedServices) -> {
+				return ok (show.render (dataset, diffs, layers, publishedServices));
 			});
 	}
 	
@@ -121,7 +125,7 @@ public class Datasets extends Controller {
 		
 		final ConfirmNotificationResult result = ConfirmNotificationResult.valueOf (resultString[0]);
 		
-		Logger.debug ("Conform notification: " + notificationId + ", " + result);
+		Logger.debug ("Confirm notification: " + notificationId + ", " + result);
 		
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
@@ -136,6 +140,46 @@ public class Datasets extends Controller {
 						flash ("danger", "Resultaat van de structuurwijziging kon niet worden opgeslagen");
 					}
 					return redirect (controllers.routes.Datasets.show (datasetId));
+				}
+			});
+	}
+	
+	public static Promise<Result> setPublicationResult(final String datasetId, final String notificationId) {
+		final String[] resultString = request().body().asFormUrlEncoded().get("result");
+		if (resultString == null || resultString.length != 1 || resultString[0] == null) {
+			return Promise.pure((Result) redirect(controllers.routes.Datasets.show(datasetId)));
+		}
+		
+		final ConfirmNotificationResult result = ConfirmNotificationResult.valueOf(resultString[0]);
+		
+		Map<String, String[]> form = request().body().asFormUrlEncoded();
+		String[] services = form.get("service");
+		
+		List<PerformPublish> performPublishes = new ArrayList<>();
+		for(String service : services) {
+			String[] serviceInfo = service.split("\\|");
+			PerformPublish performPublish = new PerformPublish(serviceInfo[0], serviceInfo[1]);
+			performPublishes.add(performPublish);
+		}
+		
+		ListPerformPublish listPerformPublish = new ListPerformPublish(performPublishes);
+		
+		Logger.debug("Confirm notification: " + notificationId + ", " + result);
+		
+		final ActorSelection database = Akka.system().actorSelection(databaseRef);
+		
+		return from(database)
+			.query(new PutNotificationResult(notificationId, result))
+			.query(listPerformPublish)
+			.execute(new Function2<Response<?>, Boolean, Result>() {
+				@Override
+				public Result apply(final Response<?> notificationResponse, final Boolean publishResult) throws Throwable {
+					if (notificationResponse.getOperationResponse().equals(CrudResponse.OK)) {
+						flash("success", "De services waar de dataset in voorkomt worden opnieuw gepubliceerd");
+					} else {
+						flash("danger", "De services waar de dataset in voorkomt konden niet opnieuw worden gepubliceerd");
+					}
+					return redirect(controllers.routes.Datasets.show(datasetId));
 				}
 			});
 	}

@@ -155,14 +155,17 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 					log.debug("column changes not (yet) accepted");
 					acknowledgeJobAndStop();
 					return;
+				} else if(ConfirmNotificationResult.OK.equals(result)) {
+					log.debug("column changes accepted");
+					jobContext.tell(new AddJobNotification(ImportNotificationType.SOURCE_COLUMNS_CHANGED_ACCEPTED), getSelf());
 				}
 			} else {
-				log.error("unknown notification type: " + type.name());				
+				log.error("unknown notification type: " + type.name());
 			}
 		}
 		
 		jobContext.tell(new UpdateJobState(JobState.STARTED), getSelf());
-		become("storing started job state", waitingForJobStartedStored());		
+		become("storing started job state", waitingForJobStartedStored());
 	}
 	
 	private void prepareJob() throws Exception {		

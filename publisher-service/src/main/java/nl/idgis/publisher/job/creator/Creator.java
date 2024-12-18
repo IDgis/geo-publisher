@@ -28,6 +28,8 @@ import nl.idgis.publisher.database.QImportJob;
 import nl.idgis.publisher.database.QSourceDatasetVersion;
 import nl.idgis.publisher.database.messages.JobInfo;
 import nl.idgis.publisher.domain.job.JobState;
+import nl.idgis.publisher.domain.job.Notification;
+import nl.idgis.publisher.domain.job.load.ImportNotificationType;
 import nl.idgis.publisher.job.context.messages.JobFinished;
 import nl.idgis.publisher.job.creator.messages.CreateHarvestJobs;
 import nl.idgis.publisher.job.creator.messages.CreateImportJobs;
@@ -106,8 +108,6 @@ public class Creator extends UntypedActor {
 						jobManager.tell(new CreateEnsureServiceJob(serviceId), getSelf());
 					});
 			});
-				
-					
 		} else {
 			log.debug("nothing to do");
 		}

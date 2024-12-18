@@ -7,12 +7,14 @@ import nl.idgis.publisher.domain.job.NotificationType;
 
 public enum ImportNotificationType implements NotificationType<NotificationProperties> {
 
-	SOURCE_COLUMNS_CHANGED;
+	SOURCE_COLUMNS_CHANGED,
+	SOURCE_COLUMNS_CHANGED_ACCEPTED;
 	
 	@Override
 	public NotificationResult getResult(String resultName) {
 		switch(this) {
 			case SOURCE_COLUMNS_CHANGED:
+			case SOURCE_COLUMNS_CHANGED_ACCEPTED:
 				return ConfirmNotificationResult.valueOf(resultName);
 			default:
 				throw new UnsupportedOperationException();

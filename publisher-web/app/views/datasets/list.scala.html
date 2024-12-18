@@ -261,7 +261,7 @@
 									@if(!dataset.activeNotifications.isEmpty) {
 										@for(notification <- dataset.activeNotifications) {
 											<p>
-												<a href="@routes.Datasets.show(notification.message.properties.getIdentification())" class="text-warning"><span class="glyphicon glyphicon-exclamation-sign"></span> @Domain.message("web.application.page.datasets.list.structuralchange")<span class="glyphicon glyphicon-pencil"></span></a>
+												<a href="@routes.Datasets.show(notification.message.properties.getIdentification())" class="text-warning"><span class="glyphicon glyphicon-exclamation-sign"></span> @Domain.message(notification.message) <span class="glyphicon glyphicon-pencil"></span></a>
 											</p>
 										}
 									}

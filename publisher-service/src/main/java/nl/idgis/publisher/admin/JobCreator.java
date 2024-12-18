@@ -12,6 +12,7 @@ import nl.idgis.publisher.database.messages.DataSourceInfo;
 import nl.idgis.publisher.database.messages.QDataSourceInfo;
 
 import nl.idgis.publisher.domain.query.HarvestDatasources;
+import nl.idgis.publisher.domain.query.ListPerformPublish;
 import nl.idgis.publisher.domain.query.PerformPublish;
 import nl.idgis.publisher.domain.query.RefreshDataset;
 import nl.idgis.publisher.domain.web.Dataset;
@@ -90,7 +91,8 @@ public class JobCreator extends AbstractAdmin {
 
 	@Override
 	protected void preStartAdmin() {
-		onQuery(PerformPublish.class, this::createPublishedServiceJobs);
+		onQuery(ListPerformPublish.class, this::createPublishedServiceJobs);
+		onQuery(PerformPublish.class, this::createPublishedServiceJob);
 		
 		onDelete(Style.class, this::createVacuumServiceJob);		
 		onPut(Style.class, (style, styleId) -> createEnsureServiceJobsForStyle(styleId));
@@ -117,8 +119,18 @@ public class JobCreator extends AbstractAdmin {
 		doQuery (HarvestDatasources.class, this::handleHarvestDatasources);
 	}
 	
-	private void createPublishedServiceJobs(PerformPublish performPublish) {
+	private void createPublishedServiceJobs(ListPerformPublish listPerformPublish) {
 		log.debug("creating published service jobs");
+		
+		List<PerformPublish> performPublishes = listPerformPublish.getPerformPublishes();
+		
+		for(PerformPublish performPublish : performPublishes) {
+			createPublishedServiceJob(performPublish);
+		}
+	}
+	
+	private void createPublishedServiceJob(PerformPublish performPublish) {
+		log.debug("creating published service job");
 		
 		String serviceId = performPublish.getServiceId();
 		Optional<String> environmentId = performPublish.getEnvironmentId();
