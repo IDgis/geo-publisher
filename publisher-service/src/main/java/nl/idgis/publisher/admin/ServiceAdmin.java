@@ -33,6 +33,7 @@ import nl.idgis.publisher.data.GenericLayer;
 import nl.idgis.publisher.database.AsyncSQLQuery;
 import nl.idgis.publisher.database.QGenericLayer;
 import nl.idgis.publisher.domain.query.ListEnvironments;
+import nl.idgis.publisher.domain.query.ListPerformPublish;
 import nl.idgis.publisher.domain.query.ListServiceKeywords;
 import nl.idgis.publisher.domain.query.ListServices;
 import nl.idgis.publisher.domain.query.PerformPublish;
@@ -70,12 +71,23 @@ public class ServiceAdmin extends AbstractAdmin {
 		doDelete(Service.class, this::handleDeleteService);
 		
 		doQuery(ListEnvironments.class, this::handleListEnvironments);
+		doQuery(ListPerformPublish.class, this::handleListPerformPublish);
 		doQuery(PerformPublish.class, this::handlePerformPublish);
 		
 		doQuery(ListServiceKeywords.class, this::handleListServiceKeywords);
 		doQuery(PutServiceKeywords.class, this::handlePutServiceKeywords);
 		
 		doQuery (ListServices.class, this::handleListServicesWithQuery);
+	}
+	
+	private CompletableFuture<Boolean> handleListPerformPublish(ListPerformPublish listPerformPublish) {
+		List<PerformPublish> performPublishes = listPerformPublish.getPerformPublishes();
+		
+		for(PerformPublish performPublish : performPublishes) {
+			handlePerformPublish(performPublish);
+		}
+		
+		return f.successful(true);
 	}
 	
 	private CompletableFuture<Boolean> handlePerformPublish(PerformPublish performPublish) {

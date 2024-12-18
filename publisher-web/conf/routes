@@ -46,6 +46,7 @@ POST	/datasets/:datasetId/edit						controllers.Datasets.submitEdit(datasetId: S
 POST 	/datasets/:datasetId/delete						controllers.Datasets.delete(datasetId : String)
 POST	/datasets/:datasetId/refresh					controllers.Datasets.scheduleRefresh(datasetId: String)
 POST	/datasets/:datasetId/notification/:notificationId	controllers.Datasets.setNotificationResult(datasetId: String, notificationId: String)
+POST	/datasets/:datasetId/publication/:notificationId	controllers.Datasets.setPublicationResult(datasetId: String, notificationId: String)
 
 # Source datasets
 GET		/sourcedatasets/download						controllers.DataSources.download(searchString: String ?= "", withErrors: java.lang.Boolean ?= null, separator: String ?= ",", quote: String ?= "'", encoding: String ?= "iso-8859-1")

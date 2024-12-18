@@ -19,6 +19,7 @@ nl.idgis.publisher.domain.job.load.ImportLogType.MISSING_COLUMNS=verwijzing naar
 nl.idgis.publisher.domain.job.load.ImportLogType.MISSING_FILTER_COLUMNS=filter bevat verwijzing naar kolommen die niet meer bestaan
 
 nl.idgis.publisher.domain.job.load.ImportNotificationType.SOURCE_COLUMNS_CHANGED=Structuurwijziging in de brontabel
+nl.idgis.publisher.domain.job.load.ImportNotificationType.SOURCE_COLUMNS_CHANGED_ACCEPTED=Publiceren na accepteren structuurwijziging
 
 nl.idgis.publisher.domain.job.harvest.HarvestNotificationType.NEW_SOURCE_DATASET=Nieuw brondataset
 nl.idgis.publisher.domain.job.harvest.HarvestNotificationType.SOURCE_DATASET_DELETED=Brondataset verwijderd
@@ -274,7 +275,6 @@ web.application.page.datasets.list.allcategories=Alle categorieën
 web.application.page.datasets.list.categorieref=Categorie
 web.application.page.datasets.list.nocategory=Geen categorie
 web.application.page.datasets.list.sourcedatasetref=Brondataset
-web.application.page.datasets.list.structuralchange=Structuurwijziging in de brongegevens.
 web.application.page.datasets.list.button.edit=Bewerken
 web.application.page.datasets.list.button.refresh=Verversen uit brondata
 web.application.page.datasets.list.button.remove=Verwijderen 
@@ -318,9 +318,12 @@ web.application.page.datasets.show.notifications.none=Er zijn momenteel geen str
 web.application.page.datasets.show.layers.heading=Lagen behorende bij deze dataset
 web.application.page.datasets.show.layers.noLayers=Er zijn geen lagen geconfigureerd bij deze dataset.
 
-web.application.page.datasets.show.form.headingnotaccepted=Structuurwijziging (verworpen)
-web.application.page.datasets.show.form.heading=Structuurwijziging		
-web.application.page.datasets.show.form.body=Wijzigingen in kolommen:
+web.application.page.datasets.show.structural.change.headingnotaccepted=Structuurwijziging (verworpen)
+web.application.page.datasets.show.structural.change.heading=Structuurwijziging
+web.application.page.datasets.show.structural.change.body=Wijzigingen in kolommen:
+
+web.application.page.datasets.show.publish.form.heading=Services publiceren
+web.application.page.datasets.show.publish.form.body=Er is een structuurwijziging geaccepteerd. Klik op de onderstaande knop om de veranderingen door te voeren. Controleer wel eerst of de dataset daadwerkelijk goed geïmporteerd is na de acceptatie van de structuurwijziging.
 
 web.application.page.datasets.show.button.OK=Toepassen
 web.application.page.datasets.show.button.NOK=Verwerpen

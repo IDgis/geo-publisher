@@ -37,7 +37,7 @@ public class GeoServerTestHelper {
 	
 	private static final String DB_HOST = "localhost";
 	
-	private static final String DATASTORE_DB_HOST = "postgis-test";
+	private static final String DATASTORE_DB_HOST = "db";
 
 	private static final int GEOSERVER_PORT = 8080;
 

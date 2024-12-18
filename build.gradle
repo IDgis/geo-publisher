@@ -1,6 +1,9 @@
 buildscript {
 	repositories {
 		jcenter()
+		maven {
+			url = uri('https://plugins.gradle.org/m2/')
+		}
 	}
 
 	dependencies {
@@ -37,7 +40,7 @@ ext {
 	commonsIOVersion = '2.4'
 	curatorVersion = '2.7.1'
 	deegreeVersion = '3.4-RC1'
-	geoserverVersion = '2.23.6'
+	geoserverVersion = '2.25.4'
 	gtVersion = '28.2'
 	guavaVersion = '17.0'
 	h2Version = '1.4.180'
@@ -48,7 +51,6 @@ ext {
 	junitVersion = '4.11'
 	logbackVersion= '1.1.2'
 	postgresVersion = '42.2.18'
-	provisionRegistrationVersion = '1.1.6-SNAPSHOT'
 	querydslVersion = '3.4.1'
 	scalaAbiVersion = '2.11'
 }
@@ -599,7 +601,6 @@ project(':publisher-service') {
 	applicationDefaultJvmArgs = ["-javaagent:/opt/bin/agents/jolokia-jvm-${jolokiaVersion}-agent.jar=host=*"]
 
 	configurations {
-		webapp
 		agents
 	}
 
@@ -608,8 +609,6 @@ project(':publisher-service') {
 			transitive = false
 		}
 	
-		webapp "org.geoserver.web:gs-web-app:${geoserverVersion}@war"
-		
 		testCompile project(':publisher-test')
 		testCompile project(path: ':publisher-commons', configuration: 'testArtifact')
 		testCompile project(path: ':publisher-database', configuration: 'testArtifact')
@@ -624,7 +623,7 @@ project(':publisher-service') {
 		testCompile 'org.apache.commons:commons-dbcp2:2.1.1'
 		
 		compile project(':publisher-commons')
-		compile project(':publisher-database')		
+		compile project(':publisher-database')
 		compile project(':publisher-domain')
 		compile "commons-io:commons-io:${commonsIOVersion}"
 		compile 'commons-codec:commons-codec:1.9'
@@ -640,34 +639,27 @@ project(':publisher-service') {
 		compile 'org.apache.httpcomponents:httpclient:4.5.10'
 	}
 	
+	task runDockerComposeBuild(type: Exec) {
+		commandLine 'docker', 'compose', '-f', 'test-geoserver/compose.yml', 'build', '--no-cache'
+	}
+	
 	task runDockerComposeUp(type: Exec) {
-		commandLine 'docker', 'compose', '-f', 'docker-test/pub-service-test.yml', 'up', '-d'
+		commandLine 'docker', 'compose', '-f', 'test-geoserver/compose.yml', 'up', '-d'
 	}
 	
 	task runDockerComposeDown(type: Exec) {
-		commandLine 'docker', 'compose', '-f', 'docker-test/pub-service-test.yml', 'down', '-v'
+		commandLine 'docker', 'compose', '-f', 'test-geoserver/compose.yml', 'down', '--rmi', 'all'
 	}
 	
 	task runDockerComposeDownFinalized(type: Exec) {
-		commandLine 'docker', 'compose', '-f', 'docker-test/pub-service-test.yml', 'down', '-v'
-	}
-	
-	// extract geoserver webapp for nl.idgis.publisher.service.geoserver.GeoServerTestHelper
-	task extractWebapp << {
-		configurations.webapp.resolvedConfiguration.resolvedArtifacts.each { artifact ->
-			project.copy {
-				from zipTree(artifact.file)
-				into new File('docker-test/geoserver', 'app')
-			}
-		}
+		commandLine 'docker', 'compose', '-f', 'test-geoserver/compose.yml', 'down', '--rmi', 'all'
 	}
 	
 	def env = System.env
 	def no_execute_docker_compose = env.NO_EXECUTE_DOCKER_COMPOSE
 	
 	if(!"true".equals(no_execute_docker_compose)) {
-		runDockerComposeUp.dependsOn(extractWebapp)
-		runDockerComposeUp.dependsOn(runDockerComposeDown)
+		runDockerComposeUp.dependsOn(runDockerComposeDown, runDockerComposeBuild)
 		test.dependsOn(runDockerComposeUp)
 		test.finalizedBy(runDockerComposeDownFinalized)
 	}
@@ -773,95 +765,6 @@ configure([
 		it.project {
 			natures 'org.scala-ide.sdt.core.scalanature', 'org.eclipse.jdt.core.javanature'
 		}
-	}
-}
-
-project(':publisher-geoserver') {
-	apply plugin: DockerRemoteConfig
-
-	configurations {
-		geoserverWebapp
-		provisioningWebapp
-		geoserver
-	}
-	
-	dependencies {
-		geoserverWebapp "org.geoserver.web:gs-web-app:${geoserverVersion}@war"
-		provisioningWebapp "nl.idgis.sys:provisioning-registration-war:${provisionRegistrationVersion}@war"
-		
-		geoserver "jfree:eastwood:1.1.1-20090908"
-		geoserver "xalan:serializer:2.7.1"
-		
-		geoserver "org.geotools:gt-charts:${gtVersion}"
-		geoserver "org.geotools:gt-mbtiles:${gtVersion}"
-		geoserver "org.geotools:gt-process-geometry:${gtVersion}"
-		geoserver "org.geotools.ogc:net.opengis.wps:${gtVersion}"
-		geoserver "org.geotools.xsd:gt-xsd-wps:${gtVersion}"
-		
-		geoserver "org.geoserver.extension:gs-charts:${geoserverVersion}"
-		geoserver "org.geoserver.extension:gs-dxf-core:${geoserverVersion}"
-		geoserver "org.geoserver.community:gs-geopkg:${geoserverVersion}"
-		geoserver "org.geoserver.extension:gs-geopkg-output:${geoserverVersion}"
-		geoserver "org.geoserver.community:gs-mbtiles:${geoserverVersion}"
-		geoserver "org.geoserver.extension:gs-web-wps:${geoserverVersion}"
-		geoserver "org.geoserver.extension:gs-wps-core:${geoserverVersion}"
-	}
-
-	task copyDockerContext(type: Copy) {
-		from 'src/main/docker'
-		into "${project.buildDir}/docker"
-	}
-	
-	task copyProvisioningWebapp(type: Copy) {
-		from configurations.provisioningWebapp.collect { zipTree(it) }
-		into "${project.buildDir}/docker/webapps/provisioning-registration-war"
-	}
-	
-	task copyGeoserverWebapp(type: Copy) {
-		from configurations.geoserverWebapp.collect { zipTree(it) }
-		into "${project.buildDir}/docker/webapps/geoserver"
-	}
-	
-	task copyEsriFonts(type: Copy) {
-		dependsOn copyGeoserverWebapp
-	
-		from 'src/main/esri_fonts'
-		into "${project.buildDir}/docker/webapps/geoserver/data/styles"
-	}
-	
-	task copyGeoserverDependencies(type: Copy) {
-		dependsOn copyGeoserverWebapp
-	
-		from configurations.geoserver
-		into "${project.buildDir}/docker/webapps/geoserver/WEB-INF/lib"
-	}
-	
-	task moveJdbcDriver {
-		dependsOn copyGeoserverWebapp
-		
-		doLast {
-			def jdbcDriver = fileTree(
-				dir: "${project.buildDir}/docker/webapps/geoserver/WEB-INF/lib", 
-				include: 'postgresql*').singleFile
-				
-			file("${project.buildDir}/docker/lib").mkdirs()			
-			jdbcDriver.renameTo("${project.buildDir}/docker/lib/${jdbcDriver.name}")
-		}
-	}
-	
-	task prepareDockerContext {
-		dependsOn copyDockerContext, copyProvisioningWebapp, copyEsriFonts, copyGeoserverDependencies, moveJdbcDriver
-	}
-	
-	task buildImage(type: DockerBuildImage) {
-		dependsOn rootProject.pullJavaImage, prepareDockerContext
-		inputDir = project.file("${project.buildDir}/docker")
-		tag = "idgis/geopublisher_geoserver:${project.version}"
-	}
-
-	task pushImage(type: DockerPushImage) {
-		dependsOn buildImage
-		imageName = "idgis/geopublisher_geoserver:${project.version}"
 	}
 }
 
