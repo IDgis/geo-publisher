@@ -523,7 +523,7 @@ project(':publisher-database') {
 			'''
 		copyFile 'sql', '/opt/sql'
 		copyFile 'start.sh', '/opt/'
-		runCommand 'chmod u+x /opt/start.sh'
+		runCommand 'chmod a+x /opt/start.sh'
 		user 'postgres'
 		runCommand 'echo "host all all 0.0.0.0/0 md5" >> /etc/postgresql/9.5/main/pg_hba.conf'
 		runCommand 'echo "listen_addresses=\'*\'" >> /etc/postgresql/9.5/main/postgresql.conf'

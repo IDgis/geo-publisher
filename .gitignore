@@ -18,4 +18,4 @@ build/
 */out/*
 */*/out/*
 
-wsl-gradle-build.sh
+build.sh
