@@ -1,44 +1,27 @@
 #!/bin/bash
 
-sed -i 's/^#\?shared_buffers.*/shared_buffers = 2GB/g' /etc/postgresql/9.5/main/postgresql.conf
-sed -i 's/^#\?max_connections.*/max_connections = 300/g' /etc/postgresql/9.5/main/postgresql.conf
+set -eu
 
-set -e
+docker-entrypoint.sh postgres &
 
-echo "Starting PostgreSQL daemon ..."
-/etc/init.d/postgresql start
-
-sleep 5s
-
-# Create the database:
-RESULT=$(psql -l | grep "$PG_DATABASE" | wc -l)
-if [[ ${RESULT} != 1 ]]; then
-	echo "Creating database '$PG_DATABASE' with owner '$PG_USER' ..."
-	
-	# Create the user:
-	psql -c "create user $PG_USER with password '$PG_PASSWORD';"
-	psql -c "alter user $PG_USER with superuser;"
-	
-	# Create the database:
-	createdb -O $PG_USER -E UTF8 -T template0 $PG_DATABASE
-	psql -c "create extension postgis;" $PG_DATABASE
-else
-	echo "Database '$PG_DATABASE' exists."
-fi
+until psql -U $POSTGRES_USER -d $POSTGRES_DATABASE -c '\q' > /dev/null 2>&1; do
+    echo "Waiting for database to exist..."
+    sleep 1
+done
 
 # Determine current PostgreSQL version:
 echo "Determining current database revision ..."
 
-TABLE=$(psql -d $PG_DATABASE -At -c "select table_name from information_schema.tables where table_schema = '$PG_VERSION_SCHEMA' and table_name = '$PG_VERSION_TABLE';")
-if [[ "${TABLE}" != "$PG_VERSION_TABLE" ]]; then
-	echo "Version table $PG_VERSION_SCHEMA.$PG_VERSION_TABLE doesn't exist, starting at rev000 $TABLE"
+TABLE=$(psql -U $POSTGRES_USER -d $POSTGRES_DATABASE -At -c "select table_name from information_schema.tables where table_schema = '$POSTGRES_VERSION_SCHEMA' and table_name = '$POSTGRES_VERSION_TABLE';")
+if [[ "${TABLE}" != "$POSTGRES_VERSION_TABLE" ]]; then
+	echo "Version table $POSTGRES_VERSION_SCHEMA.$POSTGRES_VERSION_TABLE doesn't exist, starting at rev000 $TABLE"
 	VERSION=000
 else
-	VERSION_RAW=$(psql -d $PG_DATABASE -At -c "select max(id) from $PG_VERSION_SCHEMA.$PG_VERSION_TABLE")
+	VERSION_RAW=$(psql -U $POSTGRES_USER -d $POSTGRES_DATABASE -At -c "select max(id) from $POSTGRES_VERSION_SCHEMA.$POSTGRES_VERSION_TABLE")
 	VERSION_START=$(($VERSION_RAW+1))
 	VERSION=$(printf "%03d" $VERSION_START)
 
-	echo "Version table $PG_VERSION_SCHEMA.$PG_VERSION_TABLE exists, starting at rev$VERSION"
+	echo "Version table $POSTGRES_VERSION_SCHEMA.$POSTGRES_VERSION_TABLE exists, starting at rev$VERSION"
 fi
 
 
@@ -62,12 +45,11 @@ for file in /opt/sql/rev*.sql; do
 done
 echo "commit;" >> /tmp/patch.sql
 
-psql -d $PG_DATABASE -v ON_ERROR_STOP=1 -f /tmp/patch.sql
+psql -U $POSTGRES_USER -d $POSTGRES_DATABASE -v ON_ERROR_STOP=1 -f /tmp/patch.sql
 
-echo "Stopping PostgreSQL daemon ..."
-/etc/init.d/postgresql stop
+sed -i "s/^#*max_connections.*/max_connections = 200/" "$PGDATA/postgresql.conf"
+sed -i "s/^#*shared_buffers.*/shared_buffers = 2GB/" "$PGDATA/postgresql.conf"
 
-# Run PostgreSQL:
-echo "Starting PostgreSQL in foreground mode ..."
-exec /usr/lib/postgresql/9.5/bin/postgres -D /var/lib/postgresql/9.5/main \
-    -c config_file=/etc/postgresql/9.5/main/postgresql.conf
+pg_ctl -D "$PGDATA" -m fast stop
+
+exec docker-entrypoint.sh postgres
