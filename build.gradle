@@ -515,6 +515,7 @@ project(':publisher-database') {
 		copyFile 'sql', '/opt/sql'
 		copyFile 'start.sh', '/opt/'
 		runCommand 'chmod a+x /opt/start.sh'
+		runCommand 'apt-get update && apt-get install -y --no-install-recommends postgresql-17-postgis-3 postgresql-17-postgis-3-scripts && rm -rf /var/lib/apt/lists/*'
 		user 'postgres'
 		environmentVariable 'POSTGRES_DATABASE', 'publisher'
 		environmentVariable 'POSTGRES_USER', 'publisher'
