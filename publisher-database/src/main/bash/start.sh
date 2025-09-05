@@ -4,13 +4,13 @@ set -eu
 
 docker-entrypoint.sh postgres &
 
-until psql -U $POSTGRES_USER -d $POSTGRES_DATABASE -c '\q' > /dev/null 2>&1; do
+until psql -U $POSTGRES_USER -d $POSTGRES_DATABASE -c "\q" > /dev/null 2>&1; do
     echo "Waiting for database to exist..."
     sleep 1
 done
 
 echo "Creating extension postgis"
-psql -U $POSTGRES_USER -c "create extension postgis;" $POSTGRES_DATABASE
+psql -U $POSTGRES_USER -d $POSTGRES_DATABASE -c "create extension if not exists postgis;"
 
 # Determine current PostgreSQL version:
 echo "Determining current database revision ..."
