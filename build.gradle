@@ -50,7 +50,7 @@ ext {
 	jolokiaVersion = '1.3.7'
 	junitVersion = '4.11'
 	logbackVersion= '1.1.2'
-	postgresVersion = '42.2.18'
+	postgresVersion = '42.7.7'
 	querydslVersion = '3.4.1'
 	scalaAbiVersion = '2.11'
 }
@@ -511,29 +511,19 @@ project(':publisher-database') {
 	
 	task createDockerfile(type: Dockerfile) {
 		destFile = project.file("${project.buildDir}/docker/Dockerfile")
-		from 'ubuntu:xenial'
-		runCommand '''\
-			apt-get update && \
-			apt-get -qy install \
-				postgresql-9.5 \
-				postgresql-client-9.5 \
-				postgresql-9.5-postgis-2.2 && \
-			pg_dropcluster --stop 9.5 main && \
-			pg_createcluster --start -e UTF-8 9.5 main
-			'''
+		from 'postgres:17.6'
 		copyFile 'sql', '/opt/sql'
 		copyFile 'start.sh', '/opt/'
-		runCommand 'chmod u+x /opt/start.sh'
+		runCommand 'chmod a+x /opt/start.sh'
+		runCommand 'apt-get update && apt-get install -y --no-install-recommends postgresql-17-postgis-3 postgresql-17-postgis-3-scripts && rm -rf /var/lib/apt/lists/*'
 		user 'postgres'
-		runCommand 'echo "host all all 0.0.0.0/0 md5" >> /etc/postgresql/9.5/main/pg_hba.conf'
-		runCommand 'echo "listen_addresses=\'*\'" >> /etc/postgresql/9.5/main/postgresql.conf'
-		environmentVariable 'PG_DATABASE', 'publisher'
-		environmentVariable 'PG_USER', 'publisher'
-		environmentVariable 'PG_PASSWORD', 'publisher'
-		environmentVariable 'PG_VERSION_SCHEMA', 'publisher'
-		environmentVariable 'PG_VERSION_TABLE', 'version'
-		exposePort 5432
-		defaultCommand '/bin/bash', '-c', '/opt/start.sh'
+		environmentVariable 'POSTGRES_DATABASE', 'publisher'
+		environmentVariable 'POSTGRES_USER', 'publisher'
+		environmentVariable 'POSTGRES_PASSWORD', 'publisher'
+		environmentVariable 'POSTGRES_VERSION_SCHEMA', 'publisher'
+		environmentVariable 'POSTGRES_VERSION_TABLE', 'version'
+		entryPoint '/bin/bash', '-c', '/opt/start.sh'
+		defaultCommand ''
 	}
 	
 	task pullUbuntuImage(type: DockerPullImage) {
