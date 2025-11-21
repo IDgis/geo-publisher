@@ -629,16 +629,18 @@ project(':publisher-service') {
 		compile 'org.apache.httpcomponents:httpclient:4.5.10'
 	}
 	
+	task runDockerComposeDown(type: Exec) {
+		commandLine 'docker', 'compose', '-f', 'test-geoserver/compose.yml', 'down', '--rmi', 'all'
+	}
+	
 	task runDockerComposeBuild(type: Exec) {
 		commandLine 'docker', 'compose', '-f', 'test-geoserver/compose.yml', 'build', '--no-cache'
 	}
 	
 	task runDockerComposeUp(type: Exec) {
+		dependsOn runDockerComposeDown, runDockerComposeBuild
+		
 		commandLine 'docker', 'compose', '-f', 'test-geoserver/compose.yml', 'up', '-d'
-	}
-	
-	task runDockerComposeDown(type: Exec) {
-		commandLine 'docker', 'compose', '-f', 'test-geoserver/compose.yml', 'down', '--rmi', 'all'
 	}
 	
 	task runDockerComposeDownFinalized(type: Exec) {
@@ -646,13 +648,9 @@ project(':publisher-service') {
 	}
 	
 	def env = System.env
-	def no_execute_docker_compose = env.NO_EXECUTE_DOCKER_COMPOSE
 	
-	if(!"true".equals(no_execute_docker_compose)) {
-		runDockerComposeUp.dependsOn(runDockerComposeDown, runDockerComposeBuild)
-		test.dependsOn(runDockerComposeUp)
-		test.finalizedBy(runDockerComposeDownFinalized)
-	}
+	test.dependsOn(runDockerComposeUp)
+	test.finalizedBy(runDockerComposeDownFinalized)
 	
 	task unpackTar(type: Copy) {
 		dependsOn distTar
