@@ -22,4 +22,5 @@ jobs:
         env:
           GITHUB_USER: "github"
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          DOCKER_HOST: "http://localhost:2375"
         run: ./gradlew build
