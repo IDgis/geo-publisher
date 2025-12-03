@@ -23,4 +23,4 @@ jobs:
           GITHUB_USER: "github"
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           DOCKER_HOST: "unix:///var/run/docker.sock"
-        run: ./gradlew build --debug
+        run: ./gradlew build
