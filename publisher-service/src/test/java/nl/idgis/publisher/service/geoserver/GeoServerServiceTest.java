@@ -243,7 +243,7 @@ public class GeoServerServiceTest {
 		
 	@BeforeClass
 	public static void testServers() throws Exception {
-		h = new GeoServerTestHelper();
+		h = new GeoServerTestHelper(49154, 8081, "db-2");
 		h.start();
 		
 		Connection connection = DriverManager.getConnection("jdbc:postgresql://" + h.getDbHost() + ":" + h.getDbPort() + "/test", "postgres", "postgres");

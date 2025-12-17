@@ -633,12 +633,8 @@ project(':publisher-service') {
 		commandLine 'docker', 'compose', '-f', 'test-geoserver/compose.yml', 'down', '--rmi', 'all'
 	}
 	
-	task runDockerComposeBuild(type: Exec) {
-		commandLine 'docker', 'compose', '-f', 'test-geoserver/compose.yml', 'build', '--no-cache'
-	}
-	
 	task runDockerComposeUp(type: Exec) {
-		dependsOn runDockerComposeDown, runDockerComposeBuild
+		dependsOn runDockerComposeDown
 		
 		commandLine 'docker', 'compose', '-f', 'test-geoserver/compose.yml', 'up', '-d'
 	}
