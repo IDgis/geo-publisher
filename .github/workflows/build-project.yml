@@ -21,7 +21,7 @@ jobs:
       - name: Build
         env:
           GITHUB_USER: "github"
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCKER_HOST: "unix:///var/run/docker.sock"
         run: ./gradlew build
       
