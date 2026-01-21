@@ -1,18 +1,32 @@
-version: '2'
-
 services:
-  db:
+  db-1:
     image: postgis/postgis:9.6-3.0
     ports:
-      - "127.0.0.1:49153:5432"
+      - 49153:5432
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=test
   
-  geoserver:
+  db-2:
+    image: postgis/postgis:9.6-3.0
+    ports:
+      - 49154:5432
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=test
+  
+  geoserver-1:
     build: geoserver
     ports:
-      - "127.0.0.1:8080:8080"
+      - 8080:8080
     environment:
-      - PG_HOST=db
+      - PG_HOST=db-1
+
+  geoserver-2:
+    build: geoserver
+    ports:
+      - 8081:8080
+    environment:
+      - PG_HOST=db-2
