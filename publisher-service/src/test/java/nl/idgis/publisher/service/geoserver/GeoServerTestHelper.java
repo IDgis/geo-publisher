@@ -37,17 +37,21 @@ public class GeoServerTestHelper {
 	
 	private static final String DB_HOST = "localhost";
 	
-	private static final String DATASTORE_DB_HOST = "db";
-
-	private static final int GEOSERVER_PORT = 8080;
-
-	private static final String DB_PORT = "49153";
+	private int dbPort;
+	
+	private int geoserverPort;
+	
+	private String datastoreDbHost;
 	
 	private DocumentBuilder documentBuilder;
 	
 	private XPath xpath;
 	
-	public GeoServerTestHelper() throws Exception {
+	public GeoServerTestHelper(int dbPort, int geoserverPort, String datastoreDbHost) throws Exception {
+		this.dbPort = dbPort;
+		this.geoserverPort = geoserverPort;
+		this.datastoreDbHost = datastoreDbHost;
+		
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		dbf.setNamespaceAware(true);
 		documentBuilder = dbf.newDocumentBuilder();
@@ -179,16 +183,16 @@ public class GeoServerTestHelper {
 		service.close();
 	}
 
-	public String getDbPort() {
-		return DB_PORT;
+	public int getDbPort() {
+		return this.dbPort;
 	}
 	
 	public int getGeoserverPort() {
-		return GEOSERVER_PORT;
+		return this.geoserverPort;
 	}
 
 	public String getDatastoreDbHost() {
-		return DATASTORE_DB_HOST;
+		return datastoreDbHost;
 	}
 
 	public String getDbHost() {

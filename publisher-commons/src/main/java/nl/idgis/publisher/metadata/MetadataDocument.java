@@ -147,36 +147,6 @@ public class MetadataDocument {
 		return "/gmd:MD_Metadata/@xsi:schemaLocation";
 	}
 	
-	public void updateSchemas() throws QueryFailure {
-		String currentSchemaLocation = isoMetadata.getString(namespaces, getSchemaLocationPath());
-		
-		String[] newSchemaLocations = new String[] {
-			"http://www.isotc211.org/2005/gmx",
-			"http://schemas.opengis.net/iso/19139/20060504/gmx/gmx.xsd"
-		};
-			
-		StringBuilder builder = new StringBuilder(currentSchemaLocation);
-		
-		for(String newSchemaLocation : newSchemaLocations) {
-			if(!currentSchemaLocation.contains(newSchemaLocation)) builder.append(" " + newSchemaLocation);
-		}
-		
-		isoMetadata.updateString(namespaces, getSchemaLocationPath(), builder.toString());
-		
-		Element root = (Element) isoMetadata.getNode(namespaces, "/gmd:MD_Metadata");
-		root.setAttribute("xmlns:gmx", "http://www.isotc211.org/2005/gmx");
-	}
-	
-	/*
-	 * metadata standard version
-	 */
-	public void setMetadataStandardVersion(String version) throws QueryFailure {
-		isoMetadata.updateString(
-				namespaces, 
-				"/gmd:MD_Metadata/gmd:metadataStandardVersion/gco:CharacterString", 
-				version);
-	}
-	
 	/*
 	 * reference system identifier
 	 * 
@@ -191,18 +161,6 @@ public class MetadataDocument {
 			"/gmd:RS_Identifier" +
 			"/gmd:code" +
 			"/gco:CharacterString";
-	}
-	
-	public void addPrefixToReferenceSystemIdentifiers(String prefix) {
-		isoMetadata
-			.xpath(Optional.of(namespaces))
-			.nodes(getReferenceSystemIdentifierCodePath())
-			.stream()
-			.forEach(code -> {
-				Node node = code.getItem();
-				
-				if(node != null) code.setTextContent(prefix + node.getTextContent());
-			});
 	}
 	
 	/*
@@ -805,30 +763,6 @@ public class MetadataDocument {
 		return isoMetadata.getString(namespaces, getMaintenanceFrequencyCodePath());
 	}
 	
-	public void verifyMaintenanceFrequencyCodeListValue() throws QueryFailure {
-		List<String> allowed = new ArrayList<>();
-		allowed.add("continual");
-		allowed.add("daily");
-		allowed.add("weekly");
-		allowed.add("fortnightly");
-		allowed.add("monthly");
-		allowed.add("quarterly");
-		allowed.add("annually");
-		allowed.add("biannually");
-		allowed.add("asNeeded");
-		allowed.add("irregular");
-		allowed.add("notPlanned");
-		allowed.add("unknown");
-		
-		String maintenanceFrequencyCodeListValue = getMaintenanceFrequencyCodeListValue();
-		
-		if("2annually".equals(maintenanceFrequencyCodeListValue)) {
-			isoMetadata.updateString(namespaces, getMaintenanceFrequencyCodePath(), "biannually");
-		} else if(!allowed.contains(maintenanceFrequencyCodeListValue)) {
-			isoMetadata.updateString(namespaces, getMaintenanceFrequencyCodePath(), "unknown");
-		}
-	}
-	
 	/*
 	 * resource constraints
 	 * 
@@ -878,20 +812,6 @@ public class MetadataDocument {
 					"gmd:spatialRepresentationType"
 				}, 
 				"gmd:resourceConstraints/gmd:MD_Constraints");
-	}
-	
-	public void resetUseLimitations() throws NotFound {
-		List<String> useLimitations = getUseLimitations();
-		
-		List<String> toBeRemoved = new ArrayList<>();
-		toBeRemoved.add("useLimitation");
-		applyMethodOnResourceConstraints(this::verifyNodeToBeRemoved, toBeRemoved);
-		
-		String parentPath = addMdConstraint();
-		
-		for(String useLimitation : useLimitations) {
-			isoMetadata.addNode(namespaces, parentPath, "gmd:useLimitation/gco:CharacterString", useLimitation);
-		}
 	}
 	
 	/*
@@ -1003,39 +923,46 @@ public class MetadataDocument {
 				attributes);
 	}
 	
-	public void verifyXlinkOtherConstraint() throws NotFound {
+	public void verifyAndFixOtherConstraint() throws NotFound {
 		List<XPathHelper> otherConstraintHelpers = getOtherConstraintNodes();
 		
 		for(XPathHelper otherConstraintHelper : otherConstraintHelpers) {
 			Node otherConstraintCharacterStringNode = otherConstraintHelper.getItem();
 			NamedNodeMap attrs = otherConstraintCharacterStringNode.getAttributes();
 			Node xlink = attrs.getNamedItem(XLINK_ATTRIBUTE_NAME);
+			String content = otherConstraintCharacterStringNode.getTextContent();
+			
+			Node otherConstraintNode = otherConstraintCharacterStringNode.getParentNode();
+			Node legalConstraintsNode = otherConstraintNode.getParentNode();
 			
 			if(xlink != null) {
 				String xlinkValue = xlink.getNodeValue();
-				String content = otherConstraintCharacterStringNode.getTextContent();
-				
-				Node otherConstraintNode = otherConstraintCharacterStringNode.getParentNode();
-				Node legalConstraintsNode = otherConstraintNode.getParentNode();
 				
 				if(content != null) {
 					attrs.removeNamedItem(XLINK_ATTRIBUTE_NAME);
-					Node copyOtherConstraintNode = otherConstraintNode.cloneNode(true);
-					NodeList copyOtherConstraintNodeChilds = copyOtherConstraintNode.getChildNodes();
-					
-					for(int i = 0; i < copyOtherConstraintNodeChilds.getLength(); i++) {
-						Node copyOtherConstraintNodeChild = copyOtherConstraintNodeChilds.item(i);
-						
-						if(copyOtherConstraintNodeChild.getNodeName().trim().equals("gco:CharacterString")) {
-							copyOtherConstraintNodeChild.setTextContent(xlinkValue);
-							break;
-						}
-					}
-					
-					legalConstraintsNode.insertBefore(copyOtherConstraintNode, otherConstraintNode);
+					addOtherConstraintBeforeNode(otherConstraintNode, xlinkValue, legalConstraintsNode, otherConstraintNode);
 				}
+			} else if (content != null && content.contains("|")) {
+				String[] nameAndLink = content.split("\\|");
+				otherConstraintCharacterStringNode.setTextContent(nameAndLink[0]);
+				addOtherConstraintBeforeNode(otherConstraintNode, nameAndLink[1], legalConstraintsNode, otherConstraintNode);
 			}
 		}
+	}
+	
+	private void addOtherConstraintBeforeNode(Node baseNode, String newValue, Node beforeNode, Node refNode) {
+		Node copyOtherConstraintNode = baseNode.cloneNode(true);
+		
+		NodeList copyOtherConstraintNodeChilds = copyOtherConstraintNode.getChildNodes();
+		for(int i = 0; i < copyOtherConstraintNodeChilds.getLength(); i++) {
+			Node copyOtherConstraintNodeChild = copyOtherConstraintNodeChilds.item(i);
+			if(copyOtherConstraintNodeChild.getNodeName().trim().equals("gco:CharacterString")) {
+				copyOtherConstraintNodeChild.setTextContent(newValue);
+				break;
+			}
+		}
+		
+		beforeNode.insertBefore(copyOtherConstraintNode, refNode);
 	}
 	
 	public void transformOtherConstraintGmxToCharacterString() throws NotFound {
@@ -1093,69 +1020,6 @@ public class MetadataDocument {
 						"gmd:otherConstraints/gco:CharacterString",
 						xlinkValue);
 			}
-		}
-	}
-	
-	public void resetOtherConstraints() throws NotFound {
-		List<String> accessConstraints = getAccessConstraints();
-		List<String> otherConstraints = getOtherConstraints();
-		
-		List<String> filteredAccessConstraints = 
-			accessConstraints.stream()
-				.filter(accessConstraint -> "otherRestrictions".equals(accessConstraint))
-				.collect(Collectors.toList());
-		
-		if(filteredAccessConstraints.size() == 2) {
-			List<String> toBeRemoved = new ArrayList<>();
-			toBeRemoved.add("accessConstraints");
-			applyMethodOnResourceConstraints(this::verifyNodeToBeRemoved, toBeRemoved);
-			
-			String parentPath = addLegalConstraint();
-			addAccessConstraint(parentPath, "otherRestrictions");
-			
-			List<String> updatedOtherConstraints = new ArrayList<>();
-			for(String otherConstraint : otherConstraints) {
-				if(otherConstraint != null && otherConstraint.contains("creativecommons.org")) {
-					updateOtherConstraintDescription(updatedOtherConstraints, otherConstraint);
-					updatedOtherConstraints.add(otherConstraint);
-				}
-			}
-			
-			List<String> finalOtherConstraints = 
-					(updatedOtherConstraints.size() == 2) ? updatedOtherConstraints : otherConstraints;
-			
-			finalOtherConstraints.stream()
-				.forEach(otherConstraint -> {
-					try {
-						isoMetadata.addNode(
-							namespaces, 
-							parentPath, 
-							"gmd:otherConstraints/gco:CharacterString",
-							otherConstraint);
-					} catch (NotFound nf) {
-						nf.printStackTrace();
-					}
-				});
-		}
-	}
-	
-	private void updateOtherConstraintDescription(List<String> otherConstraints, String license) {
-		if(license.contains("/mark/")) {
-			otherConstraints.add(DataLicenses.mark.description());
-		} else if(license.contains("/zero/")) {
-			otherConstraints.add(DataLicenses.zero.description());
-		} else if(license.contains("/by/")) {
-			otherConstraints.add(DataLicenses.by.description());
-		} else if(license.contains("/by-sa/")) {
-			otherConstraints.add(DataLicenses.bySa.description());
-		} else if(license.contains("/by-nc/")) {
-			otherConstraints.add(DataLicenses.byNc.description());
-		} else if(license.contains("/by-nc-sa/")) {
-			otherConstraints.add(DataLicenses.byNcSa.description());
-		} else if(license.contains("/by-nd/")) {
-			otherConstraints.add(DataLicenses.byNd.description());
-		} else if(license.contains("/by-nc-nd/")) {
-			otherConstraints.add(DataLicenses.byNcNd.description());
 		}
 	}
 	

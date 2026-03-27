@@ -87,13 +87,6 @@ subprojects {
 			url "https://repo.deegree.org/content/repositories/public/"
 		}
 		maven {
-			url = "https://maven.pkg.github.com/IDgis/sysadmin"
-			credentials {
-				username = System.getenv("GITHUB_USER") ?: ghUser
-				password = System.getenv("GITHUB_TOKEN") ?: ghKey
-			}
-		}
-		maven {
 			url = "https://maven.pkg.github.com/IDgis/play-simple-webdav"
 			credentials {
 				username = System.getenv("GITHUB_USER") ?: ghUser
@@ -629,16 +622,14 @@ project(':publisher-service') {
 		compile 'org.apache.httpcomponents:httpclient:4.5.10'
 	}
 	
-	task runDockerComposeBuild(type: Exec) {
-		commandLine 'docker', 'compose', '-f', 'test-geoserver/compose.yml', 'build', '--no-cache'
+	task runDockerComposeDown(type: Exec) {
+		commandLine 'docker', 'compose', '-f', 'test-geoserver/compose.yml', 'down', '--rmi', 'all'
 	}
 	
 	task runDockerComposeUp(type: Exec) {
+		dependsOn runDockerComposeDown
+		
 		commandLine 'docker', 'compose', '-f', 'test-geoserver/compose.yml', 'up', '-d'
-	}
-	
-	task runDockerComposeDown(type: Exec) {
-		commandLine 'docker', 'compose', '-f', 'test-geoserver/compose.yml', 'down', '--rmi', 'all'
 	}
 	
 	task runDockerComposeDownFinalized(type: Exec) {
@@ -646,13 +637,9 @@ project(':publisher-service') {
 	}
 	
 	def env = System.env
-	def no_execute_docker_compose = env.NO_EXECUTE_DOCKER_COMPOSE
 	
-	if(!"true".equals(no_execute_docker_compose)) {
-		runDockerComposeUp.dependsOn(runDockerComposeDown, runDockerComposeBuild)
-		test.dependsOn(runDockerComposeUp)
-		test.finalizedBy(runDockerComposeDownFinalized)
-	}
+	test.dependsOn(runDockerComposeUp)
+	test.finalizedBy(runDockerComposeDownFinalized)
 	
 	task unpackTar(type: Copy) {
 		dependsOn distTar
