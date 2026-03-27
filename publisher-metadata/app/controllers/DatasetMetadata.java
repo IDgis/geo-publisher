@@ -189,7 +189,7 @@ public class DatasetMetadata extends AbstractMetadata {
 			metadataDocument.removeStylesheet();
 			stylesheet("datasets").ifPresent(metadataDocument::setStylesheet);
 			
-			metadataDocument.verifyXlinkOtherConstraint();
+			metadataDocument.verifyAndFixOtherConstraint();
 			
 			metadataDocument.setDatasetIdentifier(datasetIdentifier);
 			metadataDocument.setFileIdentifier(fileIdentifier);

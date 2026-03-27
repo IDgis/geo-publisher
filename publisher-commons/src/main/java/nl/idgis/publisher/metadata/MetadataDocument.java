@@ -923,39 +923,46 @@ public class MetadataDocument {
 				attributes);
 	}
 	
-	public void verifyXlinkOtherConstraint() throws NotFound {
+	public void verifyAndFixOtherConstraint() throws NotFound {
 		List<XPathHelper> otherConstraintHelpers = getOtherConstraintNodes();
 		
 		for(XPathHelper otherConstraintHelper : otherConstraintHelpers) {
 			Node otherConstraintCharacterStringNode = otherConstraintHelper.getItem();
 			NamedNodeMap attrs = otherConstraintCharacterStringNode.getAttributes();
 			Node xlink = attrs.getNamedItem(XLINK_ATTRIBUTE_NAME);
+			String content = otherConstraintCharacterStringNode.getTextContent();
+			
+			Node otherConstraintNode = otherConstraintCharacterStringNode.getParentNode();
+			Node legalConstraintsNode = otherConstraintNode.getParentNode();
 			
 			if(xlink != null) {
 				String xlinkValue = xlink.getNodeValue();
-				String content = otherConstraintCharacterStringNode.getTextContent();
-				
-				Node otherConstraintNode = otherConstraintCharacterStringNode.getParentNode();
-				Node legalConstraintsNode = otherConstraintNode.getParentNode();
 				
 				if(content != null) {
 					attrs.removeNamedItem(XLINK_ATTRIBUTE_NAME);
-					Node copyOtherConstraintNode = otherConstraintNode.cloneNode(true);
-					NodeList copyOtherConstraintNodeChilds = copyOtherConstraintNode.getChildNodes();
-					
-					for(int i = 0; i < copyOtherConstraintNodeChilds.getLength(); i++) {
-						Node copyOtherConstraintNodeChild = copyOtherConstraintNodeChilds.item(i);
-						
-						if(copyOtherConstraintNodeChild.getNodeName().trim().equals("gco:CharacterString")) {
-							copyOtherConstraintNodeChild.setTextContent(xlinkValue);
-							break;
-						}
-					}
-					
-					legalConstraintsNode.insertBefore(copyOtherConstraintNode, otherConstraintNode);
+					addOtherConstraintBeforeNode(otherConstraintNode, xlinkValue, legalConstraintsNode, otherConstraintNode);
 				}
+			} else if (content != null && content.contains("|")) {
+				String[] nameAndLink = content.split("\\|");
+				otherConstraintCharacterStringNode.setTextContent(nameAndLink[0]);
+				addOtherConstraintBeforeNode(otherConstraintNode, nameAndLink[1], legalConstraintsNode, otherConstraintNode);
 			}
 		}
+	}
+	
+	private void addOtherConstraintBeforeNode(Node baseNode, String newValue, Node beforeNode, Node refNode) {
+		Node copyOtherConstraintNode = baseNode.cloneNode(true);
+		
+		NodeList copyOtherConstraintNodeChilds = copyOtherConstraintNode.getChildNodes();
+		for(int i = 0; i < copyOtherConstraintNodeChilds.getLength(); i++) {
+			Node copyOtherConstraintNodeChild = copyOtherConstraintNodeChilds.item(i);
+			if(copyOtherConstraintNodeChild.getNodeName().trim().equals("gco:CharacterString")) {
+				copyOtherConstraintNodeChild.setTextContent(newValue);
+				break;
+			}
+		}
+		
+		beforeNode.insertBefore(copyOtherConstraintNode, refNode);
 	}
 	
 	public void transformOtherConstraintGmxToCharacterString() throws NotFound {
@@ -1013,26 +1020,6 @@ public class MetadataDocument {
 						"gmd:otherConstraints/gco:CharacterString",
 						xlinkValue);
 			}
-		}
-	}
-	
-	private void updateOtherConstraintDescription(List<String> otherConstraints, String license) {
-		if(license.contains("/mark/")) {
-			otherConstraints.add(DataLicenses.mark.description());
-		} else if(license.contains("/zero/")) {
-			otherConstraints.add(DataLicenses.zero.description());
-		} else if(license.contains("/by/")) {
-			otherConstraints.add(DataLicenses.by.description());
-		} else if(license.contains("/by-sa/")) {
-			otherConstraints.add(DataLicenses.bySa.description());
-		} else if(license.contains("/by-nc/")) {
-			otherConstraints.add(DataLicenses.byNc.description());
-		} else if(license.contains("/by-nc-sa/")) {
-			otherConstraints.add(DataLicenses.byNcSa.description());
-		} else if(license.contains("/by-nd/")) {
-			otherConstraints.add(DataLicenses.byNd.description());
-		} else if(license.contains("/by-nc-nd/")) {
-			otherConstraints.add(DataLicenses.byNcNd.description());
 		}
 	}
 	
