@@ -180,40 +180,6 @@ public class DatasetMetadata extends AbstractMetadata {
 			.list(sourceDatasetVersionColumn.name, sourceDatasetVersionColumn.alias);
 	}
 	
-	private void transitionToMetadata20(MetadataDocument metadataDocument) {
-		try {
-			metadataDocument.updateSchemas();
-		} catch(QueryFailure qf) {
-			qf.printStackTrace();
-		}
-		
-		try {
-			metadataDocument.setMetadataStandardVersion("Nederlands metadata profiel op ISO 19115 voor geografie 2.0.0");
-		} catch(QueryFailure qf) {
-			qf.printStackTrace();
-		}
-		
-		metadataDocument.addPrefixToReferenceSystemIdentifiers("https://www.opengis.net/def/crs/EPSG/0/");
-		
-		try {
-			metadataDocument.verifyMaintenanceFrequencyCodeListValue();
-		} catch(QueryFailure qf) {
-			qf.printStackTrace();
-		}
-		
-		try {
-			metadataDocument.resetOtherConstraints();
-		} catch(NotFound nf) {
-			nf.printStackTrace();
-		}
-		
-		try {
-			metadataDocument.resetUseLimitations();
-		} catch(NotFound nf) {
-			nf.printStackTrace();
-		}
-	}
-	
 	private Resource tupleToDatasetResource(Transaction tx, Tuple datasetTuple, int sourceDatasetId, Integer datasetId, String fileIdentifier, String datasetIdentifier) {
 		final QSourceDatasetVersion sourceDatasetVersionSub = new QSourceDatasetVersion("source_dataset_version_sub");
 		
@@ -222,10 +188,6 @@ public class DatasetMetadata extends AbstractMetadata {
 			
 			metadataDocument.removeStylesheet();
 			stylesheet("datasets").ifPresent(metadataDocument::setStylesheet);
-			
-			if(!metadataDocument.getMetadataStandardVersion().contains("2.0")) {
-				transitionToMetadata20(metadataDocument);
-			}
 			
 			metadataDocument.verifyXlinkOtherConstraint();
 			
