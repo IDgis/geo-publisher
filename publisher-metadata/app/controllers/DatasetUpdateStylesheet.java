@@ -88,7 +88,7 @@ public class DatasetUpdateStylesheet extends Controller {
 				try {
 					MetadataDocument md = mdf.parseDocument(response.getBodyAsStream());
 					
-					if(!"ISO 19115".equals(md.getMetadataStandardName())) {
+					if(!md.datasetIdentificationExists()) {
 						return internalServerError("500 Internal Server Error: response is not an ISO 19115 document");
 					}
 					
