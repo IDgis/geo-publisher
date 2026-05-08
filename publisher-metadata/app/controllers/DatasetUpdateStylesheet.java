@@ -47,34 +47,21 @@ public class DatasetUpdateStylesheet extends Controller {
 			return Promise.pure(internalServerError("500 Internal Server Error: url must start with either http:// or https://"));
 		}
 		
-		String mainDomainUrl = url; // default
-		
+		boolean allowedUrl = false;
+		String host = url;
 		try {
 			URL urlObject = new URL(url);
-			String host = urlObject.getHost();
-			int count = StringUtils.countMatches(host, ".");
-			String[] urlParts = host.split("\\.");
-			
-			if(count != 0 && urlParts.length != 1) {
-				mainDomainUrl = urlParts[count-1] + "." + urlParts[count];
-			} else {
-				// do nothing
-			}
+			host = urlObject.getHost();
 		} catch (MalformedURLException e) {
 			return Promise.pure(internalServerError("500 Internal Server Error: url is not correct"));
 		}
 		
-		boolean allowedUrl = false;
-		
-		for(String domain : acceptedDomains) {
-			
-			if(domain.trim().isEmpty()) {
+		for(String acceptedDomain : acceptedDomains) {
+			if(acceptedDomain.trim().isEmpty()) {
 				// do nothing
-			} else {
-				if(mainDomainUrl.startsWith(domain.trim())) {
-					allowedUrl = true;
-					break;
-				}
+			} else if(host.endsWith(acceptedDomain.trim())) {
+				allowedUrl = true;
+				break;
 			}
 		}
 		
@@ -84,10 +71,8 @@ public class DatasetUpdateStylesheet extends Controller {
 			WSRequest request = ws.url(encodedUrl).setFollowRedirects(true).setRequestTimeout(10000);
 			
 			for(Entry<String, String[]> entry : request().queryString().entrySet()) {
-				
 				int i = 0;
 				for(String value : entry.getValue()) {
-					
 					if("url".equals(entry.getKey()) && i == 0) {
 						i++;
 						continue;
@@ -103,7 +88,7 @@ public class DatasetUpdateStylesheet extends Controller {
 				try {
 					MetadataDocument md = mdf.parseDocument(response.getBodyAsStream());
 					
-					if(!"ISO 19115".equals(md.getMetadataStandardName())) {
+					if(!md.datasetIdentificationExists()) {
 						return internalServerError("500 Internal Server Error: response is not an ISO 19115 document");
 					}
 					
