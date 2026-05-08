@@ -148,6 +148,18 @@ public class MetadataDocument {
 	}
 	
 	/*
+	 * Identification
+	 * 
+	 */
+	
+	public boolean datasetIdentificationExists() {
+		return isoMetadata
+			.xpath(Optional.of(namespaces))
+			.node(getDatasetIdentificationPath())
+			.isPresent();
+	}
+	
+	/*
 	 * reference system identifier
 	 * 
 	 */
