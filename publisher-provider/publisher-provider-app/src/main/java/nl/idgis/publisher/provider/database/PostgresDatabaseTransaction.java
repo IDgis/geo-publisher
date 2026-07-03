@@ -158,6 +158,7 @@ public class PostgresDatabaseTransaction extends AbstractDatabaseTransaction {
 		log.debug("Executing fetchtable query: " + query);
 		
 		Statement stmt = connection.createStatement();
+		stmt.setFetchSize(500);
 		ResultSet rs = stmt.executeQuery(query);
 
 		return getContext().actorOf(
