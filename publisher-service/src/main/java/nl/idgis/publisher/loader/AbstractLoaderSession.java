@@ -82,7 +82,7 @@ public abstract class AbstractLoaderSession<T extends ImportJobInfo, U extends S
 	}
 	
 	@Override
-	public final void preStart() throws Exception {
+	public void preStart() throws Exception {
 		getContext().setReceiveTimeout(receiveTimeout);
 		
 		f = new FutureUtils(getContext());

@@ -48,12 +48,12 @@ public abstract class AbstractAsyncHelper implements AsyncHelper {
 	
 	@Override
 	public final CompletableFuture<Object> ask(Object message) {
-		return f.ask(actorRef, message);
+		return f.askDelayed(actorRef, message);
 	}
 	
 	@Override
 	public final CompletableFuture<Object> ask(Object message, long timeout) {
-		return f.ask(actorRef, message, timeout);
+		return f.askDelayed(actorRef, message, timeout);
 	}
 	
 	@Override

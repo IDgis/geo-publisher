@@ -261,6 +261,35 @@ public class FutureUtils {
 	public <T> Collector1<T> collect(CompletableFuture<T> future) {
 		return new Collector1<>(future);
 	}
+
+	/**
+	 * Sends a message asynchronously and returns a {@link CompletableFuture}
+	 * holding the eventual reply message.
+	 *
+	 * Resets timeout on receiving a {@link Busy} message from the actor.
+	 *
+	 * @param actor the actor to send the message to
+	 * @param message the message
+	 * @return the future
+	 */
+	public CompletableFuture<Object> askDelayed(ActorRef actor, Object message) {
+		return toCompletableFuture(Ask.ask(actorRefFactory, actor, message, timeout, true));
+	}
+
+	/**
+	 * Sends a message asynchronously and returns a {@link CompletableFuture}
+	 * holding the eventual reply message.
+	 *
+	 * Resets timeout on receiving a {@link Busy} message from the actor.
+	 *
+	 * @param actor the actor to send the message to
+	 * @param message the message
+	 * @param timeout the timeout
+	 * @return the future
+	 */
+	public CompletableFuture<Object> askDelayed(ActorRef actor, Object message, long timeout) {
+		return toCompletableFuture(Ask.ask(actorRefFactory, actor, message, timeout, true));
+	}
 	
 	/**
 	 * Sends a message asynchronously and returns a {@link CompletableFuture}
