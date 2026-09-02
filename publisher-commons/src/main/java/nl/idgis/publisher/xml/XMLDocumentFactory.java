@@ -13,17 +13,11 @@ import org.xml.sax.SAXException;
 
 public class XMLDocumentFactory {
 	
-	private final DocumentBuilder documentBuilder;	
-	
-	public XMLDocumentFactory() throws Exception {
-		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-		dbf.setNamespaceAware(true);
-		
-		documentBuilder = dbf.newDocumentBuilder();
-	}
-	
 	public XMLDocument parseDocument(InputStream inputStream) throws Exception {
 		try {
+			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+			dbf.setNamespaceAware(true);
+			DocumentBuilder documentBuilder = dbf.newDocumentBuilder();
 			return new XMLDocument(documentBuilder.parse(inputStream));
 		} catch (SAXException | IOException e) {
 			throw new NotParseable(e);
