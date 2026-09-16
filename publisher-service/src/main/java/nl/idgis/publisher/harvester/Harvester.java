@@ -4,6 +4,9 @@ import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -57,7 +60,11 @@ public class Harvester extends UntypedActor {
 	private BiMap<String, ActorRef> dataSources;
 	
 	private BiMap<HarvestJobInfo, ActorRef> sessions;
-	
+
+	private Map<ActorRef, ActorRef> sessionJobContexts;
+
+	private Set<ActorRef> failedSessions;
+
 	private FutureUtils f;
 	
 	private AsyncDatabaseHelper db;
@@ -107,9 +114,13 @@ public class Harvester extends UntypedActor {
 		getContext().actorOf(Server.props(name, getSelf(), port, config), "server");
 		
 		dataSources = HashBiMap.create();
-		
+
 		sessions = HashBiMap.create();
-		
+
+		sessionJobContexts = new HashMap<>();
+
+		failedSessions = new HashSet<>();
+
 		f = new FutureUtils(getContext());
 		db = new AsyncDatabaseHelper(database, getClass().getName(), f, log);
 	}
@@ -174,7 +185,8 @@ public class Harvester extends UntypedActor {
 		
 		getContext().watch(session);
 		sessions.put(harvestJob, session);
-		
+		sessionJobContexts.put(session, msg.getJobContext());
+
 		dataSources.get(harvestJob.getDataSourceId()).tell(new ListDatasets(), session);
 	}
 
@@ -268,8 +280,17 @@ public class Harvester extends UntypedActor {
 		}
 		
 		HarvestJobInfo harvestJob = sessions.inverse().remove(actor);
+		ActorRef jobContext = sessionJobContexts.remove(actor);
+		boolean failed = failedSessions.remove(actor);
 		if(harvestJob != null) {
-			log.debug("harvest job completed: " + harvestJob);			
+			log.debug("harvest job completed: " + harvestJob);
+
+			// only a session stopped by the supervisor strategy below (an uncaught
+			// exception) never got the chance to report its own outcome to jobContext;
+			// a session that finished normally already did so before stopping itself.
+			if(failed && jobContext != null) {
+				jobContext.tell(new UpdateJobState(JobState.FAILED), getSelf());
+			}
 		}
 	}
 
@@ -295,6 +316,7 @@ public class Harvester extends UntypedActor {
 		public Directive apply(Throwable t) {
 			if(sessions.containsValue(getSender())) {
 				log.error(t, "harvest session failed, stopping");
+				failedSessions.add(getSender());
 
 				return SupervisorStrategy.stop();
 			} else if(t instanceof ActorInitializationException
