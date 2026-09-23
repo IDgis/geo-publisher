@@ -89,7 +89,7 @@ public class InitiatorDispatcher extends UntypedActor {
 					stop();
 				}
 			} else {
-				log.debug("unhandled (expected TypeIterable containing JobInfo");
+				log.debug("unhandled (expected TypedIterable containing JobInfo");
 
 				stop();
 			}
@@ -102,7 +102,7 @@ public class InitiatorDispatcher extends UntypedActor {
 
 			stop();
 		} else {
-			log.debug("unhandled (expected TypeIterable): " + msg);
+			log.debug("unhandled (expected TypedIterable): " + msg);
 
 			stop();
 		}
