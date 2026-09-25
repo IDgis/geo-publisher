@@ -4,6 +4,9 @@ import static nl.idgis.publisher.database.QDataSource.dataSource;
 import static nl.idgis.publisher.database.QSourceDataset.sourceDataset;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -11,12 +14,19 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.typesafe.config.Config;
 
+import akka.actor.ActorInitializationException;
+import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
+import akka.actor.DeathPactException;
+import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
+import akka.actor.SupervisorStrategy;
+import akka.actor.SupervisorStrategy.Directive;
 import akka.actor.Terminated;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.japi.Function;
 import nl.idgis.publisher.database.AsyncDatabaseHelper;
 import nl.idgis.publisher.domain.job.JobState;
 import nl.idgis.publisher.harvester.messages.DataSourceConnected;
@@ -35,6 +45,8 @@ import nl.idgis.publisher.protocol.messages.Ack;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
 
+import scala.concurrent.duration.Duration;
+
 public class Harvester extends UntypedActor {
 	
 	private final Config config;
@@ -48,7 +60,11 @@ public class Harvester extends UntypedActor {
 	private BiMap<String, ActorRef> dataSources;
 	
 	private BiMap<HarvestJobInfo, ActorRef> sessions;
-	
+
+	private Map<ActorRef, ActorRef> sessionJobContexts;
+
+	private Set<ActorRef> failedSessions;
+
 	private FutureUtils f;
 	
 	private AsyncDatabaseHelper db;
@@ -98,9 +114,13 @@ public class Harvester extends UntypedActor {
 		getContext().actorOf(Server.props(name, getSelf(), port, config), "server");
 		
 		dataSources = HashBiMap.create();
-		
+
 		sessions = HashBiMap.create();
-		
+
+		sessionJobContexts = new HashMap<>();
+
+		failedSessions = new HashSet<>();
+
 		f = new FutureUtils(getContext());
 		db = new AsyncDatabaseHelper(database, getClass().getName(), f, log);
 	}
@@ -165,7 +185,8 @@ public class Harvester extends UntypedActor {
 		
 		getContext().watch(session);
 		sessions.put(harvestJob, session);
-		
+		sessionJobContexts.put(session, msg.getJobContext());
+
 		dataSources.get(harvestJob.getDataSourceId()).tell(new ListDatasets(), session);
 	}
 
@@ -210,6 +231,8 @@ public class Harvester extends UntypedActor {
 		if(dataSources.containsKey(dataSourceId)) {
 			if(isHarvesting(dataSourceId)) {
 				log.debug("already harvesting dataSource: " + dataSourceId);
+
+				getSender().tell(new Ack(), getSelf());
 			} else {
 				log.debug("Initializing harvesting for dataSource: " + dataSourceId);			
 			
@@ -257,20 +280,59 @@ public class Harvester extends UntypedActor {
 		}
 		
 		HarvestJobInfo harvestJob = sessions.inverse().remove(actor);
+		ActorRef jobContext = sessionJobContexts.remove(actor);
+		boolean failed = failedSessions.remove(actor);
 		if(harvestJob != null) {
-			log.debug("harvest job completed: " + harvestJob);			
+			log.debug("harvest job completed: " + harvestJob);
+
+			// only a session stopped by the supervisor strategy below (an uncaught
+			// exception) never got the chance to report its own outcome to jobContext;
+			// a session that finished normally already did so before stopping itself.
+			if(failed && jobContext != null) {
+				jobContext.tell(new UpdateJobState(JobState.FAILED), getSelf());
+			}
 		}
 	}
 
 	private void handleDataSourceConnected(DataSourceConnected msg) {
 		log.debug("dataSource connected: {}", msg);
-		
+
 		String dataSourceId = msg.getDataSourceId();
 		ActorRef dataSource = msg.getDataSource();
-		
+
 		getContext().watch(dataSource);
 		dataSources.put(dataSourceId, dataSource);
-		
+
 		getSender().tell(new Ack(), getSelf());
+	}
+
+	// a failed HarvestSession must be stopped rather than restarted: a restart doesn't
+	// send Terminated, so it would never be removed from sessions, permanently blocking
+	// isHarvesting() for its dataSource. every other child (e.g. the server) keeps
+	// Akka's default decider, unchanged.
+	private final SupervisorStrategy strategy = new OneForOneStrategy(-1, Duration.Inf(), new Function<Throwable, Directive>() {
+
+		@Override
+		public Directive apply(Throwable t) {
+			if(sessions.containsValue(getSender())) {
+				log.error(t, "harvest session failed, stopping");
+				failedSessions.add(getSender());
+
+				return SupervisorStrategy.stop();
+			} else if(t instanceof ActorInitializationException
+					|| t instanceof ActorKilledException
+					|| t instanceof DeathPactException) {
+				return SupervisorStrategy.stop();
+			} else if(t instanceof Exception) {
+				return SupervisorStrategy.restart();
+			} else {
+				return SupervisorStrategy.escalate();
+			}
+		}
+	});
+
+	@Override
+	public SupervisorStrategy supervisorStrategy() {
+		return strategy;
 	}
 }
