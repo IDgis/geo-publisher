@@ -4,6 +4,7 @@ import java.util.Iterator;
 
 import nl.idgis.publisher.job.context.JobContext;
 import nl.idgis.publisher.protocol.messages.Ack;
+import nl.idgis.publisher.protocol.messages.Failure;
 import nl.idgis.publisher.utils.TypedIterable;
 import nl.idgis.publisher.utils.UniqueNameGenerator;
 
@@ -83,19 +84,27 @@ public class InitiatorDispatcher extends UntypedActor {
 							}
 						}
 						
-					});					
+					});
 				} else {
 					stop();
 				}
 			} else {
-				log.debug("unhandled (expected TypeIterable containing JobInfo");
-				
-				unhandled(msg);
+				log.debug("unhandled (expected TypedIterable containing JobInfo");
+
+				stop();
 			}
+		} else if(msg instanceof Failure) {
+			log.error("couldn't fetch jobs: {}", ((Failure)msg).getCause());
+
+			stop();
+		} else if(msg instanceof ReceiveTimeout) {
+			log.error("timeout while waiting for jobs");
+
+			stop();
 		} else {
-			log.debug("unhandled (waiting for TypedIterable): " + msg);
-			
-			unhandled(msg);
+			log.debug("unhandled (expected TypedIterable): " + msg);
+
+			stop();
 		}
 	}
 	
