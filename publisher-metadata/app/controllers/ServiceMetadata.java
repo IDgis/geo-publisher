@@ -292,7 +292,6 @@ public class ServiceMetadata extends AbstractMetadata {
 			}
 			
 			metadataDocument.removeStylesheet();
-			stylesheet("services").ifPresent(metadataDocument::setStylesheet);
 			
 			return Optional.<Resource>of(new DefaultResource("application/xml", metadataDocument.getContent()));
 		}));

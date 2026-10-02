@@ -6,6 +6,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 
 import javax.inject.Inject;
+import javax.xml.transform.TransformerException;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -13,12 +14,14 @@ import nl.idgis.publisher.metadata.MetadataDocument;
 import nl.idgis.publisher.metadata.MetadataDocumentFactory;
 import nl.idgis.publisher.xml.exceptions.NotFound;
 import nl.idgis.publisher.xml.exceptions.NotParseable;
+import play.Logger;
 import play.libs.F.Promise;
 import play.libs.ws.WSClient;
 import play.libs.ws.WSRequest;
 import play.mvc.Controller;
 import play.mvc.Result;
 import util.MetadataConfig;
+import util.Transform;
 
 public class DatasetUpdateStylesheet extends Controller {
 	
@@ -42,6 +45,7 @@ public class DatasetUpdateStylesheet extends Controller {
 	}
 	
 	public Promise<Result> update(String url) {
+		String base = routes.DatasetUpdateStylesheet.update(url).absoluteURL(request());
 		
 		if(!url.startsWith("http://") && !url.startsWith("https://")) {
 			return Promise.pure(internalServerError("500 Internal Server Error: url must start with either http:// or https://"));
@@ -92,20 +96,18 @@ public class DatasetUpdateStylesheet extends Controller {
 						return internalServerError("500 Internal Server Error: response is not an ISO 19115 document");
 					}
 					
-					response().setContentType("application/xml");
 					md.removeStylesheet();
-					
-					Optional<String> stylesheetUrl = config.getMetadataStylesheetPrefix().map(prefix -> {
-						return prefix + "datasets/extern/metadata.xsl";
-					});
-					
-					stylesheetUrl.ifPresent(stylesheet -> {
-						md.setStylesheet(stylesheet);
-					});
 					
 					md.transformOtherConstraintGmxToCharacterString();
 					
-					return ok(md.getContent()).as("UTF-8");
+					String stylesheetUrl = config.getMetadataStylesheetPrefix() + "datasets/extern/metadata.xsl";
+					try {
+						String html = Transform.transformToHtml(base, stylesheetUrl, md.getContent());
+						return ok(html).as("text/html; charset=utf-8");
+					} catch (TransformerException e) {
+						Logger.error("XSLT transformation failed for url " + url, e);
+						return internalServerError("Could not display the metadata");
+					}
 				} catch(NotParseable np) {
 					return internalServerError("500 Internal Server Error: response is not an XML document");
 				} catch(IllegalArgumentException iae) {
