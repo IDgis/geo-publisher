@@ -25,10 +25,6 @@ public class Metadata extends Controller {
 
 	private final static String databaseRef = Play.application().configuration().getString("publisher.database.actorRef");
 	
-	private final static String datasetMetadata = Play.application().configuration().getString("publisher.metadata.dataset");
-	
-	private final static String serviceMetadata = Play.application().configuration().getString("publisher.metadata.service");
-	
 	private final static String datasetStylesheet;
 	
 	static {
