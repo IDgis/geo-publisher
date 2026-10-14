@@ -190,22 +190,6 @@ public class XMLDocumentTest {
 		assertFalse(newContent.contains("stylesheet.xsl"));
 	}
 	
-	@Test
-	public void testSetStylesheet() throws Exception {
-		XMLDocumentFactory factory = new XMLDocumentFactory();
-		
-		XMLDocument document = factory.parseDocument("<document/>".getBytes("utf-8"));
-		document.setStylesheet("stylesheet.xsl");
-		
-		String content = new String(document.getContent(), "utf-8");
-		assertTrue(content.contains("<?xml-stylesheet type=\"text/xsl\" href=\"stylesheet.xsl\"?>"));
-		
-		document.setStylesheet("new-stylesheet.xsl");
-		content = new String(document.getContent(), "utf-8");
-		assertFalse(content.contains("<?xml-stylesheet type=\"text/xsl\" href=\"stylesheet.xsl\"?>"));
-		assertTrue(content.contains("<?xml-stylesheet type=\"text/xsl\" href=\"new-stylesheet.xsl\"?>"));
-	}
-	
 	@Test(expected=NotFound.class)
 	public void testRemoveNodes() throws Exception {
 		XMLDocumentFactory factory = new XMLDocumentFactory();

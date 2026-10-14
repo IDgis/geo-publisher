@@ -1,7 +1,5 @@
 package controllers;
 
-import static play.mvc.Controller.request;
-
 import java.util.Optional;
 
 import nl.idgis.dav.router.SimpleWebDAV;
@@ -65,23 +63,5 @@ public abstract class AbstractMetadata extends SimpleWebDAV {
 	
 	protected String getServiceLinkage(String environmentUrl, String serviceName, ServiceType serviceType) {
 		return environmentUrl + serviceName + "/" + serviceType.name().toLowerCase();
-	}
-	
-	protected boolean displayWithoutStylesheet() {
-		return Boolean.parseBoolean(request().getQueryString("noStyle"));
-	}
-	
-	protected Optional<String> stylesheet(String type) {
-		if(displayWithoutStylesheet()) {
-			return Optional.empty();
-		}
-		
-		return config.getMetadataStylesheetPrefix().map(prefix -> {
-			if(s.isTrusted()) {
-				return prefix + type + "/intern/metadata.xsl";
-			} else {
-				return prefix + type + "/extern/metadata.xsl";
-			}
-		});
 	}
 }

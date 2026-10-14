@@ -120,7 +120,7 @@ GET		/user/logout									controllers.User.logout()
 POST	/user/authenticate								controllers.User.authenticate()
 
 # Metadata
-GET		/metadata/source-datasets/:sourceDatasetId		controllers.Metadata.sourceDataset(sourceDatasetId: String)
+GET		/metadata/source-datasets/:sourceDatasetId		controllers.Metadata.sourceDataset(sourceDatasetId: String, noStyle: Boolean ?= false)
 
 # Map static resources from the /public folder to the /assets URL path
 GET		/javascriptRoutes  								controllers.Application.javascriptRoutes

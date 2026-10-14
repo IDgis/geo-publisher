@@ -1552,10 +1552,6 @@ public class MetadataDocument {
 		isoMetadata.removeStylesheet();
 	}
 	
-	public void setStylesheet(String stylesheet) {
-		isoMetadata.setStylesheet(stylesheet);
-	}
-	
 	public List<String> getSpatialSchema() {
 		return xpath().strings(
 			"/gmd:MD_Metadata"
