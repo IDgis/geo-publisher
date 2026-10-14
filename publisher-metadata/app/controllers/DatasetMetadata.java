@@ -187,7 +187,6 @@ public class DatasetMetadata extends AbstractMetadata {
 			final MetadataDocument metadataDocument = mdf.parseDocument(datasetTuple.get(sourceDatasetMetadata.document));
 			
 			metadataDocument.removeStylesheet();
-			stylesheet("datasets").ifPresent(metadataDocument::setStylesheet);
 			
 			metadataDocument.verifyAndFixOtherConstraint();
 			

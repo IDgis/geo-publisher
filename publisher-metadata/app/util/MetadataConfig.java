@@ -121,8 +121,8 @@ public class MetadataConfig {
 		return path;
 	}
 	
-	public Optional<String> getMetadataStylesheetPrefix() {
-		return Optional.ofNullable(metadataStylesheetPrefix);
+	public String getMetadataStylesheetPrefix() {
+		return metadataStylesheetPrefix;
 	}
 	
 	public String getMetadataUrlPrefix() {
