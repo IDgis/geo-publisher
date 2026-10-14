@@ -2,4 +2,4 @@
 GET		/attachment/:id/*file			controllers.Attachment.get(id, file)
 GET		/dcat							controllers.DatasetMetadataDCAT.index()
 GET		/updatestylesheet				controllers.DatasetUpdateStylesheet.update(url: String)
-GET		/view/metadata/:type/:name		controllers.MetadataHTML.view(type: String, name: String)
+GET		/view/metadata/:type/:name		controllers.MetadataHTML.view(type: String, name: String, noStyle: Boolean ?= false)

@@ -32,7 +32,7 @@ public class Metadata extends Controller {
 		datasetStylesheet =  stylesheetPrefix + "datasets/intern/metadata.xsl";
 	}
 	
-	public static Promise<Result> sourceDataset(final String sourceDatasetId) {
+	public static Promise<Result> sourceDataset(final String sourceDatasetId, Boolean noStyle) {
 		final ActorSelection database = Akka.system().actorSelection (databaseRef);
 		
 		return from(database)
@@ -42,7 +42,11 @@ public class Metadata extends Controller {
 					return notFound();
 				}
 				
-				String base = routes.Metadata.sourceDataset(sourceDatasetId).absoluteURL(request());
+				if(noStyle) {
+					return ok(metadata.content()).as("text/xml; charset=utf-8");
+				}
+				
+				String base = routes.Metadata.sourceDataset(sourceDatasetId, false).absoluteURL(request());
 				String absoluteXslUrl = new URL(new URL(base), datasetStylesheet).toString();
 				String html = XslTransformer.transform(
 						new StreamSource(

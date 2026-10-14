@@ -34,7 +34,7 @@ public class MetadataHTML extends Controller {
 		this.dqb = dqb;
 	}
 	
-	public Result view(String type, String name) throws Exception {
+	public Result view(String type, String name, Boolean noStyle) throws Exception {
 		switch (type) {
 			case "dataset":
 			case "service":
@@ -43,22 +43,25 @@ public class MetadataHTML extends Controller {
 				return internalServerError("Unrecognized type");
 		}
 		
-		String base = routes.MetadataHTML.view(type, name).absoluteURL(request());
-		
-		String access = s.isTrusted() ? "intern" : "extern";
-		String stylesheetUrl = config.getMetadataStylesheetPrefix() + type + "s/" + access + "/metadata.xsl";
-		
 		Optional<Resource> resource = "dataset".equals(type)
 				? new DatasetMetadata(config, q, dqb, s).resource(name)
 				: new ServiceMetadata(config, q, s).resource(name);
-
+		
+		String base = routes.MetadataHTML.view(type, name, false).absoluteURL(request());
+		String access = s.isTrusted() ? "intern" : "extern";
+		String stylesheetUrl = config.getMetadataStylesheetPrefix() + type + "s/" + access + "/metadata.xsl";
+		
 		return resource
-				.map(res -> renderHtml(res, base, stylesheetUrl, type, name))
+				.map(res -> render(res, base, stylesheetUrl, type, name, noStyle))
 				.orElse(notFound("404 - not found " + name));
 	}
 	
-	private Result renderHtml(Resource res, String base, String stylesheetUrl, String type, String name) {
+	private Result render(Resource res, String base, String stylesheetUrl, String type, String name, Boolean noStyle) {
 		try {
+			if(noStyle) {
+				return ok(res.content()).as("text/xml; charset=utf-8");
+			}
+
 			String html = Transform.transformToHtml(base, stylesheetUrl, res.content());
 			return ok(html).as("text/html; charset=utf-8");
 		} catch (IOException | TransformerException e) {
