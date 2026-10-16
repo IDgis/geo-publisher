@@ -46,7 +46,7 @@ public class Metadata extends Controller {
 					return ok(metadata.content()).as("text/xml; charset=utf-8");
 				}
 				
-				String base = routes.Metadata.sourceDataset(sourceDatasetId, false).absoluteURL(request());
+				String base = routes.Metadata.sourceDataset(sourceDatasetId, false).absoluteURL(request(), request().secure());
 				String absoluteXslUrl = new URL(new URL(base), datasetStylesheet).toString();
 				String html = XslTransformer.transform(
 						new StreamSource(
