@@ -16,6 +16,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.Collections;
+import java.util.concurrent.TimeUnit;
+import java.util.Arrays;
 
 import org.junit.After;
 import org.junit.Before;
@@ -50,6 +53,9 @@ import nl.idgis.publisher.recorder.messages.Watch;
 import nl.idgis.publisher.recorder.messages.Watching;
 import nl.idgis.publisher.utils.FutureUtils;
 import nl.idgis.publisher.utils.TypedList;
+import nl.idgis.publisher.utils.Busy;
+
+import scala.concurrent.duration.FiniteDuration;
 
 public class JdbcDatabaseTest {
 	
@@ -57,6 +63,7 @@ public class JdbcDatabaseTest {
 	
 	private static enum SqlQueryType {
 		QUERY,
+		SLOW_QUERY,
 		UPDATE
 	}
 	
@@ -97,6 +104,18 @@ public class JdbcDatabaseTest {
 		public static Props props(Config config, Connection connection) {
 			return Props.create(TestTransaction.class, config, connection);
 		}
+
+		@Override
+		protected FiniteDuration getBusyInterval(Query query) {
+			if(query instanceof SqlQuery) {
+				SqlQuery sqlQuery = (SqlQuery)query;
+				if (sqlQuery.getType() == SqlQueryType.SLOW_QUERY) {
+					return new FiniteDuration(1, TimeUnit.MILLISECONDS);
+				}
+			}
+
+			return null;
+		}
 		
 		@Override
 		@SuppressWarnings({ "rawtypes", "unchecked" })
@@ -108,26 +127,29 @@ public class JdbcDatabaseTest {
 				
 				Object retval = null;
 				switch(sqlQuery.getType()) {
+					case SLOW_QUERY:
+						Thread.sleep(50);
+						// intentional fall-through
 					case QUERY:
 						ResultSet rs = stmt.executeQuery(sqlQuery.getSql());
-						
+
 						ResultSetMetaData md = rs.getMetaData();
 						int columnCount = md.getColumnCount();
-						
+
 						List<TypedList<Object>> records = new ArrayList<>();
 						while(rs.next()) {
 							List<Object> columns = new ArrayList<>();
 							for(int i = 1; i <= columnCount; i++) {
 								columns.add(rs.getObject(i));
 							}
-							
+
 							records.add(new TypedList<Object>(Object.class, columns));
 						}
-						
+
 						rs.close();
-						
+
 						retval = new TypedList(TypedList.class, records);
-						
+
 						break;
 					case UPDATE:
 						retval = stmt.executeUpdate(sqlQuery.getSql());
@@ -167,7 +189,11 @@ public class JdbcDatabaseTest {
 
 	@Before
 	public void startup() {
-		actorSystem = ActorSystem.create();
+		Config akkaConfig = ConfigFactory.empty()
+				.withValue("akka.loggers", ConfigValueFactory.fromIterable(Arrays.asList("akka.event.slf4j.Slf4jLogger")))
+				.withValue("akka.loglevel", ConfigValueFactory.fromAnyRef("DEBUG"));
+
+		actorSystem = ActorSystem.create("test", akkaConfig);
 		
 		Config config = ConfigFactory.empty()
 			.withValue("driver", ConfigValueFactory.fromAnyRef("org.h2.Driver"))
@@ -384,5 +410,22 @@ public class JdbcDatabaseTest {
 				}
 			}
 		}
+	}
+
+	@Test
+	public void testSlowQuery() throws Exception {
+		// auto-commit logic in database actor internally uses FutureUtils.askDelayed
+		f.ask(database, new SqlQuery("select 0", SqlQueryType.SLOW_QUERY), TypedList.class).get();
+
+		// not using FutureUtils.askDelayed results in Busy message being received
+		ActorRef transaction = f.ask(database, new StartTransaction(getClass().getName()), TransactionCreated.class).get().getActor();
+		f.ask(transaction, new SqlQuery("select 1", SqlQueryType.SLOW_QUERY), Busy.class).get();
+		f.ask(transaction, new Commit(), Ack.class);
+
+		transaction = f.ask(database, new StartTransaction(getClass().getName()), TransactionCreated.class).get().getActor();
+		f.cast(
+			f.askDelayed(transaction, new SqlQuery("select 2", SqlQueryType.SLOW_QUERY)),
+			TypedList.class).get();
+		f.ask(transaction, new Commit(), Ack.class);
 	}
 }

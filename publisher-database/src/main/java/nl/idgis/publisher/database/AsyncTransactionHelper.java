@@ -17,6 +17,10 @@ public final class AsyncTransactionHelper extends AbstractAsyncHelper implements
 	AsyncTransactionHelper(ActorRef actorRef, FutureUtils f, LoggingAdapter log) {		
 		super(actorRef, "nl.idgis.publisher.database.AsyncTransactionHelper", f, log);
 	}
+
+	public static AsyncTransactionHelper bind(AsyncTransactionRef txRef, FutureUtils f, LoggingAdapter log) {
+		return new AsyncTransactionHelper(txRef.getActorRef(), f, log);
+	}
 	
 	public CompletableFuture<Ack> commit() {
 		return f.ask(actorRef, new Commit())

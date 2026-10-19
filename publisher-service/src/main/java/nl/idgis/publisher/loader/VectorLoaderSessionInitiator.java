@@ -310,7 +310,7 @@ public class VectorLoaderSessionInitiator extends AbstractLoaderSessionInitiator
 				importColumns,
 				datasetManager,
 				filterEvaluator,
-				tx, 
+				tx.getTransactionRef(),
 				jobContext)));
 	}
 	
